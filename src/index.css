@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Rubik", "Outfit", system-ui, sans-serif;
+  --color-grandpa: #0ea5e9;
+  --color-grandpa-glow: rgba(14, 165, 233, 0.4);
+  --color-grandma: #d946ef;
+  --color-grandma-glow: rgba(217, 70, 239, 0.4);
+  
+  --animate-pulse-glow-grandpa: pulse-glow-grandpa 2s infinite alternate;
+  --animate-pulse-glow-grandma: pulse-glow-grandma 2s infinite alternate;
+  --animate-pulse-glow-reveal: pulse-glow-reveal 2s infinite alternate;
+  --animate-leaf-float: leaf-float 4s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow-grandpa {
+  0% {
+    box-shadow: 0 0 10px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.1);
+    border-color: rgba(14, 165, 233, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 25px rgba(14, 165, 233, 0.8), 0 0 40px rgba(14, 165, 233, 0.4);
+    border-color: rgba(14, 165, 233, 1);
+  }
+}
+
+@keyframes pulse-glow-grandma {
+  0% {
+    box-shadow: 0 0 10px rgba(217, 70, 239, 0.3), 0 0 20px rgba(217, 70, 239, 0.1);
+    border-color: rgba(217, 70, 239, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 25px rgba(217, 70, 239, 0.8), 0 0 40px rgba(217, 70, 239, 0.4);
+    border-color: rgba(217, 70, 239, 1);
+  }
+}
+
+@keyframes pulse-glow-reveal {
+  0% {
+    box-shadow: 0 0 10px rgba(148, 163, 184, 0.2), 0 0 15px rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(148, 163, 184, 0.6), 0 0 30px rgba(148, 163, 184, 0.3);
+    border-color: rgba(148, 163, 184, 0.8);
+  }
+}
+
+@keyframes leaf-float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-4px) rotate(1deg);
+  }
+}
+
+/* Custom Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Custom styles for organic SVG elements */
+.tree-trunk {
+  fill: url(#trunkGradient);
+  filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.5));
+}
+
+.tree-branch {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke 0.5s ease;
+}
+
+.leaf-node {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.leaf-node:hover {
+  transform: scale(1.08);
+}
+
+/* Glassmorphism styling helpers */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-light {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Reset basic HTML element margins or styles if needed */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #020617; /* bg-slate-950 */
+}
+
+/* Confetti styles */
+.confetti {
+  position: absolute;
+  pointer-events: none;
+}
