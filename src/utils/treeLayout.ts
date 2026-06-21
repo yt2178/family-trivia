@@ -253,10 +253,18 @@ export const calculateTreeLayout = (
       const parent = nodesList.find(n => n.id === node.parentId);
       if (parent) {
         let path = '';
-        const x1 = parent.x;
+        let x1 = parent.x;
         const y1 = parent.y;
         const x2 = node.x;
         const y2 = node.y;
+
+        // If parent has a spouse, draw edge from the midpoint between them!
+        if (parent.spouseId) {
+          const spouse = nodesList.find(n => n.id === parent.spouseId);
+          if (spouse) {
+            x1 = (parent.x + spouse.x) / 2;
+          }
+        }
 
         // Draw smooth organic Cubic Bezier curve paths
         if (isBotanical) {
