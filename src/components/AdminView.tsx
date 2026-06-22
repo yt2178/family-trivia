@@ -100,7 +100,10 @@ export const CONTESTANT_COLORS = [
 
 export const AdminView: React.FC = () => {
   // Tabs: 'control' | 'members' | 'questions' | 'settings' | 'import' | 'stats'
-  const [activeTab, setActiveTab] = useState<'control' | 'members' | 'questions' | 'settings' | 'import' | 'stats'>('control');
+  const [activeTab, setActiveTab] = useState<'control' | 'members' | 'questions' | 'settings' | 'import' | 'stats'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('setup') === 'true' ? 'members' : 'control';
+  });
 
   // Core Data State
   const [members, setMembers] = useState<FamilyMember[]>([]);
@@ -1180,7 +1183,7 @@ export const AdminView: React.FC = () => {
                           <div className="flex-grow">
                             <h5 className="text-sm font-bold text-slate-200">חיבור מסך ההקרנה (טלוויזיה / מקרן)</h5>
                             <p className="text-xs text-slate-400 mt-0.5">
-                              סרוק את הברקוד המופיע במסך הראשי של המחשב כדי לפתוח את המשחק בטלוויזיה.
+                              פתחו את הקישור במחשב המחובר לטלוויזיה, בחרו "התחבר לחדר קיים" והזינו את מספר החדר ← "פתח מסך הקרנה 📺".
                             </p>
                             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded mt-2 ${
                               gameScreenConnected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 text-amber-400'

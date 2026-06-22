@@ -224,8 +224,8 @@ function App() {
     setRoomCode(cleanCode);
     setRoomWarningCode(null);
     
-    // Redirect directly to host admin console
-    const url = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}`;
+    // Redirect directly to host admin console (setup=true tells AdminView to open on members tab)
+    const url = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}&setup=true`;
     window.location.href = url;
   };
 
@@ -571,12 +571,13 @@ function App() {
         <div className="glass-panel p-6 rounded-3xl border border-slate-800 max-w-xl mx-auto text-right text-xs space-y-3">
           <h4 className="font-bold text-emerald-400 flex items-center gap-1.5 border-b border-slate-800 pb-2 mb-2">
             <HelpCircle size={16} />
-            <span>איך מתחילים לשחק ב-3 שלבים פשוטים? 🎮</span>
+            <span>איך מתחילים לשחק ב-4 שלבים פשוטים? 🎮</span>
           </h4>
           <ol className="list-decimal list-inside space-y-2 text-slate-350 pr-1 leading-relaxed">
-            <li>בלשונית <strong>"צור חדר חדש"</strong>, הגדר את שם המנחה, הזן מספר חדר לבחירתך (למשל `10`) ולחץ על <strong>צור חדר</strong>.</li>
-            <li>תועבר מיד למסך המנחה. שם תוכל להוסיף את בני המשפחה, המתמודדים והציטוטים (או לייבא מקובץ Excel).</li>
-            <li>בכותרת מסך המנחה, לחץ על הכפתור הכחול <strong>"פתח מסך הקרנה 📺"</strong>, וגרור את החלון החדש למקרן או לטלוויזיה! המשחק יסונכרן אוטומטית.</li>
+            <li><strong>הכנה מהטלפון:</strong> פתחו את הקישור בטלפון, לחצו <strong>"צור חדר חדש"</strong>, הזינו שם מנחה ומספר חדר ולחצו <strong>צור חדר</strong>.</li>
+            <li><strong>הזנת תוכן:</strong> במסך המנחה בטלפון — הוסיפו את בני המשפחה, המתמודדים, השאלות והציטוטים (או ייבאו מקובץ Excel).</li>
+            <li><strong>חיבור המחשב:</strong> לאחר שהכל מוכן, פתחו את הקישור במחשב (שמחובר לטלוויזיה/מקרן), בחרו <strong>"התחבר לחדר קיים"</strong> והזינו את אותו מספר חדר ← לחצו <strong>"פתח מסך הקרנה 📺"</strong>.</li>
+            <li><strong>התחלת המשחק:</strong> חזרו לטלפון, התחברו שוב כשלט מנחה לאותו חדר, והתחילו לשחק!</li>
           </ol>
         </div>
 
