@@ -3,6 +3,8 @@ import { AdminView } from './components/AdminView';
 import { GameView } from './components/GameView';
 import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, QrCode, ArrowRight, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { rtdb } from './utils/firebase';
+import { ref, onValue, off } from 'firebase/database';
 
 function App() {
   const [mode, setMode] = useState<'welcome' | 'admin' | 'game'>('welcome');
@@ -48,6 +50,26 @@ function App() {
     window.addEventListener('popstate', updateMode);
     return () => window.removeEventListener('popstate', updateMode);
   }, []);
+
+  // Listen for admin/phone connection to automatically start the game on the projector screen
+  useEffect(() => {
+    if (mode !== 'welcome' || !roomCode || activeTab !== 'cloud') return;
+
+    const roomRef = ref(rtdb, `rooms/${roomCode}/lastMessage`);
+    const unsubscribe = onValue(roomRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const val = snapshot.val();
+        if (val && val.message) {
+          const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+          window.location.href = url;
+        }
+      }
+    });
+
+    return () => {
+      off(roomRef);
+    };
+  }, [mode, roomCode, activeTab]);
 
   const launchCloudGame = () => {
     if (!roomCode) return;
@@ -143,106 +165,101 @@ function App() {
 
         {/* Cloud Tab View */}
         {activeTab === 'cloud' && (
-          <div className="grid md:grid-cols-5 gap-6 text-right max-w-2xl mx-auto">
-            {/* Host Section */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="md:col-span-3 glass-panel p-6 rounded-3xl border border-slate-800 flex flex-col justify-between space-y-4 hover:border-emerald-500/20 transition-all shadow-xl"
-            >
-              <div>
-                <h3 className="text-xl font-bold text-emerald-300 flex items-center gap-2 mb-1 justify-end">
-                  <span>1. מסך ההקרנה במחשב</span>
-                  <Tv size={20} className="text-emerald-400" />
-                </h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  הפעל את המשחק על המחשב המחובר למקרן או לטלוויזיה. הטלפון שלך ישלוט עליו מרחוק.
-                </p>
+          <div className="max-w-2xl mx-auto glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 hover:border-emerald-500/10 transition-all shadow-2xl relative overflow-hidden text-right">
+            {/* Glowing background highlights */}
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="grid md:grid-cols-12 gap-8 items-center">
+              
+              {/* QR Code Column */}
+              <div className="md:col-span-5 flex flex-col items-center space-y-3">
+                <div className="relative p-3 bg-white rounded-2xl shadow-xl flex items-center justify-center border-4 border-slate-900 overflow-hidden">
+                  <img
+                    src={qrCodeUrl}
+                    alt="סרוק להתחברות"
+                    className="w-36 h-36 object-contain"
+                  />
+                </div>
+                <span className="text-xs font-bold text-slate-400">סרקו בנייד להתחברות מיידית</span>
               </div>
 
-              <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-900 text-center space-y-2">
-                <span className="text-[10px] text-slate-500 block uppercase tracking-wider">קוד החדר שלך</span>
-                <div className="flex items-center justify-center gap-3">
-                  <span className="text-4xl font-black tracking-widest text-emerald-400 font-mono">
-                    {roomCode}
-                  </span>
+              {/* Room Code & Info Column */}
+              <div className="md:col-span-7 space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-2xl font-black text-slate-100 flex items-center justify-end gap-2">
+                    <span>חיבור שלט מנחה</span>
+                    <Smartphone className="text-emerald-400" size={24} />
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    השאירו מסך זה פתוח במחשב (המחובר לטלוויזיה או למקרן). סרקו את הברקוד או הזינו את קוד החדר בטלפון, והמשחק יופעל כאן אוטומטית!
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-900 flex justify-between items-center">
                   <button
                     onClick={regenerateCode}
-                    className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
+                    className="p-2 hover:bg-slate-800 rounded-xl text-slate-500 hover:text-emerald-400 transition-colors"
                     title="רענן קוד חדר"
                   >
                     <RefreshCw size={16} />
                   </button>
+                  <div className="text-left">
+                    <span className="text-[9px] text-slate-500 block uppercase tracking-wider">קוד חדר נוכחי</span>
+                    <span className="text-3xl font-black tracking-widest text-emerald-400 font-mono">
+                      {roomCode}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 text-xs font-bold text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 py-2.5 px-4 rounded-xl">
+                  <span className="animate-pulse">ממתין לסריקה מהטלפון... ⏳</span>
                 </div>
               </div>
+            </div>
 
-              <button
-                onClick={launchCloudGame}
-                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-sm rounded-xl hover:from-emerald-400 hover:to-teal-300 transition-all shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5"
-              >
-                <Play size={16} fill="currentColor" />
-                <span>פתח מסך משחק להקרנה</span>
-              </button>
-            </motion.div>
-
-            {/* Controller / Join Section */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="md:col-span-2 glass-panel p-6 rounded-3xl border border-slate-800 flex flex-col justify-between space-y-4 hover:border-sky-500/20 transition-all shadow-xl"
-            >
-              <div>
-                <h3 className="text-xl font-bold text-sky-300 flex items-center gap-2 mb-1 justify-end">
-                  <span>2. שלט המנחה בטלפון</span>
-                  <Smartphone size={20} className="text-sky-400" />
-                </h3>
-                <p className="text-[11px] text-slate-400 leading-normal">
-                  סרוק את הברקוד מהטלפון או הקלד קוד חדר להתחברות מיידית כשלט:
-                </p>
-              </div>
-
-              {/* QR Code integration */}
-              <div className="flex flex-col items-center justify-center bg-white p-2.5 rounded-2xl w-40 h-40 mx-auto shadow-md">
-                <img
-                  src={qrCodeUrl}
-                  alt="סרוק להתחברות"
-                  className="w-full h-full object-contain"
+            {/* Manual controls (collapsed / small details at bottom) */}
+            <div className="border-t border-slate-900 pt-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
+              
+              {/* Manual Room Entry Form */}
+              <form onSubmit={handleJoinAsAdmin} className="flex gap-2 w-full sm:w-auto">
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={inputRoomCode}
+                  onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
+                  placeholder="הקלד קוד חדר להתחברות ידנית"
+                  className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-center text-xs font-bold text-sky-200 placeholder-slate-600 focus:outline-none focus:border-sky-500 font-mono w-40"
                 />
-              </div>
-
-              {/* Manual Room Entry */}
-              <form onSubmit={handleJoinAsAdmin} className="space-y-2">
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    className="p-3 bg-sky-500 text-slate-950 rounded-xl hover:bg-sky-400 transition-colors"
-                  >
-                    <ArrowRight size={16} className="rotate-180" />
-                  </button>
-                  <input
-                    type="text"
-                    maxLength={4}
-                    value={inputRoomCode}
-                    onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
-                    placeholder="קוד חדר"
-                    className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-center text-sm font-bold text-sky-200 placeholder-slate-600 focus:outline-none focus:border-sky-500 font-mono"
-                  />
-                </div>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg font-bold transition-colors"
+                >
+                  התחבר כשלט
+                </button>
               </form>
 
-              {lastRoomCode && lastRoomCode !== roomCode && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    localStorage.setItem('last_connected_room', lastRoomCode);
-                    window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${lastRoomCode}`;
-                  }}
-                  className="w-full py-2 bg-slate-900/60 border border-slate-800 hover:border-sky-500/20 text-xs text-sky-400 font-bold rounded-xl transition-all"
-                >
-                  התחבר מחדש לחדר הקודם ({lastRoomCode})
-                </button>
-              )}
-            </motion.div>
+              {/* Manual screen launch */}
+              <button
+                onClick={launchCloudGame}
+                className="text-slate-400 hover:text-white transition-colors underline text-xs font-semibold"
+              >
+                או: פתח ידנית את מסך ההקרנה
+              </button>
+            </div>
+
+            {lastRoomCode && lastRoomCode !== roomCode && (
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem('last_connected_room', lastRoomCode);
+                  window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${lastRoomCode}`;
+                }}
+                className="w-full py-2 bg-slate-900/40 border border-slate-800 hover:border-sky-500/20 text-xs text-sky-400 font-bold rounded-xl transition-all"
+              >
+                התחבר מחדש לחדר הקודם ({lastRoomCode})
+              </button>
+            )}
           </div>
         )}
 

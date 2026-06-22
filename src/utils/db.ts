@@ -15,22 +15,29 @@ export interface TriviaQuestion {
   speakerId: string;
 }
 
+export interface Contestant {
+  id: string;
+  name: string;
+  image: string | null;
+}
+
 export interface GameSettings {
   grandpaName: string;
   grandpaImage: string | null;
   grandmaName: string;
   grandmaImage: string | null;
   theme: 'forest' | 'gold' | 'neon' | 'classic';
-  treeLayout: 'botanical' | 'traditional';
+  treeLayout: 'botanical' | 'traditional' | 'none';
+  contestants: Contestant[]; // Dynamic list of contestants (up to 4)
 }
 
 export interface GameState {
   currentQuestionIndex: number;
-  scores: { grandpa: number; grandma: number };
-  solvedQuestions: Record<string, 'grandpa' | 'grandma' | 'nobody'>; // maps questionId to winner
-  revealedSpeakers: Record<string, boolean>; // maps memberId to whether they've been revealed/solved in the game
+  scores: Record<string, number>; // contestantId -> score
+  solvedQuestions: Record<string, string>; // questionId -> winning contestantId ('nobody' or contestant.id)
+  revealedSpeakers: Record<string, boolean>; // memberId -> whether revealed
   shuffledQuestionIds: string[];
-  isRevealed: boolean; // Is current question answer revealed
+  isRevealed: boolean;
   isPlaying: boolean;
 }
 
@@ -51,8 +58,12 @@ const DEFAULT_SETTINGS: GameSettings = {
   grandpaImage: null,
   grandmaName: '',
   grandmaImage: null,
-  theme: 'forest',
-  treeLayout: 'traditional', // Traditional top-down layout by default
+  theme: 'classic',
+  treeLayout: 'traditional',
+  contestants: [
+    { id: 'grandpa', name: 'סבא', image: null },
+    { id: 'grandma', name: 'סבתא', image: null }
+  ]
 };
 
 const DEFAULT_GAME_STATE: GameState = {
@@ -69,7 +80,7 @@ export const db = {
   // Family Members
   getMembers(): FamilyMember[] {
     const DB_VERSION_KEY = 'family_game_db_version';
-    const CURRENT_VERSION = 'v6'; // Changed to v6 for empty default settings names
+    const CURRENT_VERSION = 'v7'; // Incremented for contestants schema
     
     const version = localStorage.getItem(DB_VERSION_KEY);
     if (version !== CURRENT_VERSION) {
@@ -119,7 +130,32 @@ export const db = {
       this.saveSettings(DEFAULT_SETTINGS);
       return DEFAULT_SETTINGS;
     }
-    return JSON.parse(data);
+    try {
+      const parsed = JSON.parse(data) as GameSettings;
+      let changed = false;
+
+      // Migrate contestants if missing
+      if (!parsed.contestants || !Array.isArray(parsed.contestants)) {
+        parsed.contestants = [
+          { id: 'grandpa', name: parsed.grandpaName || 'סבא', image: parsed.grandpaImage },
+          { id: 'grandma', name: parsed.grandmaName || 'סבתא', image: parsed.grandmaImage }
+        ];
+        changed = true;
+      }
+      
+      if (!parsed.treeLayout) {
+        parsed.treeLayout = 'traditional';
+        changed = true;
+      }
+
+      if (changed) {
+        this.saveSettings(parsed);
+      }
+      return parsed;
+    } catch (e) {
+      console.error('Failed to parse settings, using defaults', e);
+      return DEFAULT_SETTINGS;
+    }
   },
 
   saveSettings(settings: GameSettings): void {
@@ -134,7 +170,32 @@ export const db = {
       this.saveGameState(state);
       return state;
     }
-    return JSON.parse(data);
+    try {
+      const parsed = JSON.parse(data) as GameState;
+      const currentSettings = this.getSettings();
+      let changed = false;
+
+      if (!parsed.scores || typeof parsed.scores !== 'object') {
+        parsed.scores = {};
+        changed = true;
+      }
+
+      // Ensure every contestant has a score record
+      currentSettings.contestants.forEach(c => {
+        if (parsed.scores[c.id] === undefined) {
+          parsed.scores[c.id] = 0;
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        this.saveGameState(parsed);
+      }
+      return parsed;
+    } catch (e) {
+      console.error('Failed to parse game state, using defaults', e);
+      return DEFAULT_GAME_STATE;
+    }
   },
 
   saveGameState(state: GameState): void {
@@ -144,16 +205,22 @@ export const db = {
   // Reset Game
   resetGame(): GameState {
     const questions = this.getQuestions();
-    // Fisher-Yates shuffle for proper randomization
     const ids = [...questions].map(q => q.id);
     for (let i = ids.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [ids[i], ids[j]] = [ids[j], ids[i]];
     }
     
+    // Initialize scores for all current contestants
+    const currentSettings = this.getSettings();
+    const initialScores: Record<string, number> = {};
+    currentSettings.contestants.forEach(c => {
+      initialScores[c.id] = 0;
+    });
+    
     const newState: GameState = {
       currentQuestionIndex: 0,
-      scores: { grandpa: 0, grandma: 0 },
+      scores: initialScores,
       solvedQuestions: {},
       revealedSpeakers: {},
       shuffledQuestionIds: ids,
@@ -184,7 +251,6 @@ export const db = {
         if (parsed.settings) {
           this.saveSettings(parsed.settings);
         }
-        // Reset game state
         this.resetGame();
         return true;
       }

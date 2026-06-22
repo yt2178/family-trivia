@@ -7,7 +7,7 @@ export type SyncMessage =
   | { type: 'SETTINGS_CHANGED'; settings: GameSettings }
   | { type: 'DATABASE_SYNC'; members: FamilyMember[]; questions: TriviaQuestion[]; settings: GameSettings }
   | { type: 'REQUEST_DATABASE' }
-  | { type: 'TRIGGER_CONFETTI'; winner: 'grandpa' | 'grandma' | 'nobody' }
+  | { type: 'TRIGGER_CONFETTI'; winner: string; isUndo?: boolean }
   | { type: 'PING' }
   | { type: 'PONG' };
 

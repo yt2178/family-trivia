@@ -69,6 +69,33 @@ const compressImage = (base64Str: string, maxWidth = 160, maxHeight = 160): Prom
   });
 };
 
+export const CONTESTANT_COLORS = [
+  {
+    bg: 'bg-sky-950/40 border-sky-500/40 hover:bg-sky-900/40 text-sky-100',
+    text: 'text-sky-400',
+    glow: 'כחול Glow',
+    border: 'border-sky-500'
+  },
+  {
+    bg: 'bg-fuchsia-950/40 border-fuchsia-500/40 hover:bg-fuchsia-900/40 text-fuchsia-100',
+    text: 'text-fuchsia-400',
+    glow: 'סגול Glow',
+    border: 'border-fuchsia-500'
+  },
+  {
+    bg: 'bg-amber-950/40 border-amber-500/40 hover:bg-amber-900/40 text-amber-100',
+    text: 'text-amber-400',
+    glow: 'כתום Glow',
+    border: 'border-amber-500'
+  },
+  {
+    bg: 'bg-emerald-950/40 border-emerald-500/40 hover:bg-emerald-900/40 text-emerald-100',
+    text: 'text-emerald-400',
+    glow: 'ירוק Glow',
+    border: 'border-emerald-500'
+  }
+];
+
 export const AdminView: React.FC = () => {
   // Tabs: 'control' | 'members' | 'questions' | 'settings' | 'import' | 'stats'
   const [activeTab, setActiveTab] = useState<'control' | 'members' | 'questions' | 'settings' | 'import' | 'stats'>('control');
@@ -161,26 +188,116 @@ export const AdminView: React.FC = () => {
     return options;
   };
 
+  // Helper to heal spouse generations
+  const healMembersGenerations = (membersList: FamilyMember[]): FamilyMember[] => {
+    const healed = membersList.map(m => {
+      if (m.spouseId) {
+        const spouse = membersList.find(s => s.id === m.spouseId);
+        if (spouse && m.generation !== spouse.generation) {
+          if (spouse.parentId && !m.parentId) {
+            return { ...m, generation: spouse.generation };
+          } else if (m.parentId && !spouse.parentId) {
+            return m;
+          } else {
+            return { ...m, generation: spouse.generation };
+          }
+        }
+      }
+      return m;
+    });
+
+    return healed.map(m => {
+      if (m.spouseId) {
+        const spouse = healed.find(s => s.id === m.spouseId);
+        if (spouse && m.generation !== spouse.generation) {
+          return { ...m, generation: spouse.generation };
+        }
+      }
+      return m;
+    });
+  };
+
+  // Pure Web Audio API tone generator for Admin Sound effects
+  const playAdminSound = (type: 'success' | 'undo' | 'reveal') => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      
+      if (type === 'success') {
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        osc2.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
+        
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        
+        osc1.start();
+        osc2.start();
+        
+        setTimeout(() => {
+          osc1.stop();
+          osc2.stop();
+          ctx.close();
+        }, 400);
+      } else if (type === 'undo') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.frequency.setValueAtTime(392.00, ctx.currentTime); // G4
+        osc.frequency.exponentialRampToValueAtTime(261.63, ctx.currentTime + 0.35); // C4
+        
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        
+        osc.start();
+        setTimeout(() => {
+          osc.stop();
+          ctx.close();
+        }, 400);
+      }
+    } catch (e) {
+      console.warn("AudioContext tone failed:", e);
+    }
+  };
+
   // Load Data
   useEffect(() => {
     const loadedMembers = db.getMembers();
+    const healedMembers = healMembersGenerations(loadedMembers);
     const loadedQuestions = db.getQuestions();
     const loadedSettings = db.getSettings();
-    setMembers(loadedMembers);
+    
+    setMembers(healedMembers);
     setQuestions(loadedQuestions);
     setSettings(loadedSettings);
     setGameState(db.getGameState());
 
+    const hasChanges = JSON.stringify(loadedMembers) !== JSON.stringify(healedMembers);
+    if (hasChanges) {
+      db.saveMembers(healedMembers);
+    }
+
     // Broadcast initial database state
     sync.sendMessage({
       type: 'DATABASE_SYNC',
-      members: loadedMembers,
+      members: healedMembers,
       questions: loadedQuestions,
       settings: loadedSettings
     });
   }, []);
 
-  // Listen to remote client database requests
+  // Listen to remote client database requests and incoming sync updates
   useEffect(() => {
     const unsubscribe = sync.subscribe((msg) => {
       if (msg.type === 'REQUEST_DATABASE') {
@@ -190,6 +307,20 @@ export const AdminView: React.FC = () => {
           questions: db.getQuestions(),
           settings: db.getSettings()
         });
+      } else if (msg.type === 'DATABASE_SYNC') {
+        const healed = healMembersGenerations(msg.members);
+        setMembers(healed);
+        setQuestions(msg.questions);
+        setSettings(msg.settings);
+        db.saveMembers(healed);
+        db.saveQuestions(msg.questions);
+        db.saveSettings(msg.settings);
+      } else if (msg.type === 'STATE_CHANGED') {
+        setGameState(msg.state);
+        db.saveGameState(msg.state);
+      } else if (msg.type === 'SETTINGS_CHANGED') {
+        setSettings(msg.settings);
+        db.saveSettings(msg.settings);
       }
     });
     return () => unsubscribe();
@@ -205,6 +336,31 @@ export const AdminView: React.FC = () => {
   const updateSettings = (newSettings: GameSettings) => {
     setSettings(newSettings);
     db.saveSettings(newSettings);
+    
+    // Update scores in gameState for new contestants if not exists
+    const newScores = { ...gameState.scores };
+    let scoreChanged = false;
+    newSettings.contestants.forEach(c => {
+      if (newScores[c.id] === undefined) {
+        newScores[c.id] = 0;
+        scoreChanged = true;
+      }
+    });
+    // Clean up scores of removed contestants
+    Object.keys(newScores).forEach(key => {
+      if (!newSettings.contestants.some(c => c.id === key)) {
+        delete newScores[key];
+        scoreChanged = true;
+      }
+    });
+    
+    if (scoreChanged) {
+      const updatedState = { ...gameState, scores: newScores };
+      setGameState(updatedState);
+      db.saveGameState(updatedState);
+      sync.sendMessage({ type: 'STATE_CHANGED', state: updatedState });
+    }
+
     sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
     sync.sendMessage({ type: 'DATABASE_SYNC', members, questions, settings: newSettings });
   };
@@ -220,24 +376,22 @@ export const AdminView: React.FC = () => {
     const total = gameState.shuffledQuestionIds.length;
     if (gameState.currentQuestionIndex < total) {
       const nextIndex = gameState.currentQuestionIndex + 1;
-      const updated = {
+      updateGameState({
         ...gameState,
         currentQuestionIndex: nextIndex,
         isRevealed: false,
-      };
-      updateGameState(updated);
+      });
     }
   };
 
   const handlePrevQuestion = () => {
     if (gameState.currentQuestionIndex > 0) {
       const prevIndex = gameState.currentQuestionIndex - 1;
-      const updated = {
+      updateGameState({
         ...gameState,
         currentQuestionIndex: prevIndex,
         isRevealed: false,
-      };
-      updateGameState(updated);
+      });
     }
   };
 
@@ -248,16 +402,37 @@ export const AdminView: React.FC = () => {
     });
   };
 
-  const handleAssignPoints = (winner: 'grandpa' | 'grandma' | 'nobody') => {
+  const handleAssignPoints = (winner: string) => {
     const currentQId = gameState.shuffledQuestionIds[gameState.currentQuestionIndex];
     if (!currentQId) return;
 
+    const currentWinner = gameState.solvedQuestions[currentQId];
     const newScores = { ...gameState.scores };
-    if (winner === 'grandpa') newScores.grandpa += 1;
-    if (winner === 'grandma') newScores.grandma += 1;
+    let newSolved = { ...gameState.solvedQuestions };
+    let isUndo = false;
 
-    // Update solved questions mapping
-    const newSolved = { ...gameState.solvedQuestions, [currentQId]: winner };
+    // Toggle logic (Undo if clicked again)
+    if (currentWinner === winner) {
+      // Undo point
+      delete newSolved[currentQId];
+      newScores[winner] = Math.max(0, (newScores[winner] || 0) - 1);
+      isUndo = true;
+      showSuccess('בוטל הניקוד עבור שחקן זה בשאלה הנוכחית.');
+    } else {
+      // If there was a different winner previously, deduct their point first!
+      if (currentWinner && currentWinner !== 'nobody') {
+        newScores[currentWinner] = Math.max(0, (newScores[currentWinner] || 0) - 1);
+      }
+      
+      // Assign new point
+      if (winner !== 'nobody') {
+        newScores[winner] = (newScores[winner] || 0) + 1;
+        newSolved[currentQId] = winner;
+      } else {
+        delete newSolved[currentQId];
+      }
+      showSuccess('הניקוד עודכן בהצלחה!');
+    }
 
     const updatedState = {
       ...gameState,
@@ -268,8 +443,13 @@ export const AdminView: React.FC = () => {
 
     updateGameState(updatedState);
     
+    // Play sound effect
+    playAdminSound(isUndo ? 'undo' : 'success');
+
     // Trigger confetti on the projector!
-    sync.sendMessage({ type: 'TRIGGER_CONFETTI', winner });
+    if (winner !== 'nobody') {
+      sync.sendMessage({ type: 'TRIGGER_CONFETTI', winner, isUndo });
+    }
   };
 
 
@@ -294,7 +474,7 @@ export const AdminView: React.FC = () => {
       return;
     }
 
-    // Automatically calculate generation based on parentId
+    // Automatically calculate generation based on parentId or spouseId
     let generation: FamilyMember['generation'] = 'grandparent';
     if (newMember.parentId) {
       const parent = members.find(m => m.id === newMember.parentId);
@@ -303,6 +483,11 @@ export const AdminView: React.FC = () => {
         else if (parent.generation === 'parent') generation = 'child';
         else if (parent.generation === 'child') generation = 'grandchild';
         else generation = 'great-grandchild';
+      }
+    } else if (newMember.spouseId) {
+      const spouse = members.find(m => m.id === newMember.spouseId);
+      if (spouse) {
+        generation = spouse.generation;
       }
     }
 
@@ -331,15 +516,14 @@ export const AdminView: React.FC = () => {
 
     let updated = [...members, memberToAdd];
 
-    // If spouseId is specified, we must set the spouse's spouseId to this member's ID!
+    // If spouseId is specified, set the spouse's spouseId and match generation
     if (spouseId) {
       updated = updated.map(m => {
         if (m.id === spouseId) {
-          return { ...m, spouseId: id };
+          return { ...m, spouseId: id, generation };
         }
         return m;
       });
-      // Copy parentId from spouse to keep them grouped under the same parent
       const spouseNode = members.find(m => m.id === spouseId);
       if (spouseNode && spouseNode.parentId) {
         memberToAdd.parentId = spouseNode.parentId;
@@ -350,16 +534,18 @@ export const AdminView: React.FC = () => {
     db.saveMembers(updated);
     sync.sendMessage({ type: 'DATABASE_SYNC', members: updated, questions, settings });
     
+    // Reset form
     setNewMember({
       name: '',
-      generation: 'grandchild',
       parentId: '',
-      image: null,
       gender: 'male',
+      image: null,
+      generation: 'grandchild',
       familyName: '',
       spouseId: '',
     });
-    showSuccess('בן המשפחה נוסף בהצלחה!');
+
+    showSuccess('בן המשפחה הועלה ונוסף בהצלחה!');
   };
 
   const handleDeleteMember = (id: string) => {
@@ -389,7 +575,7 @@ export const AdminView: React.FC = () => {
     e.preventDefault();
     if (!editingMemberId || !newMember.name) return;
 
-    // Recalculate generation based on parentId
+    // Recalculate generation based on parentId or spouseId
     let generation: FamilyMember['generation'] = 'grandparent';
     if (newMember.parentId) {
       const parent = members.find(p => p.id === newMember.parentId);
@@ -398,6 +584,11 @@ export const AdminView: React.FC = () => {
         else if (parent.generation === 'parent') generation = 'child';
         else if (parent.generation === 'child') generation = 'grandchild';
         else generation = 'great-grandchild';
+      }
+    } else if (newMember.spouseId) {
+      const spouse = members.find(p => p.id === newMember.spouseId);
+      if (spouse) {
+        generation = spouse.generation;
       }
     }
 
@@ -439,11 +630,11 @@ export const AdminView: React.FC = () => {
       });
     }
 
-    // Set new spouse relationship
+    // Set new spouse relationship and align generation
     if (spouseId) {
       updated = updated.map(m => {
         if (m.id === spouseId) {
-          return { ...m, spouseId: editingMemberId };
+          return { ...m, spouseId: editingMemberId, generation };
         }
         return m;
       });
@@ -554,8 +745,8 @@ export const AdminView: React.FC = () => {
 
 
   // --- EXCEL & BACKUP ACTIONS ---
-  const handleExcelTemplateDownload = () => {
-    excelHelper.downloadTemplate();
+  const handleExcelTemplateDownload = (mode: 'tree' | 'list') => {
+    excelHelper.downloadTemplate(mode);
   };
 
   const handleImportMembersExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -629,16 +820,28 @@ export const AdminView: React.FC = () => {
   };
 
   // Settings photo uploads
-  const handleSettingsImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, role: 'grandpa' | 'grandma') => {
+  const handleSettingsImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, contestantId: string) => {
     const file = e.target.files?.[0];
     if (file) {
       const base64 = await fileToBase64(file);
       const compressed = await compressImage(base64);
-      if (role === 'grandpa') {
-        updateSettings({ ...settings, grandpaImage: compressed });
-      } else {
-        updateSettings({ ...settings, grandmaImage: compressed });
-      }
+      
+      const updatedContestants = settings.contestants.map(c => 
+        c.id === contestantId ? { ...c, image: compressed } : c
+      );
+      
+      // For backward compatibility
+      let grandpaImage = settings.grandpaImage;
+      let grandmaImage = settings.grandmaImage;
+      if (contestantId === 'grandpa' || settings.contestants[0]?.id === contestantId) grandpaImage = compressed;
+      if (contestantId === 'grandma' || settings.contestants[1]?.id === contestantId) grandmaImage = compressed;
+
+      updateSettings({ 
+        ...settings, 
+        contestants: updatedContestants,
+        grandpaImage,
+        grandmaImage
+      });
     }
   };
 
@@ -736,7 +939,7 @@ export const AdminView: React.FC = () => {
             }`}
           >
             <Users size={14} />
-            <span>ניהול משפחה</span>
+            <span>{settings.treeLayout === 'none' ? 'ניהול משתתפים' : 'ניהול משפחה'}</span>
           </button>
           <button
             onClick={() => setActiveTab('questions')}
@@ -838,32 +1041,34 @@ export const AdminView: React.FC = () => {
                         <span className="text-xs text-slate-400 block mb-3 font-semibold">
                           מי צדק במשחק המשפחה?
                         </span>
-                        <div className="grid grid-cols-3 gap-4">
-                          <button
-                            onClick={() => handleAssignPoints('grandpa')}
-                            className="p-4 bg-sky-950/40 border border-sky-500/40 hover:bg-sky-900/40 transition-colors rounded-2xl flex flex-col items-center gap-2 group text-sky-100"
-                          >
-                            <Check size={28} className="text-sky-400 group-hover:scale-110 transition-transform" />
-                            <span className="font-bold text-sm">{settings.grandpaName} צדק!</span>
-                            <span className="text-[10px] text-sky-400/80">+1 נקודה וכחול Glow</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => handleAssignPoints('grandma')}
-                            className="p-4 bg-fuchsia-950/40 border border-fuchsia-500/40 hover:bg-fuchsia-900/40 transition-colors rounded-2xl flex flex-col items-center gap-2 group text-fuchsia-100"
-                          >
-                            <Check size={28} className="text-fuchsia-400 group-hover:scale-110 transition-transform" />
-                            <span className="font-bold text-sm">{settings.grandmaName} צדקה!</span>
-                            <span className="text-[10px] text-fuchsia-400/80">+1 נקודה וסגול Glow</span>
-                          </button>
+                        <div className={`grid gap-4 ${settings.contestants.length <= 2 ? 'grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'}`}>
+                          {settings.contestants.map((c, index) => {
+                            const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
+                            const isWinner = gameState.solvedQuestions[gameState.shuffledQuestionIds[gameState.currentQuestionIndex]] === c.id;
+                            return (
+                              <button
+                                key={c.id}
+                                onClick={() => handleAssignPoints(c.id)}
+                                className={`p-4 hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl flex flex-col items-center gap-2 group relative border ${
+                                  isWinner
+                                    ? `${colors.border} bg-slate-900 shadow-lg shadow-${colors.text.split('-')[1]}-500/20`
+                                    : colors.bg
+                                }`}
+                              >
+                                <Check size={28} className={`${isWinner ? colors.text : 'text-slate-500'} group-hover:scale-110 transition-transform`} />
+                                <span className="font-bold text-sm">{c.name} {c.name.endsWith('ה') || c.name.endsWith('ת') ? 'צדקה!' : 'צדק!'}</span>
+                                <span className="text-[10px] text-slate-400">{isWinner ? 'לחץ שוב לביטול' : `+1 נקודה ו-${colors.glow}`}</span>
+                              </button>
+                            );
+                          })}
 
                           <button
                             onClick={() => handleAssignPoints('nobody')}
                             className="p-4 bg-slate-900 border border-slate-800 hover:bg-slate-800/80 transition-colors rounded-2xl flex flex-col items-center gap-2 group text-slate-300"
                           >
                             <X size={28} className="text-slate-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-bold text-sm">אף אחד לא צדק</span>
-                            <span className="text-[10px] text-slate-500">חשיפת התשובה באפור</span>
+                            <span className="font-bold text-sm">אף אחד</span>
+                            <span className="text-[10px] text-slate-500">חשיפה באפור</span>
                           </button>
                         </div>
                       </div>
@@ -1015,16 +1220,18 @@ export const AdminView: React.FC = () => {
                   ניקוד נוכחי
                 </h3>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-sky-950/20 border border-sky-500/20 rounded-2xl flex flex-col items-center">
-                    <span className="text-xs text-sky-400 font-semibold">{settings.grandpaName}</span>
-                    <div className="text-4xl font-extrabold text-sky-200 mt-2">{gameState.scores.grandpa}</div>
-                  </div>
-                  
-                  <div className="p-4 bg-fuchsia-950/20 border border-fuchsia-500/20 rounded-2xl flex flex-col items-center">
-                    <span className="text-xs text-fuchsia-400 font-semibold">{settings.grandmaName}</span>
-                    <div className="text-4xl font-extrabold text-fuchsia-200 mt-2">{gameState.scores.grandma}</div>
-                  </div>
+                <div className={`grid gap-4 ${settings.contestants.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-2 xl:grid-cols-4'}`}>
+                  {settings.contestants.map((c, index) => {
+                    const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
+                    return (
+                      <div key={c.id} className={`p-4 bg-slate-900 border ${colors.border}/20 rounded-2xl flex flex-col items-center`}>
+                        <span className={`text-xs ${colors.text} font-semibold truncate max-w-full`}>{c.name}</span>
+                        <div className={`text-3xl md:text-4xl font-extrabold text-slate-200 mt-2`}>
+                          {gameState.scores[c.id] || 0}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {isGameLoaded && (
@@ -1142,54 +1349,58 @@ export const AdminView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Parent Dropdown */}
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">שם ההורים (המקשר לעץ)</label>
-                  <select
-                    value={newMember.parentId}
-                    onChange={e => setNewMember({ ...newMember, parentId: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="">ללא הורה (סבא/סבתא מייסדי המשפחה)</option>
-                    
-                    {members.some(m => m.generation === 'grandparent') && (
-                      <optgroup label="סבים וסבתות (מייסדי המשפחה)">
-                        {renderParentOptions('grandparent')}
-                      </optgroup>
-                    )}
-                    
-                    {members.some(m => m.generation === 'parent') && (
-                      <optgroup label="דור הילדים (בנים ובנות של המייסדים)">
-                        {renderParentOptions('parent')}
-                      </optgroup>
-                    )}
-                    
-                    {members.some(m => m.generation === 'child') && (
-                      <optgroup label="דור הנכדים">
-                        {renderParentOptions('child')}
-                      </optgroup>
-                    )}
-                  </select>
-                </div>
+                {settings.treeLayout !== 'none' && (
+                  <>
+                    {/* Parent Dropdown */}
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">שם ההורים (המקשר לעץ)</label>
+                      <select
+                        value={newMember.parentId}
+                        onChange={e => setNewMember({ ...newMember, parentId: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="">ללא הורה (סבא/סבתא מייסדי המשפחה)</option>
+                        
+                        {members.some(m => m.generation === 'grandparent') && (
+                          <optgroup label="סבים וסבתות (מייסדי המשפחה)">
+                            {renderParentOptions('grandparent')}
+                          </optgroup>
+                        )}
+                        
+                        {members.some(m => m.generation === 'parent') && (
+                          <optgroup label="דור הילדים (בנים ובנות של המייסדים)">
+                            {renderParentOptions('parent')}
+                          </optgroup>
+                        )}
+                        
+                        {members.some(m => m.generation === 'child') && (
+                          <optgroup label="דור הנכדים">
+                            {renderParentOptions('child')}
+                          </optgroup>
+                        )}
+                      </select>
+                    </div>
 
-                {/* Spouse Dropdown */}
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">בן/בת זוג (אופציונלי)</label>
-                  <select
-                    value={newMember.spouseId || ''}
-                    onChange={e => setNewMember({ ...newMember, spouseId: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="">ללא בן/בת זוג</option>
-                    {members
-                      .filter(m => m.id !== editingMemberId && (!m.spouseId || m.id === newMember.spouseId))
-                      .map(m => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.generation === 'grandparent' ? 'סבא/ת' : m.generation === 'parent' ? 'ילד/ה' : m.generation === 'child' ? 'נכד/ה' : 'נין/ה'})
-                        </option>
-                      ))}
-                  </select>
-                </div>
+                    {/* Spouse Dropdown */}
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">בן/בת זוג (אופציונלי)</label>
+                      <select
+                        value={newMember.spouseId || ''}
+                        onChange={e => setNewMember({ ...newMember, spouseId: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="">ללא בן/בת זוג</option>
+                        {members
+                          .filter(m => m.id !== editingMemberId && (!m.spouseId || m.id === newMember.spouseId))
+                          .map(m => (
+                            <option key={m.id} value={m.id}>
+                              {m.name} ({m.generation === 'grandparent' ? 'סבא/ת' : m.generation === 'parent' ? 'ילד/ה' : m.generation === 'child' ? 'נכד/ה' : 'נין/ה'})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </>
+                )}
 
                 {/* Image Upload */}
                 <div>
@@ -1269,15 +1480,13 @@ export const AdminView: React.FC = () => {
               ) : (
                 <div className="overflow-x-auto w-full">
                   <table className="w-full text-right text-xs">
-                  <thead>
                     <tr className="border-b border-slate-800 text-slate-400">
                       <th className="pb-2 font-bold w-12">תמונה</th>
                       <th className="pb-2 font-bold">שם</th>
-                      <th className="pb-2 font-bold">דור</th>
-                      <th className="pb-2 font-bold">הורה שמופה</th>
+                      {settings.treeLayout !== 'none' && <th className="pb-2 font-bold">דור</th>}
+                      {settings.treeLayout !== 'none' && <th className="pb-2 font-bold">הורה שמופה</th>}
                       <th className="pb-2 font-bold w-16 text-center">פעולות</th>
                     </tr>
-                  </thead>
                   <tbody className="divide-y divide-slate-900">
                     {members.map(m => {
                       const isEditing = m.id === editingMemberId;
@@ -1315,14 +1524,18 @@ export const AdminView: React.FC = () => {
                               {m.familyName && <div className="text-[10px] text-slate-400">{m.familyName}</div>}
                             </div>
                           </td>
-                          <td className="py-2.5 text-slate-400">
-                            {m.generation === 'grandparent' ? 'סבא/סבתא' :
-                             m.generation === 'parent' ? 'ילד/ה' :
-                             m.generation === 'child' ? 'נכד/ה' : 'נין/ה'}
-                          </td>
-                          <td className="py-2.5 text-emerald-400 font-semibold">
-                            {parent ? parent.name : '-'}
-                          </td>
+                          {settings.treeLayout !== 'none' && (
+                            <td className="py-2.5 text-slate-400">
+                              {m.generation === 'grandparent' ? 'סבא/סבתא' :
+                               m.generation === 'parent' ? 'ילד/ה' :
+                               m.generation === 'child' ? 'נכד/ה' : 'נין/ה'}
+                            </td>
+                          )}
+                          {settings.treeLayout !== 'none' && (
+                            <td className="py-2.5 text-emerald-400 font-semibold">
+                              {parent ? parent.name : '-'}
+                            </td>
+                          )}
                           <td className="py-2.5 text-center">
                             <div className="flex gap-1 justify-center">
                               <button
@@ -1452,87 +1665,156 @@ export const AdminView: React.FC = () => {
         {/* TAB 4: SETTINGS & STYLING */}
         {activeTab === 'settings' && (
           <div className="grid grid-cols-12 gap-6">
-            {/* Player details */}
-            <div className="col-span-12 glass-panel p-6 rounded-3xl border border-slate-800">
-              <h3 className="text-lg font-bold mb-4 text-emerald-400">פרטי המתחרים (סבא וסבתא)</h3>
+            {/* Game settings & tree layout selection */}
+            <div className="col-span-12 glass-panel p-6 rounded-3xl border border-slate-800 space-y-6">
+              <h3 className="text-lg font-bold text-emerald-400">הגדרות המשחק</h3>
               
-              <div className="grid grid-cols-2 gap-6">
-                {/* Grandpa settings */}
-                <div className="p-4 bg-sky-950/20 border border-sky-500/20 rounded-2xl space-y-4">
-                  <h4 className="font-bold text-sm text-sky-400">הגדרות סבא</h4>
-                  <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">שם השחקן</label>
-                    <input
-                      type="text"
-                      value={settings.grandpaName}
-                      onChange={e => updateSettings({ ...settings, grandpaName: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-sky-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">תמונת סבא</label>
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden">
-                        {settings.grandpaImage ? (
-                          <img src={settings.grandpaImage} alt="סבא" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-[10px] text-sky-500">ללא</span>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        id="grandpa-settings-img"
-                        className="hidden"
-                        onChange={e => handleSettingsImageUpload(e, 'grandpa')}
-                      />
-                      <label
-                        htmlFor="grandpa-settings-img"
-                        className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-[10px] font-bold cursor-pointer hover:bg-slate-800"
-                      >
-                        החלף
-                      </label>
-                    </div>
-                  </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-2 font-semibold">סוג תצוגת לוח המשחק (מצב עץ יוחסין)</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => updateSettings({ ...settings, treeLayout: 'traditional' })}
+                    className={`py-2.5 px-4 text-xs font-bold rounded-xl border transition-all flex justify-center items-center gap-2 ${
+                      settings.treeLayout === 'traditional'
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-md shadow-emerald-500/20'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>🌳 עץ יוחסין מסורתי</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => updateSettings({ ...settings, treeLayout: 'botanical' })}
+                    className={`py-2.5 px-4 text-xs font-bold rounded-xl border transition-all flex justify-center items-center gap-2 ${
+                      settings.treeLayout === 'botanical'
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-md shadow-emerald-500/20'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>🌸 עץ יוחסין בוטני</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => updateSettings({ ...settings, treeLayout: 'none' })}
+                    className={`py-2.5 px-4 text-xs font-bold rounded-xl border transition-all flex justify-center items-center gap-2 ${
+                      settings.treeLayout === 'none'
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-md shadow-emerald-500/20'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>📋 ללא עץ יוחסין (רשימה)</span>
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-2">
+                  * מצב ללא עץ מסתיר את שדות ההורים ובני הזוג בניהול ומציג כרטיסיית חשיפת דובר יוקרתית במסך המשחק.
+                </p>
+              </div>
+
+              <div className="border-t border-slate-800 pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-bold text-sm text-slate-200">פרטי המתמודדים במשחק ({settings.contestants.length})</h4>
+                  {settings.contestants.length < 4 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newId = `contestant_${Math.random().toString(36).substr(2, 9)}`;
+                        const updated = [
+                          ...settings.contestants,
+                          { id: newId, name: `מתמודד/ת ${settings.contestants.length + 1}`, image: null }
+                        ];
+                        updateSettings({ ...settings, contestants: updated });
+                      }}
+                      className="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                    >
+                      <Plus size={14} />
+                      <span>הוסף מתמודד</span>
+                    </button>
+                  )}
                 </div>
 
-                {/* Grandma settings */}
-                <div className="p-4 bg-fuchsia-950/20 border border-fuchsia-500/20 rounded-2xl space-y-4">
-                  <h4 className="font-bold text-sm text-fuchsia-400">הגדרות סבתא</h4>
-                  <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">שם השחקן</label>
-                    <input
-                      type="text"
-                      value={settings.grandmaName}
-                      onChange={e => updateSettings({ ...settings, grandmaName: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-fuchsia-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">תמונת סבתא</label>
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden">
-                        {settings.grandmaImage ? (
-                          <img src={settings.grandmaImage} alt="סבתא" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-[10px] text-fuchsia-500">ללא</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {settings.contestants.map((c, index) => {
+                    const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
+                    return (
+                      <div key={c.id} className="p-4 bg-slate-905/40 border border-slate-800 rounded-2xl space-y-4 relative group">
+                        {settings.contestants.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = settings.contestants.filter(item => item.id !== c.id);
+                              updateSettings({ ...settings, contestants: updated });
+                            }}
+                            className="absolute top-3 left-3 p-1.5 text-rose-500 hover:text-rose-400 bg-rose-500/10 rounded-lg transition-colors"
+                            title="הסר מתמודד"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         )}
+
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${colors.text.replace('text', 'bg')}`}></span>
+                          <h5 className="font-bold text-xs text-slate-200">מתמודד {index + 1}</h5>
+                        </div>
+
+                        <div className="grid grid-cols-12 gap-3 items-center">
+                          <div className="col-span-8">
+                            <label className="text-[10px] text-slate-400 block mb-1">שם השחקן/מתמודד</label>
+                            <input
+                              type="text"
+                              value={c.name}
+                              onChange={e => {
+                                const updated = settings.contestants.map(item =>
+                                  item.id === c.id ? { ...item, name: e.target.value } : item
+                                );
+                                // Keep grandpaName and grandmaName synced for backward compatibility
+                                let grandpaName = settings.grandpaName;
+                                let grandmaName = settings.grandmaName;
+                                if (index === 0) grandpaName = e.target.value;
+                                if (index === 1) grandmaName = e.target.value;
+
+                                updateSettings({ 
+                                  ...settings, 
+                                  contestants: updated,
+                                  grandpaName,
+                                  grandmaName
+                                });
+                              }}
+                              className="w-full bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                            />
+                          </div>
+
+                          <div className="col-span-4">
+                            <label className="text-[10px] text-slate-400 block mb-1">תמונה</label>
+                            <div className="flex items-center gap-2">
+                              <div className="w-9 h-9 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden">
+                                {c.image ? (
+                                  <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-[9px] text-slate-600">ללא</span>
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                id={`settings-img-${c.id}`}
+                                className="hidden"
+                                onChange={e => handleSettingsImageUpload(e, c.id)}
+                              />
+                              <label
+                                htmlFor={`settings-img-${c.id}`}
+                                className="px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-[9px] font-bold cursor-pointer hover:bg-slate-800 text-slate-300"
+                              >
+                                החלף
+                              </label>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        id="grandma-settings-img"
-                        className="hidden"
-                        onChange={e => handleSettingsImageUpload(e, 'grandma')}
-                      />
-                      <label
-                        htmlFor="grandma-settings-img"
-                        className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-[10px] font-bold cursor-pointer hover:bg-slate-800"
-                      >
-                        החלף
-                      </label>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1548,18 +1830,27 @@ export const AdminView: React.FC = () => {
             <div className="col-span-7 glass-panel p-6 rounded-3xl border border-slate-800 space-y-6">
               <h3 className="text-lg font-bold text-emerald-400">ייבוא מהיר מקובצי Excel</h3>
               
-              <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 flex justify-between items-center">
+              <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                   <h4 className="text-sm font-bold text-slate-200">1. הורד תבנית Excel לדוגמה</h4>
-                  <p className="text-[10px] text-slate-400 mt-1">מלא את בני המשפחה והשאלות בדיוק לפי העמודות בעברית</p>
+                  <p className="text-[10px] text-slate-400 mt-1">בחר את התבנית בהתאם למצב התצוגה של המשחק. מצב רשימה לא ידרוש מילוי הורים ובני זוג.</p>
                 </div>
-                <button
-                  onClick={handleExcelTemplateDownload}
-                  className="px-4 py-2 bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 hover:bg-emerald-400 transition-colors"
-                >
-                  <Download size={14} />
-                  <span>הורד תבנית Excel</span>
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleExcelTemplateDownload('list')}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[10px] rounded-xl flex items-center gap-1.5 transition-colors border border-slate-700"
+                  >
+                    <Download size={12} />
+                    <span>תבנית רשימה (ללא עץ)</span>
+                  </button>
+                  <button
+                    onClick={() => handleExcelTemplateDownload('tree')}
+                    className="px-3 py-2 bg-emerald-500 text-slate-950 font-bold text-[10px] rounded-xl flex items-center gap-1.5 hover:bg-emerald-400 transition-colors"
+                  >
+                    <Download size={12} />
+                    <span>תבנית עץ יוחסין</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

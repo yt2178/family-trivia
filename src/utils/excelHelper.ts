@@ -201,32 +201,55 @@ export const excelHelper = {
   },
 
   // Download Excel Template
-  downloadTemplate(): void {
+  downloadTemplate(mode: 'tree' | 'list' = 'tree'): void {
     const workbook = XLSX.utils.book_new();
 
-    // Sheet 1: Family Members Template
-    const membersData = [
-      { 'שם': 'יעקב', 'שם משפחה': 'כהן', 'דור': 'סבא/סבתא', 'שם הורה': '', 'מין': 'זכר' },
-      { 'שם': 'שרה', 'שם משפחה': 'כהן', 'דור': 'סבא/סבתא', 'שם הורה': '', 'מין': 'נקבה' },
-      { 'שם': 'דוד', 'שם משפחה': 'כהן', 'דור': 'ילד/ה', 'שם הורה': 'יעקב', 'מין': 'זכר' },
-      { 'שם': 'רחל', 'שם משפחה': 'לוי', 'דור': 'ילד/ה', 'שם הורה': 'שרה', 'מין': 'נקבה' },
-      { 'שם': 'יוסי', 'שם משפחה': 'כהן', 'דור': 'נכד/ה', 'שם הורה': 'דוד', 'מין': 'זכר' },
-      { 'שם': 'שירה', 'שם משפחה': 'כהן', 'דור': 'נכד/ה', 'שם הורה': 'דוד', 'מין': 'נקבה' },
-      { 'שם': 'נועם', 'שם משפחה': 'כהן', 'דור': 'נין/ה', 'שם הורה': 'יוסי', 'מין': 'זכר' }
-    ];
-    const membersSheet = XLSX.utils.json_to_sheet(membersData);
-    XLSX.utils.book_append_sheet(workbook, membersSheet, 'בני משפחה');
+    if (mode === 'tree') {
+      // Sheet 1: Family Members Template
+      const membersData = [
+        { 'שם': 'יעקב', 'שם משפחה': 'כהן', 'דור': 'סבא/סבתא', 'שם הורה': '', 'מין': 'זכר' },
+        { 'שם': 'שרה', 'שם משפחה': 'כהן', 'דור': 'סבא/סבתא', 'שם הורה': '', 'מין': 'נקבה' },
+        { 'שם': 'דוד', 'שם משפחה': 'כהן', 'דור': 'ילד/ה', 'שם הורה': 'יעקב', 'מין': 'זכר' },
+        { 'שם': 'רחל', 'שם משפחה': 'לוי', 'דור': 'ילד/ה', 'שם הורה': 'שרה', 'מין': 'נקבה' },
+        { 'שם': 'יוסי', 'שם משפחה': 'כהן', 'דור': 'נכד/ה', 'שם הורה': 'דוד', 'מין': 'זכר' },
+        { 'שם': 'שירה', 'שם משפחה': 'כהן', 'דור': 'נכד/ה', 'שם הורה': 'דוד', 'מין': 'נקבה' },
+        { 'שם': 'נועם', 'שם משפחה': 'כהן', 'דור': 'נין/ה', 'שם הורה': 'יוסי', 'מין': 'זכר' }
+      ];
+      const membersSheet = XLSX.utils.json_to_sheet(membersData);
+      XLSX.utils.book_append_sheet(workbook, membersSheet, 'בני משפחה');
 
-    // Sheet 2: Questions Template
-    const questionsData = [
-      { 'משפט': 'סבא תמיד קונה לי ממתקים כשאמא לא רואה!', 'מי אמר': 'יוסי' },
-      { 'משפט': 'אני הכי אוהבת את ארוחות השבת של סבתא שרה', 'מי אמר': 'רחל' },
-      { 'משפט': 'אני רוצה ללמוד לנגן בגיטרה כמו דוד דוד', 'מי אמר': 'נועם' }
-    ];
-    const questionsSheet = XLSX.utils.json_to_sheet(questionsData);
-    XLSX.utils.book_append_sheet(workbook, questionsSheet, 'שאלות המשחק');
+      // Sheet 2: Questions Template
+      const questionsData = [
+        { 'משפט': 'סבא תמיד קונה לי ממתקים כשאמא לא רואה!', 'מי אמר': 'יוסי' },
+        { 'משפט': 'אני הכי אוהבת את ארוחות השבת של סבתא שרה', 'מי אמר': 'רחל' },
+        { 'משפט': 'אני רוצה ללמוד לנגן בגיטרה כמו דוד דוד', 'מי אמר': 'נועם' }
+      ];
+      const questionsSheet = XLSX.utils.json_to_sheet(questionsData);
+      XLSX.utils.book_append_sheet(workbook, questionsSheet, 'שאלות המשחק');
 
-    // Save/Download workbook
-    XLSX.writeFile(workbook, 'תבנית_משחק_עץ_משפחה.xlsx');
+      // Save/Download workbook
+      XLSX.writeFile(workbook, 'תבנית_משחק_עץ_משפחה.xlsx');
+    } else {
+      // Sheet 1: Speakers list Template
+      const membersData = [
+        { 'שם': 'דוד', 'שם משפחה': 'כהן', 'מין': 'זכר' },
+        { 'שם': 'שרה', 'שם משפחה': 'כהן', 'מין': 'נקבה' },
+        { 'שם': 'משה', 'שם משפחה': 'לוי', 'מין': 'זכר' },
+        { 'שם': 'יפה', 'שם משפחה': 'לוי', 'מין': 'נקבה' }
+      ];
+      const membersSheet = XLSX.utils.json_to_sheet(membersData);
+      XLSX.utils.book_append_sheet(workbook, membersSheet, 'רשימת משתתפים');
+
+      // Sheet 2: Questions Template
+      const questionsData = [
+        { 'משפט': 'אני הכי אוהב שוקולד בעולם!', 'מי אמר': 'דוד' },
+        { 'משפט': 'מחר אנחנו נוסעים לטיול שנתי.', 'מי אמר': 'שרה' }
+      ];
+      const questionsSheet = XLSX.utils.json_to_sheet(questionsData);
+      XLSX.utils.book_append_sheet(workbook, questionsSheet, 'שאלות המשחק');
+
+      // Save/Download workbook
+      XLSX.writeFile(workbook, 'תבנית_משחק_ללא_עץ.xlsx');
+    }
   }
 };

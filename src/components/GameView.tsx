@@ -7,6 +7,33 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { rtdb } from '../utils/firebase';
 import { ref, set } from 'firebase/database';
 
+export const CONTESTANT_COLORS = [
+  {
+    bg: 'bg-sky-950/40 border-sky-500/40 hover:bg-sky-900/40 text-sky-100',
+    text: 'text-sky-400',
+    glow: 'שחקן כחול',
+    border: 'border-sky-500'
+  },
+  {
+    bg: 'bg-fuchsia-950/40 border-fuchsia-500/40 hover:bg-fuchsia-900/40 text-fuchsia-100',
+    text: 'text-fuchsia-400',
+    glow: 'שחקן סגול',
+    border: 'border-fuchsia-500'
+  },
+  {
+    bg: 'bg-amber-950/40 border-amber-500/40 hover:bg-amber-900/40 text-amber-100',
+    text: 'text-amber-400',
+    glow: 'שחקן כתום',
+    border: 'border-amber-500'
+  },
+  {
+    bg: 'bg-emerald-950/40 border-emerald-500/40 hover:bg-emerald-900/40 text-emerald-100',
+    text: 'text-emerald-400',
+    glow: 'שחקן ירוק',
+    border: 'border-emerald-500'
+  }
+];
+
 // Confetti Particle Class for canvas
 class ConfettiParticle {
   x: number;
@@ -29,11 +56,20 @@ class ConfettiParticle {
     this.rotationSpeed = Math.random() * 4 - 2;
   }
 
+  suckUp() {
+    this.speedY = -Math.abs(this.speedY) * 1.8; // fly upwards faster
+    this.speedX = this.speedX * 0.4; // move less horizontally
+  }
+
   update(height: number) {
     this.x += this.speedX;
     this.y += this.speedY;
     this.rotation += this.rotationSpeed;
-    return this.y < height;
+    if (this.speedY > 0) {
+      return this.y < height;
+    } else {
+      return this.y > -50;
+    }
   }
 
   draw(ctx: CanvasRenderingContext2D) {
@@ -78,28 +114,142 @@ export const GameView: React.FC = React.memo(() => {
     }
   }, []);
 
+  // Pure Web Audio API tone generator for Game Sound effects
+  const playGameSound = (type: 'success' | 'undo' | 'reveal' | 'winner') => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      
+      if (type === 'success') {
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        osc2.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
+        
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        
+        osc1.start();
+        osc2.start();
+        
+        setTimeout(() => {
+          osc1.stop();
+          osc2.stop();
+          ctx.close();
+        }, 400);
+      } else if (type === 'undo') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.frequency.setValueAtTime(392.00, ctx.currentTime); // G4
+        osc.frequency.exponentialRampToValueAtTime(261.63, ctx.currentTime + 0.35); // C4
+        
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        
+        osc.start();
+        setTimeout(() => {
+          osc.stop();
+          ctx.close();
+        }, 400);
+      } else if (type === 'reveal') {
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc1.frequency.setValueAtTime(349.23, ctx.currentTime); // F4
+        osc1.frequency.exponentialRampToValueAtTime(523.25, ctx.currentTime + 0.4); // C5
+        osc2.frequency.setValueAtTime(440.00, ctx.currentTime); // A4
+        osc2.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.4); // E5
+        
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        
+        osc1.start();
+        osc2.start();
+        setTimeout(() => {
+          osc1.stop();
+          osc2.stop();
+          ctx.close();
+        }, 450);
+      } else if (type === 'winner') {
+        const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+        notes.forEach((freq, index) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + index * 0.1);
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + index * 0.1 + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + index * 0.1 + 0.8);
+          
+          osc.start(ctx.currentTime + index * 0.1);
+          setTimeout(() => {
+            osc.stop();
+          }, 1000 + index * 100);
+        });
+        setTimeout(() => {
+          ctx.close();
+        }, 1500);
+      }
+    } catch (e) {
+      console.warn("AudioContext tone failed:", e);
+    }
+  };
+
   // Sync state and listen to broadcasts
   useEffect(() => {
     const unsubscribe = sync.subscribe((msg) => {
       if (msg.type === 'STATE_CHANGED') {
-        setGameState(msg.state);
+        setGameState(prev => {
+          if (!prev.isRevealed && msg.state.isRevealed) {
+            playGameSound('reveal');
+          }
+          const totalQ = msg.state.shuffledQuestionIds?.length || 0;
+          const prevTotalQ = prev.shuffledQuestionIds?.length || 0;
+          const prevGameOver = prevTotalQ > 0 && prev.currentQuestionIndex >= prevTotalQ;
+          const newGameOver = totalQ > 0 && msg.state.currentQuestionIndex >= totalQ;
+          if (!prevGameOver && newGameOver) {
+            playGameSound('winner');
+          }
+          return msg.state;
+        });
       } else if (msg.type === 'SETTINGS_CHANGED') {
         setSettings(msg.settings);
-        // Reload settings
         const freshSettings = db.getSettings();
         setSettings(freshSettings);
       } else if (msg.type === 'DATABASE_SYNC') {
-        // Save the received database to local storage so the computer is up-to-date!
         db.saveMembers(msg.members);
         db.saveQuestions(msg.questions);
         db.saveSettings(msg.settings);
         
-        // Update local React states
         setMembers(msg.members);
         setQuestions(msg.questions);
         setSettings(msg.settings);
       } else if (msg.type === 'TRIGGER_CONFETTI') {
-        triggerConfetti(msg.winner);
+        if (msg.isUndo) {
+          playGameSound('undo');
+          particles.current.forEach(p => p.suckUp());
+        } else {
+          playGameSound('success');
+          triggerConfetti(msg.winner);
+        }
       }
     });
 
@@ -115,15 +265,20 @@ export const GameView: React.FC = React.memo(() => {
   }, [gameState]);
 
   // Confetti system
-  const triggerConfetti = (winner: 'grandpa' | 'grandma' | 'nobody') => {
+  const triggerConfetti = (winner: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     let colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6']; // Gold, green, etc.
-    if (winner === 'grandpa') {
+    const contestantIndex = settings.contestants.findIndex(c => c.id === winner);
+    if (contestantIndex === 0 || winner === 'grandpa') {
       colors = ['#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#ffffff']; // Blue tones
-    } else if (winner === 'grandma') {
+    } else if (contestantIndex === 1 || winner === 'grandma') {
       colors = ['#d946ef', '#f472b6', '#f0abfc', '#fbcfe8', '#ffffff']; // Purple/pink tones
+    } else if (contestantIndex === 2) {
+      colors = ['#f59e0b', '#f97316', '#fb923c', '#ffedd5', '#ffffff']; // Orange tones
+    } else if (contestantIndex === 3) {
+      colors = ['#10b981', '#34d399', '#6ee7b7', '#d1fae5', '#ffffff']; // Green tones
     }
 
     const newParticles: ConfettiParticle[] = [];
@@ -194,15 +349,138 @@ export const GameView: React.FC = React.memo(() => {
 
   // Determine winner
   const getGameWinner = () => {
-    if (gameState.scores.grandpa > gameState.scores.grandma) return 'grandpa';
-    if (gameState.scores.grandma > gameState.scores.grandpa) return 'grandma';
-    return 'tie';
+    let maxScore = -1;
+    let winnerId = 'tie';
+    let isTie = false;
+    
+    settings.contestants.forEach(c => {
+      const score = gameState.scores[c.id] || 0;
+      if (score > maxScore) {
+        maxScore = score;
+        winnerId = c.id;
+        isTie = false;
+      } else if (score === maxScore) {
+        isTie = true;
+      }
+    });
+
+    return isTie ? 'tie' : winnerId;
   };
+
+  // Split contestants into left and right columns
+  const leftContestants = React.useMemo(() => {
+    if (!settings.contestants || settings.contestants.length === 0) return [];
+    if (settings.contestants.length <= 2) return [settings.contestants[0]];
+    if (settings.contestants.length === 3) return [settings.contestants[0]];
+    return [settings.contestants[0], settings.contestants[1]]; // 4 players
+  }, [settings.contestants]);
+
+  const rightContestants = React.useMemo(() => {
+    if (!settings.contestants || settings.contestants.length <= 1) return [];
+    if (settings.contestants.length === 2) return [settings.contestants[1]];
+    if (settings.contestants.length === 3) return [settings.contestants[1], settings.contestants[2]];
+    return [settings.contestants[2], settings.contestants[3]]; // 4 players
+  }, [settings.contestants]);
 
   // Progress percentage helpers
   const getProgressPercent = (score: number) => {
     if (totalQuestions === 0) return 0;
     return Math.min(100, (score / totalQuestions) * 100);
+  };
+
+  const renderContestantColumn = (colContestants: typeof settings.contestants, startGlobalIndex: number) => {
+    const isCompact = colContestants.length > 1;
+    return (
+      <div className="col-span-2 flex flex-col gap-4 justify-between h-full">
+        {colContestants.map((c, index) => {
+          const globalIndex = startGlobalIndex + index;
+          const colors = CONTESTANT_COLORS[globalIndex % CONTESTANT_COLORS.length];
+          const score = gameState.scores[c.id] || 0;
+          const progress = getProgressPercent(score);
+
+          if (isCompact) {
+            return (
+              <div key={c.id} className="glass-panel p-4 rounded-3xl border border-slate-800/80 shadow-2xl relative overflow-hidden flex flex-col justify-between items-center flex-grow">
+                {/* Accent Glow */}
+                <div className={`absolute -top-12 -right-12 w-24 h-24 bg-${colors.border.split('-')[1]}-500/10 rounded-full blur-2xl pointer-events-none`} />
+                
+                <div className="flex flex-col items-center text-center">
+                  <div className={`relative w-16 h-16 rounded-2xl border-2 ${colors.border}/45 p-0.5 bg-slate-900/60 shadow-xl overflow-hidden mb-2 flex items-center justify-center`}>
+                    {c.image ? (
+                      <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-xl" />
+                    ) : (
+                      <div className={`w-full h-full bg-${colors.border.split('-')[1]}-950/40 flex items-center justify-center ${colors.text} rounded-xl`}>
+                        <Award size={28} className="opacity-80" />
+                      </div>
+                    )}
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-100 truncate max-w-[120px]">{c.name}</h2>
+                  <span className={`text-[9px] ${colors.text} font-semibold tracking-wider uppercase mt-0.5`}>{colors.glow}</span>
+                </div>
+
+                <div className="my-2 flex flex-col items-center">
+                  <div className={`text-3xl font-black ${colors.text} bg-${colors.border.split('-')[1]}-955/30 w-12 h-12 rounded-full border ${colors.border}/30 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.2)]`}>
+                    {score}
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-1 mt-1 w-full">
+                  <span className="text-[8px] text-slate-400 font-bold">התקדמות: {Math.round(progress)}%</span>
+                  <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-850 p-[1px]">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress}%` }}
+                      transition={{ type: 'spring', stiffness: 60 }}
+                      className={`h-full bg-gradient-to-r from-${colors.border.split('-')[1]}-600 to-${colors.border.split('-')[1]}-400 rounded-full`}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div key={c.id} className="glass-panel p-4 rounded-3xl border border-slate-800/80 shadow-2xl relative overflow-hidden flex flex-col justify-between items-center h-full flex-grow">
+              {/* Accent Glow */}
+              <div className={`absolute -top-12 -right-12 w-32 h-32 bg-${colors.border.split('-')[1]}-500/10 rounded-full blur-3xl pointer-events-none`} />
+
+              <div className="flex flex-col items-center text-center">
+                <div className={`relative w-24 h-24 rounded-3xl border-2 ${colors.border}/40 p-1 bg-slate-900/60 shadow-xl overflow-hidden mb-4 flex items-center justify-center`}>
+                  {c.image ? (
+                    <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-2xl" />
+                  ) : (
+                    <div className={`w-full h-full bg-${colors.border.split('-')[1]}-955/40 flex items-center justify-center ${colors.text} rounded-2xl`}>
+                      <Award size={48} className="opacity-80" />
+                    </div>
+                  )}
+                </div>
+                <h2 className="text-2xl font-bold text-slate-100">{c.name}</h2>
+                <span className={`text-xs ${colors.text} font-semibold tracking-wider uppercase mt-1`}>{colors.glow}</span>
+              </div>
+
+              <div className="my-6 flex flex-col items-center">
+                <span className="text-xs text-slate-400 mb-1">ניקוד</span>
+                <div className={`text-5xl font-black ${colors.text} bg-${colors.border.split('-')[1]}-950/30 w-20 h-20 rounded-full border ${colors.border}/30 flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.3)]`}>
+                  {score}
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-2 mt-2">
+                <span className="text-[10px] text-slate-400 font-bold">התקדמות: {Math.round(progress)}%</span>
+                <div className="w-6 h-36 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80 p-[2.5px] flex flex-col justify-end">
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${progress}%` }}
+                    transition={{ type: 'spring', stiffness: 60 }}
+                    className={`w-full bg-gradient-to-t from-${colors.border.split('-')[1]}-600 to-${colors.border.split('-')[1]}-400 rounded-full`}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   // Background Theme Styles
@@ -362,47 +640,8 @@ export const GameView: React.FC = React.memo(() => {
       {/* Main Grid */}
       <div className="flex-grow grid grid-cols-12 gap-6 z-10 items-stretch">
         
-        {/* Left Side: Grandpa */}
-        <div className="col-span-2 flex flex-col justify-between glass-panel p-4 rounded-3xl border border-slate-800/80 shadow-2xl relative overflow-hidden">
-          {/* Accent Glow */}
-          <div className="absolute -top-12 -left-12 w-32 h-32 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          {/* Grandpa Profile */}
-          <div className="flex flex-col items-center text-center">
-            <div className="relative w-24 h-24 rounded-3xl border-2 border-sky-500/40 p-1 bg-slate-900/60 shadow-xl overflow-hidden mb-4 flex items-center justify-center">
-              {settings.grandpaImage ? (
-                <img src={settings.grandpaImage} alt={settings.grandpaName} className="w-full h-full object-cover rounded-2xl" />
-              ) : (
-                <div className="w-full h-full bg-sky-950/40 flex items-center justify-center text-sky-400 rounded-2xl">
-                  <Award size={48} className="opacity-80" />
-                </div>
-              )}
-            </div>
-            <h2 className="text-2xl font-bold text-sky-100">{settings.grandpaName}</h2>
-            <span className="text-xs text-sky-400 font-semibold tracking-wider uppercase mt-1">שחקן כחול</span>
-          </div>
-
-          {/* Grandpa Score */}
-          <div className="my-6 flex flex-col items-center">
-            <span className="text-xs text-slate-400 mb-1">ניקוד</span>
-            <div className="text-5xl font-black text-sky-400 bg-sky-950/30 w-20 h-20 rounded-full border border-sky-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(14,165,233,0.15)]">
-              {gameState.scores.grandpa}
-            </div>
-          </div>
-
-          {/* Grandpa Progress Bar */}
-          <div className="flex flex-col items-center gap-2 mt-2">
-            <span className="text-[10px] text-slate-400 font-bold">התקדמות: {Math.round(getProgressPercent(gameState.scores.grandpa))}%</span>
-            <div className="w-6 h-36 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80 p-[2.5px] flex flex-col justify-end">
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: `${getProgressPercent(gameState.scores.grandpa)}%` }}
-                transition={{ type: 'spring', stiffness: 60 }}
-                className="w-full bg-gradient-to-t from-sky-600 to-sky-400 rounded-full shadow-[0_0_12px_rgba(14,165,233,0.5)]"
-              />
-            </div>
-          </div>
-        </div>
+        {/* Left Column (Contestants 1 & 2) */}
+        {renderContestantColumn(leftContestants, 0)}
 
         {/* Center Tree Panel */}
         <div className="col-span-8 flex flex-col gap-6">
@@ -430,15 +669,14 @@ export const GameView: React.FC = React.memo(() => {
             )}
           </AnimatePresence>
 
-          {/* Dynamic Family Tree or Question Placeholder */}
+          {/* Dynamic Family Tree, Speaker Reveal or Question Placeholder */}
           {!gameState.isRevealed && currentQuestion && !isGameOver ? (
-            <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40">
-              <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-amber-500/5 pointer-events-none" />
+            <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center relative overflow-hidden">
               <motion.div
                 initial={{ scale: 0.8, rotate: -10 }}
                 animate={{ scale: [0.9, 1.05, 0.9], rotate: [-5, 5, -5] }}
                 transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                className="w-40 h-40 rounded-full bg-slate-900 border-2 border-emerald-500/30 flex items-center justify-center text-7xl font-extrabold text-emerald-400 shadow-[0_0_50px_rgba(16,185,129,0.15)] mb-6 select-none"
+                className="text-9xl mb-6 select-none text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.3)] flex items-center justify-center"
               >
                 ❓
               </motion.div>
@@ -446,65 +684,75 @@ export const GameView: React.FC = React.memo(() => {
                 מי אמר את זה?
               </h2>
               <p className="text-slate-400 text-sm max-w-md text-center">
-                המשפחה מנסה לנחש! המנחה יחשוף את התשובה והעץ יופיע עם פתרון החידה...
+                המשפחה מנסה לנחש! המנחה יחשוף את התשובה והדובר יתגלה...
               </p>
             </div>
           ) : (
-            <div className="flex-grow min-h-[500px]">
-              <FamilyTree
-                members={members}
-                settings={settings}
-                solvedQuestions={gameState.solvedQuestions}
-                currentSpeakerId={currentQuestion?.speakerId || null}
-                isAnswerRevealed={gameState.isRevealed}
-                interactive={false}
-                revealedMembers={gameState.revealedSpeakers}
-              />
+            <div className="flex-grow min-h-[500px] flex flex-col">
+              {settings.treeLayout === 'none' ? (
+                (() => {
+                  const speaker = members.find(m => m.id === currentQuestion?.speakerId);
+                  return (
+                    <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40 p-8">
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 100, damping: 15 }}
+                        className="flex flex-col items-center text-center relative z-10 space-y-6"
+                      >
+                        <span className="text-emerald-400 text-sm font-bold uppercase tracking-widest px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                          הדובר נחשף! 🎉
+                        </span>
+
+                        <div className="relative">
+                          <div className="absolute -inset-2 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full blur opacity-70 animate-pulse" />
+                          <div className="relative w-44 h-44 rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden shadow-2xl flex items-center justify-center">
+                            {speaker?.image ? (
+                              <img src={speaker.image} alt={speaker.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-8xl select-none">
+                                {speaker?.gender === 'female' ? '👵' : '👴'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <h2 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-md">
+                            {speaker?.name}
+                          </h2>
+                          {speaker?.familyName && (
+                            <p className="text-xl text-slate-400 font-medium">{speaker.familyName}</p>
+                          )}
+                        </div>
+
+                        <p className="text-slate-400 text-sm max-w-sm italic">
+                          ״אמר/ה את הציטוט בהתרגשות רבה!״
+                        </p>
+                      </motion.div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <FamilyTree
+                  members={members}
+                  settings={settings}
+                  solvedQuestions={gameState.solvedQuestions}
+                  currentSpeakerId={currentQuestion?.speakerId || null}
+                  isAnswerRevealed={gameState.isRevealed}
+                  interactive={false}
+                  revealedMembers={gameState.revealedSpeakers}
+                />
+              )}
             </div>
           )}
         </div>
 
-        {/* Right Side: Grandma */}
-        <div className="col-span-2 flex flex-col justify-between glass-panel p-4 rounded-3xl border border-slate-800/80 shadow-2xl relative overflow-hidden">
-          {/* Accent Glow */}
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-fuchsia-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          {/* Grandma Profile */}
-          <div className="flex flex-col items-center text-center">
-            <div className="relative w-24 h-24 rounded-3xl border-2 border-fuchsia-500/40 p-1 bg-slate-900/60 shadow-xl overflow-hidden mb-4 flex items-center justify-center">
-              {settings.grandmaImage ? (
-                <img src={settings.grandmaImage} alt={settings.grandmaName} className="w-full h-full object-cover rounded-2xl" />
-              ) : (
-                <div className="w-full h-full bg-fuchsia-950/40 flex items-center justify-center text-fuchsia-400 rounded-2xl">
-                  <Award size={48} className="opacity-80" />
-                </div>
-              )}
-            </div>
-            <h2 className="text-2xl font-bold text-fuchsia-100">{settings.grandmaName}</h2>
-            <span className="text-xs text-fuchsia-400 font-semibold tracking-wider uppercase mt-1">שחקן סגול</span>
-          </div>
-
-          {/* Grandma Score */}
-          <div className="my-6 flex flex-col items-center">
-            <span className="text-xs text-slate-400 mb-1">ניקוד</span>
-            <div className="text-5xl font-black text-fuchsia-400 bg-fuchsia-950/30 w-20 h-20 rounded-full border border-fuchsia-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(217,70,239,0.15)]">
-              {gameState.scores.grandma}
-            </div>
-          </div>
-
-          {/* Grandma Progress Bar */}
-          <div className="flex flex-col items-center gap-2 mt-2">
-            <span className="text-[10px] text-slate-400 font-bold">התקדמות: {Math.round(getProgressPercent(gameState.scores.grandma))}%</span>
-            <div className="w-6 h-36 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80 p-[2.5px] flex flex-col justify-end">
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: `${getProgressPercent(gameState.scores.grandma)}%` }}
-                transition={{ type: 'spring', stiffness: 60 }}
-                className="w-full bg-gradient-to-t from-fuchsia-600 to-fuchsia-400 rounded-full shadow-[0_0_12px_rgba(217,70,239,0.5)]"
-              />
-            </div>
-          </div>
-        </div>
+        {/* Right Column (Contestants 3 & 4) */}
+        {renderContestantColumn(rightContestants, leftContestants.length)}
 
       </div>
 
@@ -521,7 +769,7 @@ export const GameView: React.FC = React.memo(() => {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="glass-panel p-10 max-w-lg w-full rounded-3xl border border-slate-800 text-center shadow-2xl relative overflow-hidden"
+              className="glass-panel p-10 max-w-2xl w-full rounded-3xl border border-slate-800 text-center shadow-2xl relative overflow-hidden"
             >
               {/* Confetti decoration */}
               <div className="absolute -top-16 -left-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -539,43 +787,43 @@ export const GameView: React.FC = React.memo(() => {
               </p>
 
               {/* Score comparisons */}
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="p-4 bg-sky-950/30 border border-sky-500/20 rounded-2xl">
-                  <span className="text-xs text-sky-400 font-semibold">{settings.grandpaName}</span>
-                  <div className="text-3xl font-extrabold text-sky-200 mt-1">{gameState.scores.grandpa} נק׳</div>
-                </div>
-                <div className="p-4 bg-fuchsia-950/30 border border-fuchsia-500/20 rounded-2xl">
-                  <span className="text-xs text-fuchsia-400 font-semibold">{settings.grandmaName}</span>
-                  <div className="text-3xl font-extrabold text-fuchsia-200 mt-1">{gameState.scores.grandma} נק׳</div>
-                </div>
+              <div className={`grid gap-4 mb-8 ${settings.contestants.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+                {settings.contestants.map((c, index) => {
+                  const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
+                  return (
+                    <div key={c.id} className={`p-4 bg-slate-900 border ${colors.border}/20 rounded-2xl`}>
+                      <span className={`text-xs ${colors.text} font-semibold`}>{c.name}</span>
+                      <div className="text-3xl font-extrabold text-slate-200 mt-1">{(gameState.scores[c.id] || 0)} נק׳</div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Winner Declaration */}
               <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl mb-8">
-                {getGameWinner() === 'grandpa' && (
-                  <div>
-                    <h3 className="text-2xl font-bold text-sky-400 flex items-center justify-center gap-2">
-                      🏆 {settings.grandpaName} הוא אלוף המשחק!
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-2">ברכות לסבא הגיבור שזיהה הכי הרבה משפטים</p>
-                  </div>
-                )}
-                {getGameWinner() === 'grandma' && (
-                  <div>
-                    <h3 className="text-2xl font-bold text-fuchsia-400 flex items-center justify-center gap-2">
-                      🏆 {settings.grandmaName} היא אלופת המשחק!
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-2">ברכות לסבתא המנצחת שזוכרת הכל</p>
-                  </div>
-                )}
-                {getGameWinner() === 'tie' && (
+                {getGameWinner() === 'tie' ? (
                   <div>
                     <h3 className="text-2xl font-bold text-amber-400 flex items-center justify-center gap-2">
                       🤝 תיקו משפחתי מהמם!
                     </h3>
                     <p className="text-xs text-slate-400 mt-2">שניכם אלופים ושניכם מכירים את המשפחה מעולה</p>
                   </div>
-                )}
+                ) : (() => {
+                  const winnerContestant = settings.contestants.find(c => c.id === getGameWinner());
+                  const winnerIndex = settings.contestants.findIndex(c => c.id === getGameWinner());
+                  const colors = CONTESTANT_COLORS[winnerIndex % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
+                  const name = winnerContestant?.name || '';
+                  const pronoun = name.endsWith('ה') || name.endsWith('ת') ? 'אלופת' : 'אלוף';
+                  const greeting = name.endsWith('ה') || name.endsWith('ת') ? 'ברכות למנצחת שזוכרת הכל' : 'ברכות לגיבור שזיהה הכי הרבה משפטים';
+                  return (
+                    <div>
+                      <h3 className={`text-2xl font-bold ${colors.text} flex items-center justify-center gap-2`}>
+                        🏆 {name} {name.endsWith('ה') || name.endsWith('ת') ? 'היא' : 'הוא'} {pronoun} המשחק!
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-2">{greeting}</p>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="text-xs text-slate-500">
