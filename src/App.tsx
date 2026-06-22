@@ -5,6 +5,7 @@ import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, Q
 import { motion } from 'framer-motion';
 import { rtdb } from './utils/firebase';
 import { ref, onValue, off } from 'firebase/database';
+import { sync } from './utils/sync';
 
 function App() {
   const [mode, setMode] = useState<'welcome' | 'admin' | 'game'>('welcome');
@@ -74,6 +75,22 @@ function App() {
       off(controllerStatusRef);
     };
   }, [mode, roomCode, activeTab]);
+
+  // Listen for local BroadcastChannel controller connection
+  useEffect(() => {
+    if (mode !== 'welcome' || !roomCode) return;
+
+    const unsubscribe = sync.subscribe((msg) => {
+      if (msg.type === 'CONTROLLER_CONNECTED' && msg.roomCode === roomCode) {
+        const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+        window.location.href = url;
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [mode, roomCode]);
 
   const launchCloudGame = () => {
     if (!roomCode) return;

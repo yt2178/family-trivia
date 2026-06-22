@@ -115,6 +115,9 @@ export const AdminView: React.FC = () => {
       const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
       set(controllerStatusRef, true);
 
+      // Broadcast controller connection locally for instant tab-to-tab sync
+      sync.sendMessage({ type: 'CONTROLLER_CONNECTED', roomCode });
+
       const statusRef = ref(rtdb, `rooms/${roomCode}/gameScreenConnected`);
       onValue(statusRef, (snapshot) => {
         setGameScreenConnected(!!snapshot.val());
