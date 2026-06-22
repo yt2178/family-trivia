@@ -4,7 +4,7 @@ import { GameView } from './components/GameView';
 import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, QrCode, ArrowRight, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { rtdb } from './utils/firebase';
-import { ref, onValue, off, set } from 'firebase/database';
+import { ref, onValue, off, set, get, child } from 'firebase/database';
 import { sync } from './utils/sync';
 
 function App() {
@@ -21,22 +21,24 @@ function App() {
     return !!params.get('room');
   });
 
+  const [isCheckingRoom, setIsCheckingRoom] = useState<boolean>(false);
+  const [roomWarningCode, setRoomWarningCode] = useState<string | null>(null);
+
   // Helper to generate a random numeric room code
   const generateRoomCode = () => {
     return Math.floor(1000 + Math.random() * 9000).toString();
   };
 
   useEffect(() => {
-    // Load last connected room if exists, or generate a stable new one
+    // Load last connected room if exists, do not auto-generate on start if empty
     const savedCode = localStorage.getItem('last_connected_room');
     if (savedCode) {
       setLastRoomCode(savedCode);
       setRoomCode(savedCode);
       setInputRoomCode(savedCode);
     } else {
-      const newCode = generateRoomCode();
-      setRoomCode(newCode);
-      setInputRoomCode(newCode);
+      setRoomCode('');
+      setInputRoomCode('');
     }
 
     const updateMode = () => {
@@ -112,10 +114,19 @@ function App() {
     window.open(url, '_blank', 'width=1200,height=800');
   };
 
-  const handleConfirmRoom = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanCode = inputRoomCode.trim();
-    if (!cleanCode) return;
+  const checkRoomExists = async (code: string): Promise<boolean> => {
+    try {
+      const roomRef = ref(rtdb, `rooms/${code}/database`);
+      const snapshot = await get(roomRef);
+      return snapshot.exists();
+    } catch (e) {
+      console.error("Error checking room existence", e);
+      return false;
+    }
+  };
+
+  const proceedWithRoom = async (code: string, restoreExisting: boolean = false) => {
+    const cleanCode = code.trim();
     const cleanName = hostName.trim() || 'המנחה';
     
     localStorage.setItem('last_connected_room', cleanCode);
@@ -128,33 +139,83 @@ function App() {
       console.error("Failed to write host name to Firebase", err);
     }
     
-    try {
-      const savedSettingsStr = localStorage.getItem('family_game_settings');
-      if (savedSettingsStr) {
-        const parsed = JSON.parse(savedSettingsStr);
-        parsed.hostName = cleanName;
-        localStorage.setItem('family_game_settings', JSON.stringify(parsed));
-      } else {
-        localStorage.setItem('family_game_settings', JSON.stringify({
-          grandpaName: 'סבא',
-          grandpaImage: null,
-          grandmaName: 'סבתא',
-          grandmaImage: null,
-          theme: 'classic',
-          treeLayout: 'traditional',
-          contestants: [
-            { id: 'grandpa', name: 'סבא', image: null },
-            { id: 'grandma', name: 'סבתא', image: null }
-          ],
-          hostName: cleanName
-        }));
+    if (!restoreExisting) {
+      try {
+        await set(ref(rtdb, `rooms/${cleanCode}/database`), null);
+        await set(ref(rtdb, `rooms/${cleanCode}/controllerConnected`), false);
+        await set(ref(rtdb, `rooms/${cleanCode}/gameScreenConnected`), false);
+        await set(ref(rtdb, `rooms/${cleanCode}/lastMessage`), null);
+        
+        localStorage.removeItem('family_game_members');
+        localStorage.removeItem('family_game_questions');
+        localStorage.removeItem('family_game_settings');
+        localStorage.removeItem('family_game_state');
+      } catch (err) {
+        console.error("Failed to reset room database on server", err);
       }
-    } catch (err) {
-      console.error(err);
+    } else {
+      try {
+        const dbRef = ref(rtdb);
+        const snapshot = await get(child(dbRef, `rooms/${cleanCode}/database`));
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          if (data.db) {
+            if (data.db.members) localStorage.setItem('family_game_members', JSON.stringify(data.db.members));
+            if (data.db.questions) localStorage.setItem('family_game_questions', JSON.stringify(data.db.questions));
+            if (data.db.settings) localStorage.setItem('family_game_settings', JSON.stringify(data.db.settings));
+          }
+          if (data.state) {
+            localStorage.setItem('family_game_state', JSON.stringify(data.state));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to sync restored database to localStorage", e);
+      }
     }
 
     setRoomCode(cleanCode);
     setHostConfirmed(true);
+    setRoomWarningCode(null);
+  };
+
+  const handleConfirmRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanCode = inputRoomCode.trim();
+    if (!cleanCode) return;
+    
+    setIsCheckingRoom(true);
+    try {
+      const exists = await checkRoomExists(cleanCode);
+      if (exists) {
+        setRoomWarningCode(cleanCode);
+      } else {
+        await proceedWithRoom(cleanCode, false);
+      }
+    } catch (err) {
+      console.error(err);
+      await proceedWithRoom(cleanCode, false);
+    } finally {
+      setIsCheckingRoom(false);
+    }
+  };
+
+  const handleGenerateRandomCode = async () => {
+    setIsCheckingRoom(true);
+    try {
+      let code = generateRoomCode();
+      let attempts = 0;
+      while (attempts < 5) {
+        const exists = await checkRoomExists(code);
+        if (!exists) break;
+        code = generateRoomCode();
+        attempts++;
+      }
+      setInputRoomCode(code);
+    } catch (e) {
+      setInputRoomCode(generateRoomCode());
+    } finally {
+      setIsCheckingRoom(false);
+    }
   };
 
   const handleJoinAsAdmin = (e: React.FormEvent) => {
@@ -282,18 +343,16 @@ function App() {
                         required
                         value={inputRoomCode}
                         onChange={(e) => setInputRoomCode(e.target.value.replace(/\D/g, ''))}
-                        placeholder="לדוגמה: 4"
+                        placeholder="הקלד מספר חדר (לדוגמה: 4)"
                         className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-sm font-black text-emerald-400 placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono"
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          const newCode = generateRoomCode();
-                          setInputRoomCode(newCode);
-                        }}
-                        className="px-4 py-2 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                        disabled={isCheckingRoom}
+                        onClick={handleGenerateRandomCode}
+                        className="px-4 py-2 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <RefreshCw size={14} />
+                        <RefreshCw size={14} className={isCheckingRoom ? 'animate-spin' : ''} />
                         <span>בחר מספר אקראי</span>
                       </button>
                     </div>
@@ -304,12 +363,40 @@ function App() {
                   </div>
                 </div>
 
+                {roomWarningCode && (
+                  <div className="bg-amber-500/10 border-2 border-amber-500/30 p-4 rounded-2xl text-right space-y-3 relative z-20">
+                    <p className="text-xs font-bold text-amber-300">
+                      ⚠️ חדר מספר <strong className="text-white underline">{roomWarningCode}</strong> כבר קיים במערכת עם נתונים שמורים.
+                    </p>
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => proceedWithRoom(roomWarningCode, true)}
+                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <span>שחזר והתחבר למשחק הקיים 🔄</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRoomWarningCode(null);
+                          setInputRoomCode('');
+                        }}
+                        className="px-3 py-1.5 bg-rose-500 hover:bg-rose-400 text-white text-xs font-black rounded-lg transition-colors"
+                      >
+                        <span>החלף מספר חדר ❌</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2"
+                    disabled={isCheckingRoom || !!roomWarningCode}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <span>צור חדר והמשך לחיבור שלט ומקרן 🚀</span>
+                    <span>{isCheckingRoom ? 'בודק זמינות חדר... ⏳' : 'צור חדר והמשך לחיבור שלט ומקרן 🚀'}</span>
                   </button>
                 </div>
 
