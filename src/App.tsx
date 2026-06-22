@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AdminView } from './components/AdminView';
 import { GameView } from './components/GameView';
-import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, QrCode, ArrowRight, RefreshCw } from 'lucide-react';
+import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, QrCode, ArrowRight, RefreshCw, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { rtdb } from './utils/firebase';
 import { ref, onValue, off, set, get, child } from 'firebase/database';
@@ -9,20 +9,16 @@ import { sync } from './utils/sync';
 
 function App() {
   const [mode, setMode] = useState<'welcome' | 'admin' | 'game'>('welcome');
-  const [activeTab, setActiveTab] = useState<'cloud' | 'local'>('cloud');
+  const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const [roomCode, setRoomCode] = useState<string>('');
   const [inputRoomCode, setInputRoomCode] = useState<string>('');
   const [lastRoomCode, setLastRoomCode] = useState<string | null>(null);
 
   // Custom states for host name and room confirmation step
   const [hostName, setHostName] = useState<string>(() => localStorage.getItem('host_name') || '');
-  const [hostConfirmed, setHostConfirmed] = useState<boolean>(() => {
-    const params = new URLSearchParams(window.location.search);
-    return !!params.get('room');
-  });
-
   const [isCheckingRoom, setIsCheckingRoom] = useState<boolean>(false);
   const [roomWarningCode, setRoomWarningCode] = useState<string | null>(null);
+  const [treeLayoutChoice, setTreeLayoutChoice] = useState<'traditional' | 'none'>('traditional');
 
   // Helper to generate a random numeric room code
   const generateRoomCode = () => {
@@ -67,7 +63,7 @@ function App() {
 
   // Listen for admin/phone connection to automatically start the game on the projector screen
   useEffect(() => {
-    if (mode !== 'welcome' || !roomCode || activeTab !== 'cloud') return;
+    if (mode !== 'welcome' || !roomCode) return;
 
     const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
     
@@ -141,14 +137,66 @@ function App() {
     
     if (!restoreExisting) {
       try {
-        await set(ref(rtdb, `rooms/${cleanCode}/database`), null);
+        await set(ref(rtdb, `rooms/${cleanCode}/database`), {
+          db: {
+            members: [],
+            questions: [],
+            settings: {
+              grandpaName: 'סבא',
+              grandpaImage: null,
+              grandmaName: 'סבתא',
+              grandmaImage: null,
+              theme: 'classic',
+              treeLayout: treeLayoutChoice,
+              contestants: [
+                { id: 'grandpa', name: 'סבא', image: null },
+                { id: 'grandma', name: 'סבתא', image: null }
+              ],
+              hostName: cleanName
+            }
+          },
+          settings: {
+            grandpaName: 'סבא',
+            grandpaImage: null,
+            grandmaName: 'סבתא',
+            grandmaImage: null,
+            theme: 'classic',
+            treeLayout: treeLayoutChoice,
+            contestants: [
+              { id: 'grandpa', name: 'סבא', image: null },
+              { id: 'grandma', name: 'סבתא', image: null }
+            ],
+            hostName: cleanName
+          },
+          state: {
+            currentQuestionIndex: 0,
+            scores: { grandpa: 0, grandma: 0 },
+            solvedQuestions: {},
+            revealedSpeakers: {},
+            shuffledQuestionIds: [],
+            isRevealed: false,
+            isPlaying: false
+          }
+        });
         await set(ref(rtdb, `rooms/${cleanCode}/controllerConnected`), false);
         await set(ref(rtdb, `rooms/${cleanCode}/gameScreenConnected`), false);
         await set(ref(rtdb, `rooms/${cleanCode}/lastMessage`), null);
         
         localStorage.removeItem('family_game_members');
         localStorage.removeItem('family_game_questions');
-        localStorage.removeItem('family_game_settings');
+        localStorage.setItem('family_game_settings', JSON.stringify({
+          grandpaName: 'סבא',
+          grandpaImage: null,
+          grandmaName: 'סבתא',
+          grandmaImage: null,
+          theme: 'classic',
+          treeLayout: treeLayoutChoice,
+          contestants: [
+            { id: 'grandpa', name: 'סבא', image: null },
+            { id: 'grandma', name: 'סבתא', image: null }
+          ],
+          hostName: cleanName
+        }));
         localStorage.removeItem('family_game_state');
       } catch (err) {
         console.error("Failed to reset room database on server", err);
@@ -174,8 +222,11 @@ function App() {
     }
 
     setRoomCode(cleanCode);
-    setHostConfirmed(true);
     setRoomWarningCode(null);
+    
+    // Redirect directly to host admin console
+    const url = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}`;
+    window.location.href = url;
   };
 
   const handleConfirmRoom = async (e: React.FormEvent) => {
@@ -281,284 +332,238 @@ function App() {
         {/* Tab Selector */}
         <div className="flex bg-slate-900/60 p-1.5 rounded-2xl max-w-md mx-auto border border-slate-800">
           <button
-            onClick={() => setActiveTab('cloud')}
+            onClick={() => setActiveTab('create')}
             className={`flex-1 py-2 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'cloud'
+              activeTab === 'create'
                 ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-950/20'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Smartphone size={16} />
-            <span>שליטה מהטלפון (ענן לייב)</span>
+            <Plus size={16} />
+            <span>➕ צור חדר חדש</span>
           </button>
           <button
-            onClick={() => setActiveTab('local')}
+            onClick={() => setActiveTab('join')}
             className={`flex-1 py-2 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'local'
+              activeTab === 'join'
                 ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-950/20'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Tv size={16} />
-            <span>משחק מקומי (מחשב אחד)</span>
+            <Play size={16} />
+            <span>🔌 התחבר לחדר קיים</span>
           </button>
         </div>
 
-        {/* Cloud Tab View */}
-        {activeTab === 'cloud' && (
+        {/* Create Room View */}
+        {activeTab === 'create' && (
           <div className="max-w-2xl mx-auto glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 hover:border-emerald-500/10 transition-all shadow-2xl relative overflow-hidden text-right">
             {/* Glowing background highlights */}
             <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            {!hostConfirmed ? (
-              /* Step 1: Host details & room code setup */
-              <form onSubmit={handleConfirmRoom} className="space-y-6 relative z-10">
-                <div className="text-center space-y-2 mb-4">
-                  <h3 className="text-2xl font-black text-slate-100 flex items-center justify-center gap-2">
-                    <span>הגדרת חדר משחק חדש</span>
-                    <SettingsIcon className="text-emerald-400 animate-spin-slow" size={24} />
-                  </h3>
-                  <p className="text-xs text-slate-400">הזינו את שם מנחה המשחק ובחרו מספר חדר</p>
+            <form onSubmit={handleConfirmRoom} className="space-y-6 relative z-10">
+              <div className="text-center space-y-2 mb-4">
+                <h3 className="text-2xl font-black text-slate-100 flex items-center justify-center gap-2">
+                  <span>יצירת חדר משחק חדש</span>
+                  <SettingsIcon className="text-emerald-400 animate-spin-slow" size={24} />
+                </h3>
+                <p className="text-xs text-slate-400">הזינו את שם מנחה המשחק ובחרו מספר חדר</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">1. שם מנחה המשחק:</label>
+                  <input
+                    type="text"
+                    required
+                    value={hostName}
+                    onChange={(e) => setHostName(e.target.value)}
+                    placeholder="הקלד שם מנחה (לדוגמה: אלי, אמא)"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-650 focus:outline-none focus:border-emerald-500 text-sm font-bold"
+                  />
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">1. שם מנחה המשחק:</label>
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">2. בחרו מספר לחדר (ספרות בלבד, למשל 4):</label>
+                  <div className="flex gap-2">
                     <input
                       type="text"
                       required
-                      value={hostName}
-                      onChange={(e) => setHostName(e.target.value)}
-                      placeholder="הקלד שם מנחה (לדוגמה: אלי, אמא, דני)"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 text-sm font-bold"
+                      value={inputRoomCode}
+                      onChange={(e) => setInputRoomCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="הקלד מספר חדר (לדוגמה: 4)"
+                      className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-sm font-black text-emerald-400 placeholder-slate-650 focus:outline-none focus:border-emerald-500 font-mono"
                     />
+                    <button
+                      type="button"
+                      disabled={isCheckingRoom}
+                      onClick={handleGenerateRandomCode}
+                      className="px-4 py-2 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <RefreshCw size={14} className={isCheckingRoom ? 'animate-spin' : ''} />
+                      <span>בחר מספר אקראי</span>
+                    </button>
                   </div>
+                  
+                  <p className="text-[11px] text-amber-400/90 leading-relaxed mt-2 bg-amber-500/5 border border-amber-500/10 p-3 rounded-xl font-medium">
+                    ⚠️ עליך לזכור את המספר כי פה יישמרו כל השאלות והתמונות שלכם. אם תשכח אותו, לא תוכל לגשת לחידון שלך ותצטרך ליצור חדר חדש מהתחלה, סתם חבל.
+                  </p>
+                </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">2. בחרו מספר לחדר (ספרות בלבד, למשל 4):</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        required
-                        value={inputRoomCode}
-                        onChange={(e) => setInputRoomCode(e.target.value.replace(/\D/g, ''))}
-                        placeholder="הקלד מספר חדר (לדוגמה: 4)"
-                        className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-sm font-black text-emerald-400 placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono"
-                      />
-                      <button
-                        type="button"
-                        disabled={isCheckingRoom}
-                        onClick={handleGenerateRandomCode}
-                        className="px-4 py-2 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <RefreshCw size={14} className={isCheckingRoom ? 'animate-spin' : ''} />
-                        <span>בחר מספר אקראי</span>
-                      </button>
-                    </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-2">3. מבנה המשחק (סוג הלוח):</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTreeLayoutChoice('traditional')}
+                      className={`py-3 px-4 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1 ${
+                        treeLayoutChoice === 'traditional'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500 shadow-md shadow-emerald-550/20'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-lg">🌳</span>
+                      <span className="font-bold">עץ יוחסין משפחתי</span>
+                      <span className="text-[9px] text-slate-500 font-normal">מחבר בני משפחה לדורות והורים</span>
+                    </button>
                     
-                    <p className="text-[11px] text-amber-400/90 leading-relaxed mt-2 bg-amber-500/5 border border-amber-500/10 p-3 rounded-xl font-medium">
-                      ⚠️ עליך לזכור את המספר כי פה יישמרו כל השאלות והתמונות שלכם. אם תשכח אותו, לא תוכל לגשת לחידון שלך ותצטרך ליצור חדר חדש מהתחלה, סתם חבל.
-                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setTreeLayoutChoice('none')}
+                      className={`py-3 px-4 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1 ${
+                        treeLayoutChoice === 'none'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500 shadow-md shadow-emerald-550/20'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-lg">📋</span>
+                      <span className="font-bold">ללא עץ יוחסין (רשימה)</span>
+                      <span className="text-[9px] text-slate-500 font-normal">מצב פשוט ללא הגדרת הורים ובני זוג</span>
+                    </button>
                   </div>
                 </div>
+              </div>
 
-                {roomWarningCode && (
-                  <div className="bg-amber-500/10 border-2 border-amber-500/30 p-4 rounded-2xl text-right space-y-3 relative z-20">
-                    <p className="text-xs font-bold text-amber-300">
-                      ⚠️ חדר מספר <strong className="text-white underline">{roomWarningCode}</strong> כבר קיים במערכת עם נתונים שמורים.
-                    </p>
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        type="button"
-                        onClick={() => proceedWithRoom(roomWarningCode, true)}
-                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-lg transition-colors flex items-center gap-1"
-                      >
-                        <span>שחזר והתחבר למשחק הקיים 🔄</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRoomWarningCode(null);
-                          setInputRoomCode('');
-                        }}
-                        className="px-3 py-1.5 bg-rose-500 hover:bg-rose-400 text-white text-xs font-black rounded-lg transition-colors"
-                      >
-                        <span>החלף מספר חדר ❌</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={isCheckingRoom || !!roomWarningCode}
-                    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <span>{isCheckingRoom ? 'בודק זמינות חדר... ⏳' : 'צור חדר והמשך לחיבור שלט ומקרן 🚀'}</span>
-                  </button>
-                </div>
-
-                {lastRoomCode && (
-                  <div className="border-t border-slate-900 pt-4">
+              {roomWarningCode && (
+                <div className="bg-amber-500/10 border-2 border-amber-500/30 p-4 rounded-2xl text-right space-y-3 relative z-20">
+                  <p className="text-xs font-bold text-amber-300">
+                    ⚠️ חדר מספר <strong className="text-white underline">{roomWarningCode}</strong> כבר קיים במערכת עם נתונים שמורים.
+                  </p>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => proceedWithRoom(roomWarningCode, true)}
+                      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      <span>שחזר והתחבר למשחק הקיים 🔄</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
-                        const savedHost = localStorage.getItem('host_name') || 'המנחה';
-                        setHostName(savedHost);
-                        setRoomCode(lastRoomCode);
-                        setInputRoomCode(lastRoomCode);
-                        setHostConfirmed(true);
+                        setRoomWarningCode(null);
+                        setInputRoomCode('');
                       }}
-                      className="w-full py-2 bg-slate-900/40 border border-slate-800 hover:border-sky-500/20 text-xs text-sky-400 font-bold rounded-xl transition-all"
+                      className="px-3 py-1.5 bg-rose-500 hover:bg-rose-450 text-white text-xs font-black rounded-lg transition-colors"
                     >
-                      התחבר מחדש לחדר הקודם ({lastRoomCode})
-                    </button>
-                  </div>
-                )}
-              </form>
-            ) : (
-              /* Step 2: QR Code scan & Wait projector screen */
-              <div className="space-y-6 relative z-10">
-                <div className="text-xl font-bold text-center text-emerald-400 mb-4 bg-emerald-500/10 p-3.5 rounded-2xl border border-emerald-500/25">
-                  שלום מנחה המשחק, <span className="font-extrabold text-white underline decoration-2">{hostName || 'המנחה'}</span>! 👑
-                </div>
-
-                <div className="grid md:grid-cols-12 gap-8 items-center">
-                  
-                  {/* QR Code Column */}
-                  <div className="md:col-span-5 flex flex-col items-center space-y-3">
-                    <div className="relative p-3 bg-white rounded-2xl shadow-xl flex items-center justify-center border-4 border-slate-900 overflow-hidden">
-                      <img
-                        src={qrCodeUrl}
-                        alt="סרוק להתחברות"
-                        className="w-36 h-36 object-contain"
-                      />
-                    </div>
-                    <span className="text-xs font-bold text-slate-400">סרקו בנייד להתחברות מיידית</span>
-                  </div>
-
-                  {/* Room Code & Info Column */}
-                  <div className="md:col-span-7 space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-2xl font-black text-slate-100 flex items-center justify-end gap-2">
-                        <span>חיבור שלט מנחה</span>
-                        <Smartphone className="text-emerald-400" size={24} />
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        השאירו מסך זה פתוח במחשב (המחובר לטלוויזיה או למקרן). סרקו את הברקוד או הזינו את קוד החדר בטלפון, והמשחק יופעל כאן אוטומטית!
-                      </p>
-                    </div>
-
-                    <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-900 flex justify-between items-center">
-                      <button
-                        onClick={regenerateCode}
-                        className="p-2 hover:bg-slate-800 rounded-xl text-slate-500 hover:text-emerald-400 transition-colors"
-                        title="רענן קוד חדר"
-                      >
-                        <RefreshCw size={16} />
-                      </button>
-                      <div className="text-left">
-                        <span className="text-[9px] text-slate-500 block uppercase tracking-wider font-bold">קוד חדר נוכחי</span>
-                        <span className="text-3xl font-black tracking-widest text-emerald-400 font-mono">
-                          {roomCode}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-2 text-xs font-bold text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 py-2.5 px-4 rounded-xl">
-                      <span className="animate-pulse">ממתין לסריקה מהטלפון... ⏳</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Manual controls (collapsed / small details at bottom) */}
-                <div className="border-t border-slate-900 pt-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
-                  
-                  {/* Manual Room Entry Form */}
-                  <form onSubmit={handleJoinAsAdmin} className="flex gap-2 w-full sm:w-auto">
-                    <input
-                      type="text"
-                      value={inputRoomCode}
-                      onChange={(e) => setInputRoomCode(e.target.value.replace(/\D/g, ''))}
-                      placeholder="קוד חדר"
-                      className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-center text-xs font-bold text-sky-200 placeholder-slate-600 focus:outline-none focus:border-sky-500 font-mono w-24"
-                    />
-                    <button
-                      type="submit"
-                      className="px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg font-bold transition-colors"
-                    >
-                      התחבר כשלט
-                    </button>
-                  </form>
-
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setHostConfirmed(false)}
-                      className="text-slate-400 hover:text-white transition-colors underline font-semibold text-xs"
-                    >
-                      ערוך פרטי חדר ⚙️
-                    </button>
-                    
-                    <button
-                      onClick={launchCloudGame}
-                      className="text-slate-400 hover:text-white transition-colors underline font-semibold text-xs"
-                    >
-                      או: פתח ידנית את מסך ההקרנה
+                      <span>החלף מספר חדר ❌</span>
                     </button>
                   </div>
                 </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isCheckingRoom || !!roomWarningCode}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span>{isCheckingRoom ? 'בודק זמינות חדר... ⏳' : 'צור חדר והתחל משחק 🎮'}</span>
+                </button>
               </div>
-            )}
+            </form>
           </div>
         )}
 
-        {/* Local Tab View */}
-        {activeTab === 'local' && (
-          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto pt-2">
-            {/* Game view card */}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              className="glass-panel p-6 rounded-3xl border border-slate-800 flex flex-col items-center text-center space-y-4 hover:border-sky-500/30 transition-all shadow-xl"
-            >
-              <div className="p-3 bg-sky-500/10 text-sky-400 rounded-2xl">
-                <Tv size={32} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-sky-100">מסך 1 - מסך המשחק</h3>
-                <p className="text-xs text-slate-400 mt-1">מיועד להקרנה על מקרן או טלוויזיה גדולה.</p>
-              </div>
-              <button
-                onClick={() => launchLocalGame('game')}
-                className="w-full py-2.5 bg-gradient-to-r from-sky-600 to-sky-500 text-slate-950 font-black text-xs rounded-xl hover:from-sky-500 hover:to-sky-400 transition-all shadow-lg shadow-sky-950/50 flex items-center justify-center gap-1.5"
-              >
-                <Play size={14} fill="currentColor" />
-                <span>פתח מסך משחק</span>
-              </button>
-            </motion.div>
+        {/* Join Room View */}
+        {activeTab === 'join' && (
+          <div className="max-w-md mx-auto glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 hover:border-emerald-500/10 transition-all shadow-2xl relative overflow-hidden text-right">
+            {/* Glowing background highlights */}
+            <div className="absolute -top-24 -left-24 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 w-32 h-32 bg-sky-500/5 rounded-full blur-2xl pointer-events-none" />
 
-            {/* Admin view card */}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              className="glass-panel p-6 rounded-3xl border border-slate-800 flex flex-col items-center text-center space-y-4 hover:border-emerald-500/30 transition-all shadow-xl"
-            >
-              <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl">
-                <SettingsIcon size={32} />
-              </div>
+            <div className="text-center space-y-2 mb-4">
+              <h3 className="text-2xl font-black text-slate-100 flex items-center justify-center gap-2">
+                <span>התחברות לחדר קיים</span>
+                <Play className="text-emerald-400" size={24} />
+              </h3>
+              <p className="text-xs text-slate-400">הזינו את מספר החדר ובחרו סוג מסך להתחברות</p>
+            </div>
+
+            <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-bold text-emerald-100">מסך 2 - מסך המנחה</h3>
-                <p className="text-xs text-slate-400 mt-1">לוח בקרה במחשב השולט בנקודות ובשאלות.</p>
+                <label className="text-xs font-bold text-slate-300 block mb-1">הזן מספר חדר (ספרות בלבד):</label>
+                <input
+                  type="text"
+                  required
+                  value={inputRoomCode}
+                  onChange={(e) => setInputRoomCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="לדוגמה: 1234"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-lg font-black text-emerald-400 placeholder-slate-650 focus:outline-none focus:border-emerald-500 font-mono"
+                />
               </div>
-              <button
-                onClick={() => launchLocalGame('admin')}
-                className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs rounded-xl hover:from-emerald-400 hover:to-teal-300 transition-all shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5"
-              >
-                <SettingsIcon size={14} />
-                <span>פתח מסך מנחה</span>
-              </button>
-            </motion.div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!inputRoomCode.trim()) return;
+                    localStorage.setItem('last_connected_room', inputRoomCode.trim());
+                    window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${inputRoomCode.trim()}`;
+                  }}
+                  className="py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-lg flex flex-col items-center justify-center gap-1.5"
+                >
+                  <SettingsIcon size={16} />
+                  <span>התחבר כשלט מנחה 👑</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!inputRoomCode.trim()) return;
+                    localStorage.setItem('last_connected_room', inputRoomCode.trim());
+                    window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${inputRoomCode.trim()}`;
+                  }}
+                  className="py-3 px-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-xs rounded-xl transition-all shadow-lg flex flex-col items-center justify-center gap-1.5"
+                >
+                  <Tv size={16} />
+                  <span>פתח מסך הקרנה 📺</span>
+                </button>
+              </div>
+            </div>
+
+            {lastRoomCode && (
+              <div className="border-t border-slate-900 pt-4 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${lastRoomCode}`;
+                  }}
+                  className="w-full py-2 bg-slate-900/40 border border-slate-800 hover:border-emerald-500/20 text-xs text-emerald-400 font-bold rounded-xl transition-all text-center font-semibold"
+                >
+                  התחבר מחדש כשלט לחדר האחרון ({lastRoomCode})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${lastRoomCode}`;
+                  }}
+                  className="w-full py-2 bg-slate-900/40 border border-slate-800 hover:border-sky-500/20 text-xs text-sky-400 font-bold rounded-xl transition-all text-center font-semibold"
+                >
+                  פתח מסך הקרנה לחדר האחרון ({lastRoomCode})
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -566,19 +571,18 @@ function App() {
         <div className="glass-panel p-6 rounded-3xl border border-slate-800 max-w-xl mx-auto text-right text-xs space-y-3">
           <h4 className="font-bold text-emerald-400 flex items-center gap-1.5 border-b border-slate-800 pb-2 mb-2">
             <HelpCircle size={16} />
-            <span>איך מתחברים מהטלפון בלייב? (חדש!)</span>
+            <span>איך מתחילים לשחק ב-3 שלבים פשוטים? 🎮</span>
           </h4>
-          <ol className="list-decimal list-inside space-y-2 text-slate-300 pr-1 leading-relaxed">
-            <li>בחר בלשונית <strong>"שליטה מהטלפון (ענן לייב)"</strong> למעלה.</li>
-            <li>לחץ על הכפתור הירוק במחשב כדי לפתוח את <strong>מסך ההקרנה</strong> וגרור אותו לטלוויזיה.</li>
-            <li>סרוק את <strong>קוד ה-QR</strong> באמצעות המצלמה בטלפון שלכם (או היכנסו לאתר בטלפון והקלידו את קוד החדר).</li>
-            <li>זהו! הטלפון שלכם הופך לשלט מנחה בלייב מכל מקום, ללא צורך בהרצת שרתים או הגדרות רשת!</li>
+          <ol className="list-decimal list-inside space-y-2 text-slate-350 pr-1 leading-relaxed">
+            <li>בלשונית <strong>"צור חדר חדש"</strong>, הגדר את שם המנחה, הזן מספר חדר לבחירתך (למשל `10`) ולחץ על <strong>צור חדר</strong>.</li>
+            <li>תועבר מיד למסך המנחה. שם תוכל להוסיף את בני המשפחה, המתמודדים והציטוטים (או לייבא מקובץ Excel).</li>
+            <li>בכותרת מסך המנחה, לחץ על הכפתור הכחול <strong>"פתח מסך הקרנה 📺"</strong>, וגרור את החלון החדש למקרן או לטלוויזיה! המשחק יסונכרן אוטומטית.</li>
           </ol>
         </div>
 
         {/* Footer */}
-        <footer className="text-[10px] text-slate-500 pt-8 border-t border-slate-900 flex justify-between max-w-md mx-auto">
-          <span>תומך בסינכרון ענן Firebase בזמן אמת</span>
+        <footer className="text-[10px] text-slate-600 pt-8 border-t border-slate-900 flex justify-between max-w-md mx-auto w-full">
+          <span>סנכרון ענן Firebase בזמן אמת</span>
           <span>שעשועון מי אמר מה? &copy; 2026</span>
         </footer>
 

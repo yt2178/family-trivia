@@ -25,7 +25,8 @@ import {
   ChevronRight,
   RefreshCw,
   Image as ImageIcon,
-  Pencil
+  Pencil,
+  Tv
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -970,19 +971,37 @@ export const AdminView: React.FC = () => {
       <header className="flex flex-col lg:flex-row lg:justify-between lg:items-center border-b border-slate-800 pb-4 mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-50 flex flex-wrap items-center gap-2">
-            <span>שלום, {settings.hostName || 'המנחה'}! 👑</span>
+            <span>שלום מנחה המשחק, <span className="font-black text-amber-400 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent inline-block">{settings.hostName || 'המנחה'}</span>! 👑</span>
             <span className="text-xs bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded">
-              מחובר להקרנה {sync.getRoomCode() ? `| חדר: ${sync.getRoomCode()}` : ''}
+              מחובר {sync.getRoomCode() ? `| חדר: ${sync.getRoomCode()}` : ''}
             </span>
+            {sync.getRoomCode() && (
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${sync.getRoomCode()}`;
+                  window.open(url, '_blank', 'width=1200,height=800');
+                }}
+                className="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 shadow-md shadow-sky-950/20 hover:scale-[1.03] active:scale-[0.97]"
+              >
+                <Tv size={12} />
+                <span>פתח מסך הקרנה 📺</span>
+              </button>
+            )}
           </h1>
           <p className="text-xs text-slate-400">שלוט במשחק המוקרן על מסך גדול בזמן אמת</p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-slate-400 font-medium">
-            <span>סה״כ צאצאים בעץ: <strong className="text-emerald-400">{totalDescendants}</strong></span>
-            <span>|</span>
-            <span>ילדים ונכדים: <strong className="text-emerald-400">{childrenAndGrandchildren}</strong></span>
-            <span>|</span>
-            <span>נינים: <strong className="text-emerald-400">{greatGrandchildren}</strong></span>
-          </div>
+          {settings.treeLayout === 'none' ? (
+            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-slate-400 font-medium">
+              <span>סה״כ משתתפים רשומים: <strong className="text-emerald-400">{members.length}</strong></span>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-slate-400 font-medium">
+              <span>סה״כ צאצאים בעץ: <strong className="text-emerald-400">{totalDescendants}</strong></span>
+              <span>|</span>
+              <span>ילדים ונכדים: <strong className="text-emerald-400">{childrenAndGrandchildren}</strong></span>
+              <span>|</span>
+              <span>נינים: <strong className="text-emerald-400">{greatGrandchildren}</strong></span>
+            </div>
+          )}
         </div>
 
         {/* Tab Selector */}
