@@ -89,6 +89,8 @@ export const GameView: React.FC = React.memo(() => {
   const [settings, setSettings] = useState<GameSettings>(db.getSettings());
   const [gameState, setGameState] = useState<GameState>(db.getGameState());
   
+  const hostLabel = settings.hostName || 'המנחה';
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const particles = useRef<ConfettiParticle[]>([]);
@@ -580,7 +582,7 @@ export const GameView: React.FC = React.memo(() => {
               האם כולם מוכנים?
             </h2>
             <p className="text-slate-400 text-sm max-w-md mx-auto">
-              המנחה יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
+              {hostLabel} יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
             </p>
             {sync.getRoomCode() && (
               <div className="inline-block mt-4 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl">
@@ -693,7 +695,7 @@ export const GameView: React.FC = React.memo(() => {
                 מי אמר את זה?
               </h2>
               <p className="text-slate-400 text-sm max-w-md text-center">
-                המשפחה מנסה לנחש! המנחה יחשוף את התשובה והדובר יתגלה...
+                המשפחה מנסה לנחש! {hostLabel} יחשוף את התשובה והדובר יתגלה...
               </p>
             </div>
           ) : (
@@ -836,7 +838,7 @@ export const GameView: React.FC = React.memo(() => {
               </div>
 
               <div className="text-xs text-slate-500">
-                המנחה יכול להתחיל מחדש את המשחק ממסך הניהול
+                {hostLabel} יכול להתחיל מחדש את המשחק ממסך הניהול
               </div>
             </motion.div>
           </motion.div>

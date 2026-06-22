@@ -528,13 +528,16 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
               const sourceWinner = speakerWinners[edge.fromId];
               const destWinner = speakerWinners[edge.toId];
               
-              if (destWinner) {
-                const contestantIndex = settings.contestants.findIndex(c => c.id === destWinner);
-                if (contestantIndex === 0 || destWinner === 'grandpa') strokeColor = '#0ea5e9';
-                else if (contestantIndex === 1 || destWinner === 'grandma') strokeColor = '#d946ef';
+              const destWinnersList = destWinner ? destWinner.split(',') : [];
+              const primaryDestWinner = destWinnersList[0];
+              if (destWinnersList.length > 0) {
+                const contestantIndex = settings.contestants.findIndex(c => c.id === primaryDestWinner);
+                if (destWinnersList.length > 1) strokeColor = '#ef4444'; // Red for multiple winners
+                else if (contestantIndex === 0 || primaryDestWinner === 'grandpa') strokeColor = '#0ea5e9';
+                else if (contestantIndex === 1 || primaryDestWinner === 'grandma') strokeColor = '#d946ef';
                 else if (contestantIndex === 2) strokeColor = '#f97316';
                 else if (contestantIndex === 3) strokeColor = '#10b981';
-                else if (destWinner === 'nobody') strokeColor = '#64748b';
+                else if (primaryDestWinner === 'nobody') strokeColor = '#64748b';
               }
 
               return (
@@ -621,12 +624,19 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
 
               if (isAnswerRevealed && isCurrentQuestionSpeaker) {
                 // If it is the current answer, highlight it!
-                const contestantIndex = settings.contestants.findIndex(c => c.id === winner);
-                if (contestantIndex === 0 || winner === 'grandpa') {
+                const winnersList = winner ? winner.split(',') : [];
+                const primaryWinner = winnersList[0];
+                const contestantIndex = settings.contestants.findIndex(c => c.id === primaryWinner);
+                
+                if (winnersList.length > 1) {
+                  nodeGlowClass = 'animate-pulse border-red-400 bg-red-950/90 shadow-[0_0_20px_#ef4444]';
+                  borderClass = 'border-red-400';
+                  bgClass = 'bg-red-950/90';
+                } else if (contestantIndex === 0 || primaryWinner === 'grandpa') {
                   nodeGlowClass = 'animate-pulse-glow-grandpa border-sky-400 bg-sky-950/90 shadow-[0_0_20px_#0ea5e9]';
                   borderClass = 'border-sky-400';
                   bgClass = 'bg-sky-950/90';
-                } else if (contestantIndex === 1 || winner === 'grandma') {
+                } else if (contestantIndex === 1 || primaryWinner === 'grandma') {
                   nodeGlowClass = 'animate-pulse-glow-grandma border-fuchsia-400 bg-fuchsia-950/90 shadow-[0_0_20px_#d946ef]';
                   borderClass = 'border-fuchsia-400';
                   bgClass = 'bg-fuchsia-950/90';
@@ -645,11 +655,17 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
                 }
               } else if (isSolved) {
                 // Solved in past questions
-                const contestantIndex = settings.contestants.findIndex(c => c.id === winner);
-                if (contestantIndex === 0 || winner === 'grandpa') {
+                const winnersList = winner ? winner.split(',') : [];
+                const primaryWinner = winnersList[0];
+                const contestantIndex = settings.contestants.findIndex(c => c.id === primaryWinner);
+                
+                if (winnersList.length > 1) {
+                  borderClass = 'border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]';
+                  bgClass = 'bg-red-950/80';
+                } else if (contestantIndex === 0 || primaryWinner === 'grandpa') {
                   borderClass = 'border-sky-500 shadow-[0_0_12px_rgba(14,165,233,0.5)]';
                   bgClass = 'bg-sky-950/80';
-                } else if (contestantIndex === 1 || winner === 'grandma') {
+                } else if (contestantIndex === 1 || primaryWinner === 'grandma') {
                   borderClass = 'border-fuchsia-500 shadow-[0_0_12px_rgba(217,70,239,0.5)]';
                   bgClass = 'bg-fuchsia-950/80';
                 } else if (contestantIndex === 2) {
@@ -727,9 +743,12 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
                           <Heart
                             size={10}
                             className={(() => {
-                              const contestantIndex = settings.contestants.findIndex(c => c.id === winner);
-                              if (contestantIndex === 0 || winner === 'grandpa') return 'fill-sky-500 text-sky-500';
-                              if (contestantIndex === 1 || winner === 'grandma') return 'fill-fuchsia-500 text-fuchsia-500';
+                              const winnersList = winner ? winner.split(',') : [];
+                              if (winnersList.length > 1) return 'fill-red-500 text-red-500';
+                              const primaryWinner = winnersList[0];
+                              const contestantIndex = settings.contestants.findIndex(c => c.id === primaryWinner);
+                              if (contestantIndex === 0 || primaryWinner === 'grandpa') return 'fill-sky-500 text-sky-500';
+                              if (contestantIndex === 1 || primaryWinner === 'grandma') return 'fill-fuchsia-500 text-fuchsia-500';
                               if (contestantIndex === 2) return 'fill-amber-500 text-amber-500';
                               if (contestantIndex === 3) return 'fill-emerald-500 text-emerald-500';
                               return 'fill-slate-500 text-slate-500';

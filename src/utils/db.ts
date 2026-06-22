@@ -29,6 +29,7 @@ export interface GameSettings {
   theme: 'forest' | 'gold' | 'neon' | 'classic';
   treeLayout: 'botanical' | 'traditional' | 'none';
   contestants: Contestant[]; // Dynamic list of contestants (up to 4)
+  hostName?: string; // Optional host name
 }
 
 export interface GameState {
@@ -63,7 +64,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   contestants: [
     { id: 'grandpa', name: 'סבא', image: null },
     { id: 'grandma', name: 'סבתא', image: null }
-  ]
+  ],
+  hostName: ''
 };
 
 const DEFAULT_GAME_STATE: GameState = {
@@ -178,6 +180,11 @@ export const db = {
       
       if (!parsed.treeLayout) {
         parsed.treeLayout = 'traditional';
+        changed = true;
+      }
+
+      if (parsed.hostName === undefined) {
+        parsed.hostName = '';
         changed = true;
       }
 

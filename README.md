@@ -1,73 +1,63 @@
-# React + TypeScript + Vite
+# מי אמר את זה? 🌳 (שעשועון טריוויה משפחתי)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+שעשועון טריוויה משפחתי אינטראקטיבי המשלב עץ יוחסין, חשיפת דוברים, וניהול לייב בזמן אמת מהטלפון הנייד באמצעות סנכרון Firebase.
 
-Currently, two official plugins are available:
+## 🚀 תכונות עיקריות
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. **שליטה מהנייד (ענן לייב)**:
+   - מנחה האירוע יכול לשלוט בשעשועון מהסמארטפון שלו דרך לוח בקרה עשיר.
+   - מסך ההקרנה (בטלוויזיה או במקרן) מתעדכן אוטומטית ובזמן אמת ללא צורך בריענון.
+   - סנכרון ענן מלא ומהיר מבוסס Firebase Realtime Database.
+   
+2. **מערכת ניקוד גמישה (חדש! 🏆)**:
+   - תמיכה בעד 4 מתמודדים בו-זמנית עם תמונות ושמות מותאמים אישית.
+   - **ניקוד משותף**: אפשרות להעניק נקודות למספר מתמודדים שונים שצדקו יחד באותה השאלה.
+   - מערכת אפקטים קוליים וזיקוקי דינור (Confetti) מותאמים אישית לכל מתמודד.
 
-## React Compiler
+3. **שילוב עץ יוחסין משפחתי**:
+   - תצוגת עץ יוחסין מרהיבה (מצב מסורתי או בוטני) המציגה את ההתקדמות ומסמנת לבבות על בני משפחה שהמשפטים שלהם נפתרו.
+   - אפשרות למשחק ללא עץ (מצב רשימה) להקמה מהירה של חידונים כלליים.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+4. **ייבוא קל מ-Excel**:
+   - ייבוא קבצי Excel של בני המשפחה ומאגר השאלות/ציטוטים תוך שניות בודדות.
+   - הורדת תבניות מוכנות ישירות מממשק הניהול.
 
-## Expanding the ESLint configuration
+5. **ניהול מותאם אישית**:
+   - הזנת שם מנחה בשלב יצירת החדר, אשר משנה את כל פניות המערכת והטקסטים לשם המנחה המותאם אישית.
+   - הגדרת קוד חדר מותאם (ספרות פשוטות בלבד, למשל `4`) לגישה מהירה ונוחה.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🛠️ הרצה מקומית
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### דרישות קדם
+- [Node.js](https://nodejs.org/) מותקן (גרסה 18 ומעלה).
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### התקנה והרצה
+1. התקנת התלויות:
+   ```bash
+   npm install
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+2. הרצת שרת הפיתוח המקומי:
+   ```bash
+   npm run dev
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+3. בנייה ל-Production:
+   ```bash
+   npm run build
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ⚙️ הגדרות Firebase
+יש להגדיר את פרטי הפרויקט שלכם בקובץ `src/utils/firebase.ts` לשימוש בענן הלייב.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```typescript
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  databaseURL: "YOUR_DATABASE_URL",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
 ```

@@ -366,32 +366,42 @@ export const AdminView: React.FC = () => {
     const currentQId = gameState.shuffledQuestionIds[gameState.currentQuestionIndex];
     if (!currentQId) return;
 
-    const currentWinner = gameState.solvedQuestions[currentQId];
+    const currentSolvedValue = gameState.solvedQuestions[currentQId];
+    const currentWinners = (!currentSolvedValue || currentSolvedValue === 'nobody') 
+      ? [] 
+      : currentSolvedValue.split(',');
+
     const newScores = { ...gameState.scores };
     let newSolved = { ...gameState.solvedQuestions };
     let isUndo = false;
 
-    // Toggle logic (Undo if clicked again)
-    if (currentWinner === winner) {
-      // Undo point
+    if (winner === 'nobody') {
+      // Clear all winners for this question and deduct their points
+      currentWinners.forEach(wId => {
+        newScores[wId] = Math.max(0, (newScores[wId] || 0) - 1);
+      });
       delete newSolved[currentQId];
-      newScores[winner] = Math.max(0, (newScores[winner] || 0) - 1);
-      isUndo = true;
-      showSuccess('בוטל הניקוד עבור שחקן זה בשאלה הנוכחית.');
+      showSuccess('בוטל הניקוד לכל המתמודדים בשאלה זו.');
     } else {
-      // If there was a different winner previously, deduct their point first!
-      if (currentWinner && currentWinner !== 'nobody') {
-        newScores[currentWinner] = Math.max(0, (newScores[currentWinner] || 0) - 1);
-      }
-      
-      // Assign new point
-      if (winner !== 'nobody') {
-        newScores[winner] = (newScores[winner] || 0) + 1;
-        newSolved[currentQId] = winner;
+      if (currentWinners.includes(winner)) {
+        // Toggle off (Undo point)
+        const updatedWinners = currentWinners.filter(wId => wId !== winner);
+        newScores[winner] = Math.max(0, (newScores[winner] || 0) - 1);
+        isUndo = true;
+        
+        if (updatedWinners.length > 0) {
+          newSolved[currentQId] = updatedWinners.join(',');
+        } else {
+          delete newSolved[currentQId];
+        }
+        showSuccess(`בוטל הניקוד עבור ${settings.contestants.find(c => c.id === winner)?.name || 'מתמודד זה'}.`);
       } else {
-        delete newSolved[currentQId];
+        // Toggle on (Add winner point)
+        const updatedWinners = [...currentWinners, winner];
+        newScores[winner] = (newScores[winner] || 0) + 1;
+        newSolved[currentQId] = updatedWinners.join(',');
+        showSuccess(`התווספה נקודה עבור ${settings.contestants.find(c => c.id === winner)?.name || 'מתמודד זה'}!`);
       }
-      showSuccess('הניקוד עודכן בהצלחה!');
     }
 
     const updatedState = {
@@ -960,7 +970,7 @@ export const AdminView: React.FC = () => {
       <header className="flex flex-col lg:flex-row lg:justify-between lg:items-center border-b border-slate-800 pb-4 mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-50 flex flex-wrap items-center gap-2">
-            <span>לוח בקרת מנחה (Admin)</span>
+            <span>שלום, {settings.hostName || 'המנחה'}! 👑</span>
             <span className="text-xs bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded">
               מחובר להקרנה {sync.getRoomCode() ? `| חדר: ${sync.getRoomCode()}` : ''}
             </span>
@@ -1011,7 +1021,7 @@ export const AdminView: React.FC = () => {
             }`}
           >
             <Settings size={14} />
-            <span>ערכות נושא</span>
+            <span>הגדרות משחק</span>
           </button>
           <button
             onClick={() => setActiveTab('import')}
@@ -1098,7 +1108,8 @@ export const AdminView: React.FC = () => {
                         <div className={`grid gap-4 ${settings.contestants.length <= 2 ? 'grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'}`}>
                           {settings.contestants.map((c, index) => {
                             const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
-                            const isWinner = gameState.solvedQuestions[gameState.shuffledQuestionIds[gameState.currentQuestionIndex]] === c.id;
+                            const solvedVal = gameState.solvedQuestions[gameState.shuffledQuestionIds[gameState.currentQuestionIndex]];
+                            const isWinner = solvedVal ? solvedVal.split(',').includes(c.id) : false;
                             return (
                               <button
                                 key={c.id}
@@ -1318,12 +1329,23 @@ export const AdminView: React.FC = () => {
                           </span>
                           <div className="flex items-center gap-1.5">
                             <span className="text-slate-400 font-medium">({sp?.name})</span>
-                            <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${
-                              winner === 'grandpa' ? 'bg-sky-500/20 text-sky-400' :
-                              winner === 'grandma' ? 'bg-fuchsia-500/20 text-fuchsia-400' : 'bg-slate-800 text-slate-400'
-                            }`}>
-                              {winner === 'grandpa' ? 'סבא' : winner === 'grandma' ? 'סבתא' : 'אף אחד'}
-                            </span>
+                            {winner ? (
+                              winner.split(',').map(wId => {
+                                const contestant = settings.contestants.find(c => c.id === wId);
+                                const contestantIndex = settings.contestants.findIndex(c => c.id === wId);
+                                const colors = CONTESTANT_COLORS[contestantIndex % CONTESTANT_COLORS.length] || { text: 'text-slate-400' };
+                                const badgeColorClass = colors.text.replace('text', 'bg') + '/20 ' + colors.text;
+                                return (
+                                  <span key={wId} className={`px-2 py-0.5 rounded font-bold text-[10px] ${badgeColorClass}`}>
+                                    {contestant ? contestant.name : 'מתמודד'}
+                                  </span>
+                                );
+                              })
+                            ) : (
+                              <span className="px-2 py-0.5 rounded font-bold text-[10px] bg-slate-800 text-slate-400">
+                                אף אחד
+                              </span>
+                            )}
                           </div>
                         </li>
                       );
@@ -1723,6 +1745,17 @@ export const AdminView: React.FC = () => {
             <div className="col-span-12 glass-panel p-6 rounded-3xl border border-slate-800 space-y-6">
               <h3 className="text-lg font-bold text-emerald-400">הגדרות המשחק</h3>
               
+              <div>
+                <label className="text-xs text-slate-400 block mb-1 font-semibold">שם מנחה המשחק (השם המופיע במסך ההקרנה ובבקרת המנחה)</label>
+                <input
+                  type="text"
+                  value={settings.hostName || ''}
+                  onChange={(e) => updateSettings({ ...settings, hostName: e.target.value })}
+                  placeholder="הקלד שם מנחה (לדוגמה: אלי, אמא)"
+                  className="w-full max-w-md bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-emerald-500 font-bold"
+                />
+              </div>
+
               <div>
                 <label className="text-xs text-slate-400 block mb-2 font-semibold">סוג תצוגת לוח המשחק (מצב עץ יוחסין)</label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
