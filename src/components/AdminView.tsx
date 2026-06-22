@@ -3,7 +3,7 @@ import { db, FamilyMember, GameSettings, GameState, TriviaQuestion } from '../ut
 import { sync } from '../utils/sync';
 import { excelHelper } from '../utils/excelHelper';
 import { rtdb } from '../utils/firebase';
-import { ref, onValue, off } from 'firebase/database';
+import { ref, onValue, off, set } from 'firebase/database';
 import {
   Users,
   Settings,
@@ -107,15 +107,20 @@ export const AdminView: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(db.getGameState());
   const [gameScreenConnected, setGameScreenConnected] = useState<boolean>(false);
 
-  // Listen to game screen connection status in Firebase
+  // Register controller connection and listen to game screen connection status in Firebase
   useEffect(() => {
     const roomCode = sync.getRoomCode();
     if (roomCode) {
+      const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
+      set(controllerStatusRef, true);
+
       const statusRef = ref(rtdb, `rooms/${roomCode}/gameScreenConnected`);
       onValue(statusRef, (snapshot) => {
         setGameScreenConnected(!!snapshot.val());
       });
+
       return () => {
+        set(controllerStatusRef, false);
         off(statusRef);
       };
     }

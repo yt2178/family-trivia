@@ -55,19 +55,16 @@ function App() {
   useEffect(() => {
     if (mode !== 'welcome' || !roomCode || activeTab !== 'cloud') return;
 
-    const roomRef = ref(rtdb, `rooms/${roomCode}/lastMessage`);
-    const unsubscribe = onValue(roomRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const val = snapshot.val();
-        if (val && val.message) {
-          const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
-          window.location.href = url;
-        }
+    const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
+    const unsubscribe = onValue(controllerStatusRef, (snapshot) => {
+      if (snapshot.exists() && snapshot.val() === true) {
+        const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+        window.location.href = url;
       }
     });
 
     return () => {
-      off(roomRef);
+      off(controllerStatusRef);
     };
   }, [mode, roomCode, activeTab]);
 
