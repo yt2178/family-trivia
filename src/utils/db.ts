@@ -28,8 +28,9 @@ export interface GameSettings {
   grandmaImage: string | null;
   theme: 'forest' | 'gold' | 'neon' | 'classic';
   treeLayout: 'botanical' | 'traditional' | 'none';
-  contestants: Contestant[]; // Dynamic list of contestants (up to 4)
+  contestants: Contestant[]; // Dynamic list of contestants (up to 5)
   hostName?: string; // Optional host name
+  setupComplete?: boolean; // Whether host has finished setting up the room
 }
 
 export interface GameState {

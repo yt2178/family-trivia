@@ -333,6 +333,11 @@ export const AdminView: React.FC = () => {
   const handleStartGame = () => {
     const freshState = db.resetGame();
     updateGameState(freshState);
+    // Mark setup as complete so projector screen is allowed to enter
+    const newSettings = { ...settings, setupComplete: true };
+    db.saveSettings(newSettings);
+    setSettings(newSettings);
+    sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
     showSuccess('המשחק אותחל וערבוב השאלות הושלם בהצלחה!');
   };
 

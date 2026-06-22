@@ -32,6 +32,12 @@ export const CONTESTANT_COLORS = [
     text: 'text-emerald-400',
     glow: 'שחקן ירוק',
     border: 'border-emerald-500'
+  },
+  {
+    bg: 'bg-rose-950/40 border-rose-500/40 hover:bg-rose-900/40 text-rose-100',
+    text: 'text-rose-400',
+    glow: 'שחקן אדום',
+    border: 'border-rose-500'
   }
 ];
 
@@ -544,36 +550,35 @@ export const GameView: React.FC = React.memo(() => {
             </p>
           </div>
 
-          {/* Versus Visuals */}
-          <div className="grid grid-cols-3 gap-4 items-center max-w-xl mx-auto py-8">
-            {/* Grandpa */}
-            <div className="flex flex-col items-center space-y-3">
-              <div className="w-24 h-24 rounded-2xl border-2 border-sky-500/40 p-1 bg-slate-900/60 shadow-lg overflow-hidden flex items-center justify-center">
-                {settings.grandpaImage ? (
-                  <img src={settings.grandpaImage} alt={settings.grandpaName} className="w-full h-full object-cover rounded-xl" />
-                ) : (
-                  <div className="w-full h-full bg-sky-950/40 flex items-center justify-center text-sky-400 rounded-xl text-3xl">👴</div>
-                )}
-              </div>
-              <span className="font-bold text-lg text-sky-200">{settings.grandpaName || 'סבא'}</span>
-            </div>
-
-            {/* VS */}
-            <div className="text-center">
-              <span className="text-3xl font-black text-amber-500 bg-amber-500/10 px-4 py-2 rounded-2xl border border-amber-500/20 shadow-md">VS</span>
-            </div>
-
-            {/* Grandma */}
-            <div className="flex flex-col items-center space-y-3">
-              <div className="w-24 h-24 rounded-2xl border-2 border-fuchsia-500/40 p-1 bg-slate-900/60 shadow-lg overflow-hidden flex items-center justify-center">
-                {settings.grandmaImage ? (
-                  <img src={settings.grandmaImage} alt={settings.grandmaName} className="w-full h-full object-cover rounded-xl" />
-                ) : (
-                  <div className="w-full h-full bg-fuchsia-950/40 flex items-center justify-center text-fuchsia-400 rounded-xl text-3xl">👵</div>
-                )}
-              </div>
-              <span className="font-bold text-lg text-fuchsia-200">{settings.grandmaName || 'סבתא'}</span>
-            </div>
+          {/* Dynamic Contestants Display */}
+          <div className={`flex flex-wrap items-center justify-center gap-4 max-w-2xl mx-auto py-8 ${
+            settings.contestants.length <= 2 ? 'gap-8' : 'gap-3'
+          }`}>
+            {settings.contestants.map((contestant, index) => {
+              const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
+              const borderColor = colors.border.replace('border-', '');
+              return (
+                <React.Fragment key={contestant.id}>
+                  {index > 0 && settings.contestants.length <= 3 && (
+                    <div className="text-center">
+                      <span className="text-2xl font-black text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-2xl border border-amber-500/20 shadow-md">VS</span>
+                    </div>
+                  )}
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className={`w-20 h-20 rounded-2xl border-2 ${colors.border}/40 p-1 bg-slate-900/60 shadow-lg overflow-hidden flex items-center justify-center`}>
+                      {contestant.image ? (
+                        <img src={contestant.image} alt={contestant.name} className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        <div className={`w-full h-full bg-${borderColor}/10 flex items-center justify-center ${colors.text} rounded-xl text-2xl`}>
+                          <Award size={32} />
+                        </div>
+                      )}
+                    </div>
+                    <span className={`font-bold text-base ${colors.text}`}>{contestant.name}</span>
+                  </div>
+                </React.Fragment>
+              );
+            })}
           </div>
 
           {/* Ready Check Title */}

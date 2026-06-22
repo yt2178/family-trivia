@@ -20,6 +20,11 @@ function App() {
   const [roomWarningCode, setRoomWarningCode] = useState<string | null>(null);
   const [treeLayoutChoice, setTreeLayoutChoice] = useState<'traditional' | 'none'>('traditional');
 
+  // Join tab states
+  const [joinHostName, setJoinHostName] = useState<string>('');
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [joinWaiting, setJoinWaiting] = useState<boolean>(false); // waiting for host to finish setup
+
   // Helper to generate a random numeric room code
   const generateRoomCode = () => {
     return Math.floor(1000 + Math.random() * 9000).toString();
@@ -269,13 +274,64 @@ function App() {
     }
   };
 
-  const handleJoinAsAdmin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputRoomCode.trim()) return;
+  // Verify host name matches Firebase and room exists, then navigate
+  const verifyAndJoin = async (): Promise<{ ok: boolean; settings?: any }> => {
+    const cleanCode = inputRoomCode.trim();
+    const cleanJoinName = joinHostName.trim();
+    if (!cleanCode) { setJoinError('נא להזין מספר חדר'); return { ok: false }; }
+    if (!cleanJoinName) { setJoinError('נא להזין שם מנחה'); return { ok: false }; }
+    setJoinError(null);
+    setIsCheckingRoom(true);
+    try {
+      const snap = await get(ref(rtdb, `rooms/${cleanCode}/database`));
+      if (!snap.exists()) {
+        setJoinError('❌ אין חדר כזה — בדוק את המספר ונסה שוב');
+        return { ok: false };
+      }
+      const data = snap.val();
+      const storedName: string = (data?.settings?.hostName || data?.db?.settings?.hostName || '').trim();
+      if (storedName && storedName !== cleanJoinName) {
+        setJoinError('❌ שם המנחה שגוי — בדוק ונסה שוב');
+        return { ok: false };
+      }
+      return { ok: true, settings: data?.settings || data?.db?.settings };
+    } catch (e) {
+      setJoinError('שגיאת תקשורת — נסה שוב');
+      return { ok: false };
+    } finally {
+      setIsCheckingRoom(false);
+    }
+  };
+
+  const handleJoinAsAdmin = async () => {
+    const { ok } = await verifyAndJoin();
+    if (!ok) return;
     const cleanCode = inputRoomCode.trim();
     localStorage.setItem('last_connected_room', cleanCode);
-    const url = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}`;
-    window.location.href = url;
+    window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}`;
+  };
+
+  const handleOpenProjector = async () => {
+    const { ok, settings: roomSettings } = await verifyAndJoin();
+    if (!ok) return;
+    const cleanCode = inputRoomCode.trim();
+    // Check if host finished setup
+    if (!roomSettings?.setupComplete) {
+      setJoinError('');
+      setJoinWaiting(true);
+      // Listen for setupComplete to become true
+      const settingsRef = ref(rtdb, `rooms/${cleanCode}/database/settings/setupComplete`);
+      const unsub = onValue(settingsRef, (snap) => {
+        if (snap.val() === true) {
+          off(settingsRef);
+          localStorage.setItem('last_connected_room', cleanCode);
+          window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${cleanCode}`;
+        }
+      });
+      return;
+    }
+    localStorage.setItem('last_connected_room', cleanCode);
+    window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${cleanCode}`;
   };
 
   const regenerateCode = () => {
@@ -487,81 +543,94 @@ function App() {
 
         {/* Join Room View */}
         {activeTab === 'join' && (
-          <div className="max-w-md mx-auto glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 hover:border-emerald-500/10 transition-all shadow-2xl relative overflow-hidden text-right">
-            {/* Glowing background highlights */}
+          <div className="max-w-md mx-auto glass-panel p-8 rounded-3xl border border-slate-800 space-y-5 hover:border-emerald-500/10 transition-all shadow-2xl relative overflow-hidden text-right">
             <div className="absolute -top-24 -left-24 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
             <div className="absolute -bottom-24 -right-24 w-32 h-32 bg-sky-500/5 rounded-full blur-2xl pointer-events-none" />
 
-            <div className="text-center space-y-2 mb-4">
+            <div className="text-center space-y-1 mb-2">
               <h3 className="text-2xl font-black text-slate-100 flex items-center justify-center gap-2">
                 <span>התחברות לחדר קיים</span>
                 <Play className="text-emerald-400" size={24} />
               </h3>
-              <p className="text-xs text-slate-400">הזינו את מספר החדר ובחרו סוג מסך להתחברות</p>
+              <p className="text-xs text-slate-400">הזינו מספר חדר ושם מנחה כדי להתחבר</p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
+              {/* Room code */}
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">הזן מספר חדר (ספרות בלבד):</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">מספר חדר:</label>
                 <input
                   type="text"
-                  required
                   value={inputRoomCode}
-                  onChange={(e) => setInputRoomCode(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => { setInputRoomCode(e.target.value.replace(/\D/g, '')); setJoinError(null); setJoinWaiting(false); }}
                   placeholder="לדוגמה: 1234"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-lg font-black text-emerald-400 placeholder-slate-650 focus:outline-none focus:border-emerald-500 font-mono"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-lg font-black text-emerald-400 placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-2">
+              {/* Host name — required for auth */}
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">שם המנחה (לאימות):</label>
+                <input
+                  type="text"
+                  value={joinHostName}
+                  onChange={(e) => { setJoinHostName(e.target.value); setJoinError(null); setJoinWaiting(false); }}
+                  placeholder="הקלד את שם המנחה שנרשם בעת יצירת החדר"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 text-sm font-bold"
+                />
+              </div>
+
+              {/* Error message */}
+              {joinError && (
+                <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-2.5 text-xs text-rose-300 font-bold text-center">
+                  {joinError}
+                </div>
+              )}
+
+              {/* Waiting for host message */}
+              {joinWaiting && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-xs text-amber-300 font-bold text-center space-y-1">
+                  <p>⏳ המנחה עדיין עורך את פרטי המשחק...</p>
+                  <p className="text-amber-400/70 font-normal">המסך ייפתח אוטומטית ברגע שהוא ייסיים!</p>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!inputRoomCode.trim()) return;
-                    localStorage.setItem('last_connected_room', inputRoomCode.trim());
-                    window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${inputRoomCode.trim()}`;
-                  }}
-                  className="py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-lg flex flex-col items-center justify-center gap-1.5"
+                  disabled={isCheckingRoom}
+                  onClick={handleJoinAsAdmin}
+                  className="py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-lg flex flex-col items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <SettingsIcon size={16} />
-                  <span>התחבר כשלט מנחה 👑</span>
+                  <span>{isCheckingRoom ? '...' : 'שלט מנחה 👑'}</span>
                 </button>
-                
+
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!inputRoomCode.trim()) return;
-                    localStorage.setItem('last_connected_room', inputRoomCode.trim());
-                    window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${inputRoomCode.trim()}`;
-                  }}
-                  className="py-3 px-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-xs rounded-xl transition-all shadow-lg flex flex-col items-center justify-center gap-1.5"
+                  disabled={isCheckingRoom || joinWaiting}
+                  onClick={handleOpenProjector}
+                  className="py-3 px-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-xs rounded-xl transition-all shadow-lg flex flex-col items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Tv size={16} />
-                  <span>פתח מסך הקרנה 📺</span>
+                  <span>{joinWaiting ? 'ממתין... ⏳' : 'מסך הקרנה 📺'}</span>
                 </button>
               </div>
             </div>
 
-            {lastRoomCode && (
+            {lastRoomCode && !joinWaiting && (
               <div className="border-t border-slate-900 pt-4 flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${lastRoomCode}`;
-                  }}
-                  className="w-full py-2 bg-slate-900/40 border border-slate-800 hover:border-emerald-500/20 text-xs text-emerald-400 font-bold rounded-xl transition-all text-center font-semibold"
-                >
-                  התחבר מחדש כשלט לחדר האחרון ({lastRoomCode})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${lastRoomCode}`;
-                  }}
-                  className="w-full py-2 bg-slate-900/40 border border-slate-800 hover:border-sky-500/20 text-xs text-sky-400 font-bold rounded-xl transition-all text-center font-semibold"
-                >
-                  פתח מסך הקרנה לחדר האחרון ({lastRoomCode})
-                </button>
+                <p className="text-[10px] text-slate-500 text-center">חדר אחרון: <strong className="text-slate-400">{lastRoomCode}</strong></p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setInputRoomCode(lastRoomCode); setJoinError(null); }}
+                    className="flex-1 py-2 bg-slate-900/40 border border-slate-800 hover:border-emerald-500/20 text-xs text-emerald-400 font-bold rounded-xl transition-all text-center"
+                  >
+                    טען חדר אחרון
+                  </button>
+                </div>
               </div>
             )}
           </div>
