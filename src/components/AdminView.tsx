@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db, FamilyMember, GameSettings, GameState, TriviaQuestion } from '../utils/db';
 import { sync } from '../utils/sync';
 import { excelHelper } from '../utils/excelHelper';
+import { audioHelper } from '../utils/audioHelper';
 import { rtdb } from '../utils/firebase';
 import { ref, onValue, off, set } from 'firebase/database';
 import {
@@ -222,58 +223,9 @@ export const AdminView: React.FC = () => {
     });
   };
 
-  // Pure Web Audio API tone generator for Admin Sound effects
+  // Pure Web Audio API tone generator wrapper using audioHelper
   const playAdminSound = (type: 'success' | 'undo' | 'reveal') => {
-    try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContextClass) return;
-      const ctx = new AudioContextClass();
-      
-      if (type === 'success') {
-        const osc1 = ctx.createOscillator();
-        const osc2 = ctx.createOscillator();
-        const gain = ctx.createGain();
-        
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(ctx.destination);
-        
-        osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-        osc2.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
-        
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        
-        osc1.start();
-        osc2.start();
-        
-        setTimeout(() => {
-          osc1.stop();
-          osc2.stop();
-          ctx.close();
-        }, 400);
-      } else if (type === 'undo') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        
-        osc.frequency.setValueAtTime(392.00, ctx.currentTime); // G4
-        osc.frequency.exponentialRampToValueAtTime(261.63, ctx.currentTime + 0.35); // C4
-        
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        
-        osc.start();
-        setTimeout(() => {
-          osc.stop();
-          ctx.close();
-        }, 400);
-      }
-    } catch (e) {
-      console.warn("AudioContext tone failed:", e);
-    }
+    audioHelper.play(type);
   };
 
   // Load Data
@@ -460,12 +412,75 @@ export const AdminView: React.FC = () => {
 
 
   // --- FAMILY MEMBER ACTIONS ---
+  const validateRelations = (
+    name: string,
+    parentId: string | null,
+    spouseId: string | null,
+    currentId: string | null
+  ): string | null => {
+    const cleanName = name.trim();
+    if (!cleanName) return 'נא להזין שם.';
+
+    if (spouseId) {
+      if (currentId && spouseId === currentId) {
+        return 'אדם אינו יכול להיות בן הזוג של עצמו.';
+      }
+      
+      const spouse = members.find(m => m.id === spouseId);
+      if (spouse) {
+        // Double marriage check
+        if (spouse.spouseId && spouse.spouseId !== currentId) {
+          return `בן/בת הזוג שנבחרו (${spouse.name}) כבר נשואים ל-${members.find(m => m.id === spouse.spouseId)?.name || 'אדם אחר'}.`;
+        }
+        
+        // Parent/Child marriage check
+        if (parentId && parentId === spouseId) {
+          return 'אדם אינו יכול להתחתן עם ההורה שלו.';
+        }
+      }
+    }
+
+    if (parentId) {
+      if (currentId && parentId === currentId) {
+        return 'אדם אינו יכול להיות ההורה של עצמו.';
+      }
+
+      // Check hierarchy loop: A is parent of B, B is parent of A
+      if (currentId) {
+        let currParentId = parentId;
+        const visited = new Set<string>();
+        while (currParentId) {
+          if (currParentId === currentId) {
+            return 'שגיאה: הגדרה זו יוצרת לולאת היררכיה אינסופית בעץ המשפחה.';
+          }
+          if (visited.has(currParentId)) break;
+          visited.add(currParentId);
+          const p = members.find(m => m.id === currParentId);
+          currParentId = p?.parentId || '';
+        }
+      }
+    }
+
+    return null;
+  };
+
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
     if (!newMember.name.trim()) {
       alert('נא להזין שם לבן המשפחה');
+      return;
+    }
+    
+    const error = validateRelations(
+      newMember.name,
+      newMember.parentId || null,
+      newMember.spouseId || null,
+      null
+    );
+    if (error) {
+      alert(error);
       return;
     }
     
@@ -555,8 +570,20 @@ export const AdminView: React.FC = () => {
 
   const handleDeleteMember = (id: string) => {
     const updated = members.filter(m => m.id !== id);
-    // Also clean parent pointers
-    const cleaned = updated.map(m => m.parentId === id ? { ...m, parentId: null } : m);
+    // Clean parent and spouse pointers to prevent dangling references
+    const cleaned = updated.map(m => {
+      let changed = false;
+      const updatedMember = { ...m };
+      if (updatedMember.parentId === id) {
+        updatedMember.parentId = null;
+        changed = true;
+      }
+      if (updatedMember.spouseId === id) {
+        updatedMember.spouseId = null;
+        changed = true;
+      }
+      return changed ? updatedMember : m;
+    });
     setMembers(cleaned);
     db.saveMembers(cleaned);
     sync.sendMessage({ type: 'DATABASE_SYNC', members: cleaned, questions, settings });
@@ -579,6 +606,17 @@ export const AdminView: React.FC = () => {
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMemberId || !newMember.name) return;
+
+    const error = validateRelations(
+      newMember.name,
+      newMember.parentId || null,
+      newMember.spouseId || null,
+      editingMemberId
+    );
+    if (error) {
+      alert(error);
+      return;
+    }
 
     // Recalculate generation based on parentId or spouseId
     let generation: FamilyMember['generation'] = 'grandparent';
@@ -778,7 +816,15 @@ export const AdminView: React.FC = () => {
         const result = await excelHelper.importQuestions(file, members, questions);
         setQuestions(result.questions);
         db.saveQuestions(result.questions);
-        sync.sendMessage({ type: 'DATABASE_SYNC', members, questions: result.questions, settings });
+        
+        let finalMembers = members;
+        if (result.updatedMembers) {
+          finalMembers = result.updatedMembers;
+          setMembers(finalMembers);
+          db.saveMembers(finalMembers);
+        }
+        
+        sync.sendMessage({ type: 'DATABASE_SYNC', members: finalMembers, questions: result.questions, settings });
         setWarnings(result.warnings);
         showSuccess('ייבוא השאלות מ-Excel הושלם!');
       } catch (err) {

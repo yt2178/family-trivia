@@ -76,56 +76,89 @@ const DEFAULT_GAME_STATE: GameState = {
   isPlaying: false,
 };
 
+const safeLocalStorageSet = (key: string, value: string): boolean => {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e: any) {
+    console.error(`LocalStorage save failed for key "${key}":`, e);
+    if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22) {
+      window.dispatchEvent(new CustomEvent('localstorage-quota-exceeded', { detail: { key } }));
+      alert('⚠️ שגיאה: שטח האחסון המקומי בדפדפן מלא! ייתכן שישנן תמונות רבות מדי או כבדות מדי. אנא הקטן/צמצם את גודל תמונות בני המשפחה או מחק כמה מהן כדי שתוכל לשמור.');
+    }
+    return false;
+  }
+};
+
 export const db = {
   // Family Members
   getMembers(): FamilyMember[] {
     const DB_VERSION_KEY = 'family_game_db_version';
     const CURRENT_VERSION = 'v7'; // Incremented for contestants schema
     
-    const version = localStorage.getItem(DB_VERSION_KEY);
-    if (version !== CURRENT_VERSION) {
-      this.clearAllData();
-      localStorage.setItem(DB_VERSION_KEY, CURRENT_VERSION);
-      this.saveMembers(DEFAULT_MEMBERS);
-      return DEFAULT_MEMBERS;
-    }
+    try {
+      const version = localStorage.getItem(DB_VERSION_KEY);
+      if (version !== CURRENT_VERSION) {
+        this.clearAllData();
+        safeLocalStorageSet(DB_VERSION_KEY, CURRENT_VERSION);
+        this.saveMembers(DEFAULT_MEMBERS);
+        return DEFAULT_MEMBERS;
+      }
 
-    const data = localStorage.getItem(STORAGE_KEYS.MEMBERS);
-    if (!data) {
-      this.saveMembers(DEFAULT_MEMBERS);
+      const data = localStorage.getItem(STORAGE_KEYS.MEMBERS);
+      if (!data) {
+        this.saveMembers(DEFAULT_MEMBERS);
+        return DEFAULT_MEMBERS;
+      }
+      return JSON.parse(data);
+    } catch (e) {
+      console.error('Failed to read or parse members from localStorage', e);
       return DEFAULT_MEMBERS;
     }
-    return JSON.parse(data);
   },
 
   clearAllData(): void {
-    localStorage.removeItem(STORAGE_KEYS.MEMBERS);
-    localStorage.removeItem(STORAGE_KEYS.QUESTIONS);
-    localStorage.removeItem(STORAGE_KEYS.SETTINGS);
-    localStorage.removeItem(STORAGE_KEYS.GAME_STATE);
+    try {
+      localStorage.removeItem(STORAGE_KEYS.MEMBERS);
+      localStorage.removeItem(STORAGE_KEYS.QUESTIONS);
+      localStorage.removeItem(STORAGE_KEYS.SETTINGS);
+      localStorage.removeItem(STORAGE_KEYS.GAME_STATE);
+    } catch (e) {
+      console.error('Failed to clear data from localStorage', e);
+    }
   },
 
   saveMembers(members: FamilyMember[]): void {
-    localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(members));
+    safeLocalStorageSet(STORAGE_KEYS.MEMBERS, JSON.stringify(members));
   },
 
   // Questions
   getQuestions(): TriviaQuestion[] {
-    const data = localStorage.getItem(STORAGE_KEYS.QUESTIONS);
-    if (!data) {
-      this.saveQuestions(DEFAULT_QUESTIONS);
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.QUESTIONS);
+      if (!data) {
+        this.saveQuestions(DEFAULT_QUESTIONS);
+        return DEFAULT_QUESTIONS;
+      }
+      return JSON.parse(data);
+    } catch (e) {
+      console.error('Failed to read or parse questions from localStorage', e);
       return DEFAULT_QUESTIONS;
     }
-    return JSON.parse(data);
   },
 
   saveQuestions(questions: TriviaQuestion[]): void {
-    localStorage.setItem(STORAGE_KEYS.QUESTIONS, JSON.stringify(questions));
+    safeLocalStorageSet(STORAGE_KEYS.QUESTIONS, JSON.stringify(questions));
   },
 
   // Settings
   getSettings(): GameSettings {
-    const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    let data: string | null = null;
+    try {
+      data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    } catch (e) {
+      console.error('Failed to read settings from localStorage', e);
+    }
     if (!data) {
       this.saveSettings(DEFAULT_SETTINGS);
       return DEFAULT_SETTINGS;
@@ -134,11 +167,11 @@ export const db = {
       const parsed = JSON.parse(data) as GameSettings;
       let changed = false;
 
-      // Migrate contestants if missing
-      if (!parsed.contestants || !Array.isArray(parsed.contestants)) {
+      // Migrate/Validate contestants if missing or has less than 2
+      if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
         parsed.contestants = [
-          { id: 'grandpa', name: parsed.grandpaName || 'סבא', image: parsed.grandpaImage },
-          { id: 'grandma', name: parsed.grandmaName || 'סבתא', image: parsed.grandmaImage }
+          { id: 'grandpa', name: parsed.grandpaName || 'סבא', image: parsed.grandpaImage || null },
+          { id: 'grandma', name: parsed.grandmaName || 'סבתא', image: parsed.grandmaImage || null }
         ];
         changed = true;
       }
@@ -159,12 +192,17 @@ export const db = {
   },
 
   saveSettings(settings: GameSettings): void {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    safeLocalStorageSet(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   },
 
   // Game State
   getGameState(): GameState {
-    const data = localStorage.getItem(STORAGE_KEYS.GAME_STATE);
+    let data: string | null = null;
+    try {
+      data = localStorage.getItem(STORAGE_KEYS.GAME_STATE);
+    } catch (e) {
+      console.error('Failed to read game state from localStorage', e);
+    }
     if (!data) {
       const state = { ...DEFAULT_GAME_STATE };
       this.saveGameState(state);
@@ -199,7 +237,7 @@ export const db = {
   },
 
   saveGameState(state: GameState): void {
-    localStorage.setItem(STORAGE_KEYS.GAME_STATE, JSON.stringify(state));
+    safeLocalStorageSet(STORAGE_KEYS.GAME_STATE, JSON.stringify(state));
   },
 
   // Reset Game
@@ -234,12 +272,17 @@ export const db = {
 
   // Backup & Import
   exportBackup(): string {
-    const backup = {
-      members: this.getMembers(),
-      questions: this.getQuestions(),
-      settings: this.getSettings(),
-    };
-    return JSON.stringify(backup, null, 2);
+    try {
+      const backup = {
+        members: this.getMembers(),
+        questions: this.getQuestions(),
+        settings: this.getSettings(),
+      };
+      return JSON.stringify(backup, null, 2);
+    } catch (e) {
+      console.error('Failed to export backup', e);
+      return '';
+    }
   },
 
   importBackup(jsonString: string): boolean {

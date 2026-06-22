@@ -56,16 +56,25 @@ export const calculateTreeLayout = (
     }
   });
 
-  // Determine dynamic levels (depth from grandparents)
+  // Determine dynamic levels (depth from grandparents) - cycle-proofed to prevent infinite recursion
   const levels = new Map<string, number>();
+  const visited = new Set<string>();
   const getLevel = (id: string): number => {
     if (levels.has(id)) return levels.get(id)!;
+    if (visited.has(id)) {
+      // Loop detected! Break and return 0
+      levels.set(id, 0);
+      return 0;
+    }
+    visited.add(id);
     const parentId = parentMap.get(id);
     if (!parentId || !memberMap.has(parentId)) {
+      visited.delete(id);
       levels.set(id, 0);
       return 0;
     }
     const parentLevel = getLevel(parentId);
+    visited.delete(id);
     levels.set(id, parentLevel + 1);
     return parentLevel + 1;
   };

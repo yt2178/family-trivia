@@ -674,6 +674,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
                 >
                   <foreignObject width="170" height="80" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
                     <div
+                      title={node.name}
                       className={`w-full h-full flex items-center p-2 rounded-tl-2xl rounded-br-2xl border text-right transition-all duration-300 leaf-node ${bgClass} ${borderClass} ${nodeGlowClass}`}
                     >
                       {/* Avatar container */}
@@ -703,7 +704,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
                       {/* Info */}
                       <div className="mr-2 flex-grow overflow-hidden select-none">
                         <div className={`font-bold whitespace-normal break-words ${getNameFontSize(node.name)} ${textClass}`}>
-                          {node.name}
+                          {node.name.length > 12 ? node.name.slice(0, 11) + '...' : node.name}
                         </div>
                         <div className="text-[9px] text-slate-400 mt-0.5">
                           {getRelationLabel(node)}
@@ -721,6 +722,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
                         </div>
                       )}
 
+                      {isSolved && (
                         <div className="absolute -top-1 -left-1 bg-slate-950 border border-slate-800 p-0.5 rounded-full">
                           <Heart
                             size={10}
@@ -734,6 +736,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
                             })()}
                           />
                         </div>
+                      )}
                     </div>
                   </foreignObject>
                 </g>

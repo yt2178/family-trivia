@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, FamilyMember, GameSettings, GameState } from '../utils/db';
 import { sync } from '../utils/sync';
+import { audioHelper } from '../utils/audioHelper';
 import { FamilyTree } from './FamilyTree';
 import { Trophy, Volume2, Award, Sparkles, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -114,103 +115,23 @@ export const GameView: React.FC = React.memo(() => {
     }
   }, []);
 
-  // Pure Web Audio API tone generator for Game Sound effects
-  const playGameSound = (type: 'success' | 'undo' | 'reveal' | 'winner') => {
-    try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContextClass) return;
-      const ctx = new AudioContextClass();
-      
-      if (type === 'success') {
-        const osc1 = ctx.createOscillator();
-        const osc2 = ctx.createOscillator();
-        const gain = ctx.createGain();
-        
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(ctx.destination);
-        
-        osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-        osc2.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
-        
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        
-        osc1.start();
-        osc2.start();
-        
-        setTimeout(() => {
-          osc1.stop();
-          osc2.stop();
-          ctx.close();
-        }, 400);
-      } else if (type === 'undo') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        
-        osc.frequency.setValueAtTime(392.00, ctx.currentTime); // G4
-        osc.frequency.exponentialRampToValueAtTime(261.63, ctx.currentTime + 0.35); // C4
-        
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        
-        osc.start();
-        setTimeout(() => {
-          osc.stop();
-          ctx.close();
-        }, 400);
-      } else if (type === 'reveal') {
-        const osc1 = ctx.createOscillator();
-        const osc2 = ctx.createOscillator();
-        const gain = ctx.createGain();
-        
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(ctx.destination);
-        
-        osc1.frequency.setValueAtTime(349.23, ctx.currentTime); // F4
-        osc1.frequency.exponentialRampToValueAtTime(523.25, ctx.currentTime + 0.4); // C5
-        osc2.frequency.setValueAtTime(440.00, ctx.currentTime); // A4
-        osc2.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.4); // E5
-        
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-        
-        osc1.start();
-        osc2.start();
-        setTimeout(() => {
-          osc1.stop();
-          osc2.stop();
-          ctx.close();
-        }, 450);
-      } else if (type === 'winner') {
-        const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
-        notes.forEach((freq, index) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          
-          osc.frequency.setValueAtTime(freq, ctx.currentTime + index * 0.1);
-          gain.gain.setValueAtTime(0, ctx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + index * 0.1 + 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + index * 0.1 + 0.8);
-          
-          osc.start(ctx.currentTime + index * 0.1);
-          setTimeout(() => {
-            osc.stop();
-          }, 1000 + index * 100);
-        });
-        setTimeout(() => {
-          ctx.close();
-        }, 1500);
-      }
-    } catch (e) {
-      console.warn("AudioContext tone failed:", e);
+  const [isAudioSuspended, setIsAudioSuspended] = useState(false);
+
+  useEffect(() => {
+    const ctx = audioHelper.getContext();
+    if (ctx) {
+      setIsAudioSuspended(ctx.state === 'suspended');
+      const handleStateChange = () => {
+        setIsAudioSuspended(ctx.state === 'suspended');
+      };
+      ctx.addEventListener('statechange', handleStateChange);
+      return () => ctx.removeEventListener('statechange', handleStateChange);
     }
+  }, []);
+
+  // Pure Web Audio API tone generator wrapper using audioHelper
+  const playGameSound = (type: 'success' | 'undo' | 'reveal' | 'winner') => {
+    audioHelper.play(type);
   };
 
   // Sync state and listen to broadcasts
@@ -319,8 +240,21 @@ export const GameView: React.FC = React.memo(() => {
     const handleResize = () => {
       const canvas = canvasRef.current;
       if (canvas) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const oldW = canvas.width;
+        const oldH = canvas.height;
+        const newW = window.innerWidth;
+        const newH = window.innerHeight;
+        
+        canvas.width = newW;
+        canvas.height = newH;
+        
+        // Scale existing particle positions to avoid warp/clipping
+        if (oldW > 0 && oldH > 0) {
+          particles.current.forEach(p => {
+            p.x = (p.x / oldW) * newW;
+            p.y = (p.y / oldH) * newH;
+          });
+        }
       }
     };
     handleResize();
@@ -346,6 +280,81 @@ export const GameView: React.FC = React.memo(() => {
 
   const totalQuestions = gameState.shuffledQuestionIds?.length || 0;
   const isGameOver = totalQuestions > 0 && gameState.currentQuestionIndex >= totalQuestions;
+
+  // Keyboard controls for projector screen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (isGameOver || questions.length === 0) return;
+
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        setGameState(prev => {
+          const totalQ = prev.shuffledQuestionIds.length;
+          if (prev.isRevealed) {
+            const nextIndex = prev.currentQuestionIndex + 1;
+            const isFinished = nextIndex >= totalQ;
+            const updated = {
+              ...prev,
+              currentQuestionIndex: isFinished ? prev.currentQuestionIndex : nextIndex,
+              isRevealed: false,
+              isPlaying: !isFinished
+            };
+            sync.sendMessage({ type: 'STATE_CHANGED', state: updated });
+            return updated;
+          } else {
+            const updated = {
+              ...prev,
+              isRevealed: true
+            };
+            const currentQId = prev.shuffledQuestionIds[prev.currentQuestionIndex];
+            const q = questions.find(item => item.id === currentQId);
+            if (q) {
+              const updatedRevealed = { ...prev.revealedSpeakers, [q.speakerId]: true };
+              updated.revealedSpeakers = updatedRevealed;
+            }
+            sync.sendMessage({ type: 'STATE_CHANGED', state: updated });
+            audioHelper.play('reveal');
+            return updated;
+          }
+        });
+      } else if (e.key === 'ArrowRight') {
+        setGameState(prev => {
+          const totalQ = prev.shuffledQuestionIds.length;
+          const nextIndex = prev.currentQuestionIndex + 1;
+          if (nextIndex < totalQ) {
+            const updated = {
+              ...prev,
+              currentQuestionIndex: nextIndex,
+              isRevealed: false
+            };
+            sync.sendMessage({ type: 'STATE_CHANGED', state: updated });
+            return updated;
+          }
+          return prev;
+        });
+      } else if (e.key === 'ArrowLeft') {
+        setGameState(prev => {
+          if (prev.currentQuestionIndex > 0) {
+            const updated = {
+              ...prev,
+              currentQuestionIndex: prev.currentQuestionIndex - 1,
+              isRevealed: false
+            };
+            sync.sendMessage({ type: 'STATE_CHANGED', state: updated });
+            return updated;
+          }
+          return prev;
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [questions, isGameOver]);
 
   // Determine winner
   const getGameWinner = () => {
@@ -454,7 +463,7 @@ export const GameView: React.FC = React.memo(() => {
                     </div>
                   )}
                 </div>
-                <h2 className="text-2xl font-bold text-slate-100">{c.name}</h2>
+                <h2 className="text-2xl font-bold text-slate-100 truncate max-w-[180px]" title={c.name}>{c.name}</h2>
                 <span className={`text-xs ${colors.text} font-semibold tracking-wider uppercase mt-1`}>{colors.glow}</span>
               </div>
 
@@ -833,6 +842,22 @@ export const GameView: React.FC = React.memo(() => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {isAudioSuspended && (
+        <button
+          onClick={async () => {
+            const success = await audioHelper.resume();
+            if (success) {
+              setIsAudioSuspended(false);
+              audioHelper.play('success');
+            }
+          }}
+          className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-full shadow-2xl border border-amber-300 transition-all duration-300 animate-bounce"
+        >
+          <Volume2 size={18} />
+          <span>הפעל שמע 🔊</span>
+        </button>
+      )}
     </div>
   );
 });

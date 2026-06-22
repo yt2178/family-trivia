@@ -22,7 +22,11 @@ let fallbackInterval: number | null = null;
 // Get room code from URL parameters
 const getRoomCode = (): string | null => {
   const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('room');
+  const room = urlParams.get('room');
+  if (!room) return null;
+  const clean = room.trim().toUpperCase();
+  if (clean === '' || clean === 'UNDEFINED' || clean === 'NULL') return null;
+  return clean;
 };
 
 const ROOM_CODE = getRoomCode();

@@ -37,6 +37,13 @@ function App() {
     const updateMode = () => {
       const params = new URLSearchParams(window.location.search);
       const m = params.get('mode');
+      const r = params.get('room');
+      if (r) {
+        const clean = r.trim().toUpperCase();
+        if (clean !== '' && clean !== 'UNDEFINED' && clean !== 'NULL') {
+          setRoomCode(clean);
+        }
+      }
       if (m === 'admin') {
         setMode('admin');
       } else if (m === 'game') {

@@ -20,14 +20,50 @@ const mapHebrewToGeneration = (heb: string): FamilyMember['generation'] => {
   return 'grandchild';
 };
 
-const mapGenerationToHebrew = (gen: FamilyMember['generation']): string => {
-  switch (gen) {
-    case 'grandparent': return 'סבא/סבתא';
-    case 'parent': return 'ילד/ה';
-    case 'child': return 'נכד/ה (דור ביניים)'; // support if needed
-    case 'grandchild': return 'נכד/ה';
-    case 'great-grandchild': return 'נין/ה';
+const NAME_KEYS = ['שם', 'שם פרטי', 'שם משתמש', 'name', 'first name', 'firstname'];
+const FAMILY_NAME_KEYS = ['שם משפחה', 'משפחה', 'family name', 'familyname', 'lastname', 'last name'];
+const GENERATION_KEYS = ['דור', 'generation', 'gen', 'דרגה'];
+const PARENT_KEYS = ['שם הורה', 'הורה', 'הורים', 'parent', 'parent name', 'parentname', 'father', 'mother', 'אבא', 'אמא'];
+const GENDER_KEYS = ['מין', 'gender', 'sex', 'מגדר'];
+
+const QUESTION_TEXT_KEYS = ['משפט', 'ציטוט', 'שאלה', 'text', 'question', 'quote', 'sentence'];
+const SPEAKER_KEYS = ['מי אמר', 'אומר', 'שם', 'דובר', 'speaker', 'name', 'author'];
+
+const getValueByKeys = (row: any, keys: string[]): string => {
+  if (!row || typeof row !== 'object') return '';
+  const rowKeys = Object.keys(row);
+  for (const k of keys) {
+    const foundKey = rowKeys.find(rk => rk.trim().toLowerCase() === k.trim().toLowerCase());
+    if (foundKey) {
+      const val = row[foundKey];
+      return val !== undefined && val !== null ? val.toString().trim() : '';
+    }
   }
+  return '';
+};
+
+const normalizeGender = (genderStr: string): 'male' | 'female' => {
+  const clean = genderStr.trim().toLowerCase();
+  if (
+    clean === 'נקבה' ||
+    clean === 'נ' ||
+    clean === 'בת' ||
+    clean === 'female' ||
+    clean === 'f' ||
+    clean === 'woman' ||
+    clean === 'girl'
+  ) {
+    return 'female';
+  }
+  return 'male'; // Default
+};
+
+const generationOrder: Record<FamilyMember['generation'], number> = {
+  'grandparent': 0,
+  'parent': 1,
+  'child': 2,
+  'grandchild': 2,
+  'great-grandchild': 3
 };
 
 export interface ImportResult {
@@ -56,25 +92,35 @@ export const excelHelper = {
 
           // Populate existing members map
           existingMembers.forEach(m => {
-            nameToIdMap[m.name.trim()] = m.id;
+            nameToIdMap[m.name.trim().toLowerCase()] = m.id;
           });
+
+          // Check for mandatory fields / columns
+          if (rows.length > 0) {
+            const firstRow = rows[0];
+            const keys = Object.keys(firstRow).map(k => k.trim().toLowerCase());
+            const hasNameCol = NAME_KEYS.some(nk => keys.includes(nk));
+            if (!hasNameCol) {
+              throw new Error('קובץ ה-Excel לא מכיל עמודת שם תקינה (שם או Name).');
+            }
+          }
 
           // Pass 1: Create members and assign IDs
           rows.forEach((row, index) => {
-            const name = row['שם'] || row['Name'];
-            const genHeb = row['דור'] || row['Generation'];
-            const genderHeb = row['מין'] || row['Gender'] || '';
-            const familyName = row['שם משפחה'] || row['Family Name'] || row['FamilyName'] || '';
+            const name = getValueByKeys(row, NAME_KEYS);
+            const genHeb = getValueByKeys(row, GENERATION_KEYS);
+            const genderHeb = getValueByKeys(row, GENDER_KEYS);
+            const familyName = getValueByKeys(row, FAMILY_NAME_KEYS);
 
             if (!name) {
               warnings.push(`שורה ${index + 2}: חסר שם לבן המשפחה, שורה זו דולגה.`);
               return;
             }
 
-            const cleanName = name.toString().trim();
+            const cleanName = name.trim();
             const id = 'imported_' + Math.random().toString(36).substr(2, 9);
-            const generation = genHeb ? mapHebrewToGeneration(genHeb.toString()) : 'grandchild';
-            const gender = genderHeb.toString().includes('נקבה') || genderHeb.toString().includes('בת') ? 'female' : 'male';
+            const generation = genHeb ? mapHebrewToGeneration(genHeb) : 'grandchild';
+            const gender = normalizeGender(genderHeb);
 
             const newMember: FamilyMember = {
               id,
@@ -82,40 +128,52 @@ export const excelHelper = {
               generation,
               parentId: null,
               image: null,
-              gender: gender as 'male' | 'female',
-              familyName: familyName.toString().trim()
+              gender,
+              familyName: familyName.trim()
             };
 
             importedMembers.push(newMember);
-            nameToIdMap[cleanName] = id;
+            nameToIdMap[cleanName.toLowerCase()] = id;
           });
 
           // Pass 2: Resolve parent links
           rows.forEach((row) => {
-            const name = row['שם'] || row['Name'];
-            const parentName = row['שם הורה'] || row['הורה'] || row['Parent Name'] || row['Parent'];
+            const name = getValueByKeys(row, NAME_KEYS);
+            const parentName = getValueByKeys(row, PARENT_KEYS);
 
             if (!name) return;
 
-            const cleanName = name.toString().trim();
-            const member = importedMembers.find(m => m.name === cleanName);
+            const cleanName = name.trim();
+            const member = importedMembers.find(m => m.name.toLowerCase() === cleanName.toLowerCase());
 
             if (member && parentName) {
-              const cleanParentName = parentName.toString().trim();
-              const parentId = nameToIdMap[cleanParentName];
+              const cleanParentName = parentName.trim();
+              const parentId = nameToIdMap[cleanParentName.toLowerCase()];
 
               if (parentId) {
-                member.parentId = parentId;
+                // Prevent self-parenting
+                if (parentId === member.id) {
+                  warnings.push(`עבור ${cleanName}: אדם אינו יכול להיות הורה של עצמו!`);
+                } else {
+                  member.parentId = parentId;
+                }
               } else {
                 warnings.push(`עבור ${cleanName}: לא נמצא הורה בשם "${cleanParentName}" בעץ המשפחה.`);
               }
             }
           });
 
+          // Sort hierarchically: grandparent -> parent -> grandchild -> great-grandchild
+          importedMembers.sort((a, b) => {
+            const wA = generationOrder[a.generation] ?? 2;
+            const wB = generationOrder[b.generation] ?? 2;
+            return wA - wB;
+          });
+
           // Combine with existing members (prevent duplicate names)
           const finalMembers = [...existingMembers];
           importedMembers.forEach(newMember => {
-            const duplicateIndex = finalMembers.findIndex(m => m.name.trim() === newMember.name);
+            const duplicateIndex = finalMembers.findIndex(m => m.name.trim().toLowerCase() === newMember.name.toLowerCase());
             if (duplicateIndex !== -1) {
               // Update existing member's properties
               finalMembers[duplicateIndex] = {
@@ -142,7 +200,11 @@ export const excelHelper = {
   },
 
   // Parse Questions Excel File
-  async importQuestions(file: File, members: FamilyMember[], existingQuestions: TriviaQuestion[]): Promise<{ questions: TriviaQuestion[], warnings: string[] }> {
+  async importQuestions(
+    file: File, 
+    members: FamilyMember[], 
+    existingQuestions: TriviaQuestion[]
+  ): Promise<{ questions: TriviaQuestion[], updatedMembers: FamilyMember[], warnings: string[] }> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -155,42 +217,67 @@ export const excelHelper = {
 
           const warnings: string[] = [];
           const importedQuestions: TriviaQuestion[] = [];
+          const tempMembers = [...members];
 
           // Create member map for fast lookup
           const memberMap: Record<string, string> = {};
-          members.forEach(m => {
+          tempMembers.forEach(m => {
             memberMap[m.name.trim().toLowerCase()] = m.id;
           });
 
+          // Check for column validations
+          if (rows.length > 0) {
+            const firstRow = rows[0];
+            const keys = Object.keys(firstRow).map(k => k.trim().toLowerCase());
+            const hasTextCol = QUESTION_TEXT_KEYS.some(tk => keys.includes(tk));
+            if (!hasTextCol) {
+              throw new Error('קובץ ה-Excel לא מכיל עמודת ציטוט/שאלה תקינה.');
+            }
+          }
+
           rows.forEach((row, index) => {
-            const text = row['משפט'] || row['ציטוט'] || row['שאלה'] || row['Text'] || row['Question'];
-            const speakerName = row['מי אמר'] || row['אומר'] || row['שם'] || row['Speaker'] || row['Name'];
+            const text = getValueByKeys(row, QUESTION_TEXT_KEYS);
+            const speakerName = getValueByKeys(row, SPEAKER_KEYS);
 
             if (!text) {
               warnings.push(`שורה ${index + 2}: חסר משפט/ציטוט, שורה זו דולגה.`);
               return;
             }
             if (!speakerName) {
-              warnings.push(`שורה ${index + 2}: חסר שם האומר עבור המשפט "${text.toString().substr(0, 15)}...", שורה זו דולגה.`);
+              warnings.push(`שורה ${index + 2}: חסר שם האומר עבור המשפט "${text.substring(0, 15)}...", שורה זו דולגה.`);
               return;
             }
 
-            const cleanText = text.toString().trim();
-            const cleanSpeaker = speakerName.toString().trim();
-            const speakerId = memberMap[cleanSpeaker.toLowerCase()];
+            const cleanText = text.trim();
+            const cleanSpeaker = speakerName.trim();
+            let speakerId = memberMap[cleanSpeaker.toLowerCase()];
 
             if (!speakerId) {
-              warnings.push(`שורה ${index + 2}: בן המשפחה "${cleanSpeaker}" לא נמצא בעץ היוחסין. השאלה יובאה אך יש לשייך אותה ידנית.`);
+              // Create placeholder/temporary member for missing speakers
+              const newId = 'placeholder_' + Math.random().toString(36).substr(2, 9);
+              const placeholderMember: FamilyMember = {
+                id: newId,
+                name: cleanSpeaker,
+                generation: 'grandchild',
+                parentId: null,
+                image: null,
+                gender: 'male',
+                familyName: ''
+              };
+              tempMembers.push(placeholderMember);
+              memberMap[cleanSpeaker.toLowerCase()] = newId;
+              speakerId = newId;
+              warnings.push(`שורה ${index + 2}: בן המשפחה "${cleanSpeaker}" לא נמצא בעץ. נוצר משתתף זמני עבורו.`);
             }
 
             importedQuestions.push({
               id: 'q_imported_' + Math.random().toString(36).substr(2, 9),
               text: cleanText,
-              speakerId: speakerId || '' // Empty if not matched
+              speakerId
             });
           });
 
-          resolve({ questions: [...existingQuestions, ...importedQuestions], warnings });
+          resolve({ questions: [...existingQuestions, ...importedQuestions], updatedMembers: tempMembers, warnings });
         } catch (err) {
           reject(err);
         }
