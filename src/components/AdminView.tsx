@@ -684,7 +684,7 @@ export const AdminView: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-50 flex items-center gap-2">
             <span>לוח בקרת מנחה (Admin)</span>
             <span className="text-xs bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded">
-              מחובר להקרנה
+              מחובר להקרנה {sync.getRoomCode() ? `| חדר: ${sync.getRoomCode()}` : ''}
             </span>
           </h1>
           <p className="text-xs text-slate-400">שלוט במשחק המוקרן על מסך גדול בזמן אמת</p>

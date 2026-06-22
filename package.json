@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "express": "^5.2.1",
+    "firebase": "^12.15.0",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.21.0",
     "react": "^19.2.6",

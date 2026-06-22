@@ -282,6 +282,12 @@ export const GameView: React.FC = React.memo(() => {
             <p className="text-slate-400 text-sm max-w-md mx-auto">
               המנחה יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
             </p>
+            {sync.getRoomCode() && (
+              <div className="inline-block mt-4 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl">
+                <span className="text-slate-400 text-xs ml-2">קוד חדר להתחברות:</span>
+                <strong className="text-emerald-400 font-mono text-lg font-black tracking-widest">{sync.getRoomCode()}</strong>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
@@ -305,6 +311,12 @@ export const GameView: React.FC = React.memo(() => {
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-xs text-slate-400">שעשועון טריוויה משפחתי</p>
+              {sync.getRoomCode() && (
+                <>
+                  <span className="text-slate-600 text-[10px]">•</span>
+                  <span className="text-xs text-emerald-400 font-bold">חדר: {sync.getRoomCode()}</span>
+                </>
+              )}
               {members.length > 0 && (
                 <>
                   <span className="text-slate-600 text-[10px]">•</span>
