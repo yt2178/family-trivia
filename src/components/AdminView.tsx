@@ -146,11 +146,37 @@ export const AdminView: React.FC = () => {
 
   // Load Data
   useEffect(() => {
-    setMembers(db.getMembers());
-    setQuestions(db.getQuestions());
-    setSettings(db.getSettings());
+    const loadedMembers = db.getMembers();
+    const loadedQuestions = db.getQuestions();
+    const loadedSettings = db.getSettings();
+    setMembers(loadedMembers);
+    setQuestions(loadedQuestions);
+    setSettings(loadedSettings);
     setGameState(db.getGameState());
+
+    // Broadcast initial database state
+    sync.sendMessage({
+      type: 'DATABASE_SYNC',
+      members: loadedMembers,
+      questions: loadedQuestions,
+      settings: loadedSettings
+    });
   }, []);
+
+  // Listen to remote client database requests
+  useEffect(() => {
+    const unsubscribe = sync.subscribe((msg) => {
+      if (msg.type === 'REQUEST_DATABASE') {
+        sync.sendMessage({
+          type: 'DATABASE_SYNC',
+          members: db.getMembers(),
+          questions: db.getQuestions(),
+          settings: db.getSettings()
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, [members, questions, settings]);
 
   // Broadcast state changes whenever gameState or settings change
   const updateGameState = (newState: GameState) => {
@@ -163,6 +189,7 @@ export const AdminView: React.FC = () => {
     setSettings(newSettings);
     db.saveSettings(newSettings);
     sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
+    sync.sendMessage({ type: 'DATABASE_SYNC', members, questions, settings: newSettings });
   };
 
   // --- GAME CONTROLLER ACTIONS ---
@@ -304,6 +331,7 @@ export const AdminView: React.FC = () => {
 
     setMembers(updated);
     db.saveMembers(updated);
+    sync.sendMessage({ type: 'DATABASE_SYNC', members: updated, questions, settings });
     
     setNewMember({
       name: '',
@@ -323,6 +351,7 @@ export const AdminView: React.FC = () => {
     const cleaned = updated.map(m => m.parentId === id ? { ...m, parentId: null } : m);
     setMembers(cleaned);
     db.saveMembers(cleaned);
+    sync.sendMessage({ type: 'DATABASE_SYNC', members: cleaned, questions, settings });
     showSuccess('בן המשפחה נמחק.');
   };
 
@@ -413,6 +442,7 @@ export const AdminView: React.FC = () => {
 
     setMembers(updated);
     db.saveMembers(updated);
+    sync.sendMessage({ type: 'DATABASE_SYNC', members: updated, questions, settings });
     setEditingMemberId(null);
 
     // Clear form
@@ -488,6 +518,7 @@ export const AdminView: React.FC = () => {
     const updated = [...questions, questionToAdd];
     setQuestions(updated);
     db.saveQuestions(updated);
+    sync.sendMessage({ type: 'DATABASE_SYNC', members, questions: updated, settings });
 
     setNewQuestion({
       text: '',
@@ -500,6 +531,7 @@ export const AdminView: React.FC = () => {
     const updated = questions.filter(q => q.id !== id);
     setQuestions(updated);
     db.saveQuestions(updated);
+    sync.sendMessage({ type: 'DATABASE_SYNC', members, questions: updated, settings });
     showSuccess('השאלה נמחקה.');
   };
 
@@ -516,6 +548,7 @@ export const AdminView: React.FC = () => {
         const result = await excelHelper.importMembers(file, members);
         setMembers(result.members);
         db.saveMembers(result.members);
+        sync.sendMessage({ type: 'DATABASE_SYNC', members: result.members, questions, settings });
         setWarnings(result.warnings);
         showSuccess('ייבוא בני המשפחה מ-Excel הושלם!');
       } catch (err) {
@@ -532,6 +565,7 @@ export const AdminView: React.FC = () => {
         const result = await excelHelper.importQuestions(file, members, questions);
         setQuestions(result.questions);
         db.saveQuestions(result.questions);
+        sync.sendMessage({ type: 'DATABASE_SYNC', members, questions: result.questions, settings });
         setWarnings(result.warnings);
         showSuccess('ייבוא השאלות מ-Excel הושלם!');
       } catch (err) {
@@ -560,10 +594,14 @@ export const AdminView: React.FC = () => {
         const text = event.target?.result as string;
         const success = db.importBackup(text);
         if (success) {
-          setMembers(db.getMembers());
-          setQuestions(db.getQuestions());
-          setSettings(db.getSettings());
+          const m = db.getMembers();
+          const q = db.getQuestions();
+          const s = db.getSettings();
+          setMembers(m);
+          setQuestions(q);
+          setSettings(s);
           setGameState(db.getGameState());
+          sync.sendMessage({ type: 'DATABASE_SYNC', members: m, questions: q, settings: s });
           showSuccess('שחזור הגיבוי המלא הושלם בהצלחה!');
         } else {
           alert('קובץ הגיבוי אינו תקין.');

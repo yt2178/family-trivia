@@ -75,10 +75,23 @@ export const GameView: React.FC = React.memo(() => {
         // Reload settings
         const freshSettings = db.getSettings();
         setSettings(freshSettings);
+      } else if (msg.type === 'DATABASE_SYNC') {
+        // Save the received database to local storage so the computer is up-to-date!
+        db.saveMembers(msg.members);
+        db.saveQuestions(msg.questions);
+        db.saveSettings(msg.settings);
+        
+        // Update local React states
+        setMembers(msg.members);
+        setQuestions(msg.questions);
+        setSettings(msg.settings);
       } else if (msg.type === 'TRIGGER_CONFETTI') {
         triggerConfetti(msg.winner);
       }
     });
+
+    // Request full database sync from the active host (phone) when mounting
+    sync.sendMessage({ type: 'REQUEST_DATABASE' });
 
     return () => unsubscribe();
   }, []);
