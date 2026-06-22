@@ -68,6 +68,10 @@ function App() {
     if (mode !== 'welcome' || !roomCode || activeTab !== 'cloud') return;
 
     const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
+    
+    // Reset stale remote connection state
+    set(controllerStatusRef, false).catch(err => console.error("Error resetting stale remote connection status:", err));
+
     const unsubscribe = onValue(controllerStatusRef, (snapshot) => {
       if (snapshot.exists() && snapshot.val() === true) {
         const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;

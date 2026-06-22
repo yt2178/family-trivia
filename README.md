@@ -52,12 +52,12 @@
 
 ```typescript
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  databaseURL: "YOUR_DATABASE_URL",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBwBu1B1eLHREM0RhdCTKinPVfhQw31kcg",
+  authDomain: "family-trivia-yt2178.firebaseapp.com",
+  databaseURL: "https://family-trivia-yt2178-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "family-trivia-yt2178",
+  storageBucket: "family-trivia-yt2178.firebasestorage.app",
+  messagingSenderId: "867206641261",
+  appId: "1:867206641261:web:bda4aa42d560f2a17f3164"
 };
 ```
