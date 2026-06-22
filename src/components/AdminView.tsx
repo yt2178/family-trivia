@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db, FamilyMember, GameSettings, GameState, TriviaQuestion } from '../utils/db';
 import { sync } from '../utils/sync';
 import { excelHelper } from '../utils/excelHelper';
+import { rtdb } from '../utils/firebase';
+import { ref, onValue, off } from 'firebase/database';
 import {
   Users,
   Settings,
@@ -76,6 +78,21 @@ export const AdminView: React.FC = () => {
   const [questions, setQuestions] = useState<TriviaQuestion[]>([]);
   const [settings, setSettings] = useState<GameSettings>(db.getSettings());
   const [gameState, setGameState] = useState<GameState>(db.getGameState());
+  const [gameScreenConnected, setGameScreenConnected] = useState<boolean>(false);
+
+  // Listen to game screen connection status in Firebase
+  useEffect(() => {
+    const roomCode = sync.getRoomCode();
+    if (roomCode) {
+      const statusRef = ref(rtdb, `rooms/${roomCode}/gameScreenConnected`);
+      onValue(statusRef, (snapshot) => {
+        setGameScreenConnected(!!snapshot.val());
+      });
+      return () => {
+        off(statusRef);
+      };
+    }
+  }, []);
 
   // Input Forms States
   const [newMember, setNewMember] = useState<{
@@ -660,6 +677,10 @@ export const AdminView: React.FC = () => {
   const activeSpeaker = activeQuestion ? members.find(m => m.id === activeQuestion.speakerId) : null;
   const isGameLoaded = gameState.shuffledQuestionIds.length > 0;
 
+  const totalDescendants = members.filter(m => m.generation !== 'grandparent').length;
+  const childrenAndGrandchildren = members.filter(m => m.generation === 'parent' || m.generation === 'child' || m.generation === 'grandchild').length;
+  const greatGrandchildren = members.filter(m => m.generation === 'great-grandchild').length;
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 flex flex-col">
       
@@ -679,26 +700,26 @@ export const AdminView: React.FC = () => {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="flex justify-between items-center border-b border-slate-800 pb-4 mb-6">
+      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-center border-b border-slate-800 pb-4 mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-50 flex items-center gap-2">
+          <h1 className="text-2xl font-black text-slate-50 flex flex-wrap items-center gap-2">
             <span>לוח בקרת מנחה (Admin)</span>
             <span className="text-xs bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded">
               מחובר להקרנה {sync.getRoomCode() ? `| חדר: ${sync.getRoomCode()}` : ''}
             </span>
           </h1>
           <p className="text-xs text-slate-400">שלוט במשחק המוקרן על מסך גדול בזמן אמת</p>
-          <div className="flex gap-3 mt-2 text-xs text-slate-400 font-medium">
-            <span>סה״כ צאצאים בעץ: <strong className="text-emerald-400">85</strong></span>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-slate-400 font-medium">
+            <span>סה״כ צאצאים בעץ: <strong className="text-emerald-400">{totalDescendants}</strong></span>
             <span>|</span>
-            <span>ילדים ונכדים: <strong className="text-emerald-400">55</strong></span>
+            <span>ילדים ונכדים: <strong className="text-emerald-400">{childrenAndGrandchildren}</strong></span>
             <span>|</span>
-            <span>נינים: <strong className="text-emerald-400">30</strong></span>
+            <span>נינים: <strong className="text-emerald-400">{greatGrandchildren}</strong></span>
           </div>
         </div>
 
         {/* Tab Selector */}
-        <div className="flex gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+        <div className="flex gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 overflow-x-auto max-w-full whitespace-nowrap scrollbar-none flex-shrink-0">
           <button
             onClick={() => setActiveTab('control')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -764,7 +785,7 @@ export const AdminView: React.FC = () => {
           <div className="grid grid-cols-12 gap-6 items-stretch">
             
             {/* Left side: Current Question Control */}
-            <div className="col-span-8 flex flex-col justify-between glass-panel p-6 rounded-3xl border border-slate-800">
+            <div className="col-span-12 lg:col-span-8 flex flex-col justify-between glass-panel p-6 rounded-3xl border border-slate-800">
               <div>
                 <h3 className="text-lg font-bold mb-4 text-emerald-400 flex items-center gap-2">
                   <span>שליטה בסיבוב המשחק</span>
@@ -854,15 +875,106 @@ export const AdminView: React.FC = () => {
                     </div>
                   )
                 ) : (
-                  <div className="text-center py-12 bg-slate-900/40 rounded-2xl border border-slate-800/60 border-dashed">
-                    <p className="text-sm text-slate-400 mb-4">לחץ על הכפתור כדי להתחיל לנגן את השאלות במקרן</p>
-                    <button
-                      onClick={handleStartGame}
-                      className="px-6 py-3 bg-emerald-500 text-slate-950 font-bold rounded-xl flex items-center gap-2 mx-auto hover:bg-emerald-400 transition-colors shadow-lg"
-                    >
-                      <Play size={18} fill="currentColor" />
-                      <span>התחל משחק חדש</span>
-                    </button>
+                  <div className="space-y-6">
+                    <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl text-right space-y-4">
+                      <h4 className="text-base font-bold text-emerald-400 border-b border-slate-800 pb-2 flex items-center justify-between">
+                        <span>מדריך הכנת השעשועון ב-4 שלבים פשוטים</span>
+                        <span className="text-xs text-slate-500">בצע את הצעדים הבאים לפי הסדר</span>
+                      </h4>
+
+                      <div className="space-y-4">
+                        {/* Step 1 */}
+                        <div className="flex items-start gap-3">
+                          <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            gameScreenConnected ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                          }`}>1</span>
+                          <div className="flex-grow">
+                            <h5 className="text-sm font-bold text-slate-200">חיבור מסך ההקרנה (טלוויזיה / מקרן)</h5>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              סרוק את הברקוד המופיע במסך הראשי של המחשב כדי לפתוח את המשחק בטלוויזיה.
+                            </p>
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded mt-2 ${
+                              gameScreenConnected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                            }`}>
+                              {gameScreenConnected ? 'מחובר בהצלחה ✅' : 'ממתין לחיבור מסך ההקרנה... ⏳'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Step 2 */}
+                        <div className="flex items-start gap-3 border-t border-slate-800/60 pt-4">
+                          <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            members.length > 0 ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                          }`}>2</span>
+                          <div className="flex-grow">
+                            <h5 className="text-sm font-bold text-slate-200">בניית עץ המשפחה</h5>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              היכנס ללשונית "ניהול משפחה" והוסף את כל בני המשפחה (ילדים, נכדים, בני זוג וכו').
+                            </p>
+                            <div className="flex gap-2 mt-2">
+                              <span className="text-[10px] text-slate-400">חברים כרגע: <strong>{members.length}</strong></span>
+                              <button 
+                                onClick={() => setActiveTab('members')}
+                                className="text-[10px] text-emerald-400 hover:underline font-bold"
+                              >
+                                להוספת בני משפחה ←
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Step 3 */}
+                        <div className="flex items-start gap-3 border-t border-slate-800/60 pt-4">
+                          <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            questions.length > 0 ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                          }`}>3</span>
+                          <div className="flex-grow">
+                            <h5 className="text-sm font-bold text-slate-200">כתיבת שאלות וציטוטים</h5>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              היכנס ללשונית "שאלות וציטוטים" והקלד משפטים מצחיקים שחברי המשפחה אמרו.
+                            </p>
+                            <div className="flex gap-2 mt-2">
+                              <span className="text-[10px] text-slate-400">שאלות כרגע: <strong>{questions.length}</strong></span>
+                              <button 
+                                onClick={() => setActiveTab('questions')}
+                                className="text-[10px] text-emerald-400 hover:underline font-bold"
+                              >
+                                להוספת שאלות ←
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Step 4 */}
+                        <div className="flex items-start gap-3 border-t border-slate-800/60 pt-4">
+                          <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            members.length > 0 && questions.length > 0 ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                          }`}>4</span>
+                          <div className="flex-grow">
+                            <h5 className="text-sm font-bold text-slate-200">הפעלת המשחק</h5>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              ברגע שהכנסתם את בני המשפחה והשאלות, לחצו על הכפתור למטה כדי להתחיל את השעשועון במסך הגדול!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-center pt-4">
+                      <button
+                        onClick={handleStartGame}
+                        disabled={members.length === 0 || questions.length === 0}
+                        className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 mx-auto hover:from-emerald-400 hover:to-teal-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-950/20"
+                      >
+                        <Play size={18} fill="currentColor" />
+                        <span>הפעל והתחל משחק 🚀</span>
+                      </button>
+                      {(members.length === 0 || questions.length === 0) && (
+                        <p className="text-[10px] text-amber-500/80 mt-2">
+                          * יש להוסיף לפחות בן משפחה אחד ושאלה אחת כדי להפעיל את המשחק.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -896,7 +1008,7 @@ export const AdminView: React.FC = () => {
             </div>
 
             {/* Right side: Scores and Game Session Stats */}
-            <div className="col-span-4 flex flex-col gap-6">
+            <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
               {/* Scoreboard Monitor */}
               <div className="glass-panel p-6 rounded-3xl border border-slate-800">
                 <h3 className="text-sm font-bold text-slate-400 mb-4 uppercase tracking-wider">
@@ -968,7 +1080,7 @@ export const AdminView: React.FC = () => {
           <div className="grid grid-cols-12 gap-6">
             {/* Add Member Form */}
             {/* Add/Edit Member Form */}
-            <div className="col-span-4 glass-panel p-6 rounded-3xl border border-slate-800">
+            <div className="col-span-12 lg:col-span-4 glass-panel p-6 rounded-3xl border border-slate-800">
               <h3 className="text-lg font-bold mb-4 text-emerald-400">
                 {editingMemberId ? 'עריכת בן משפחה קיים' : 'הוספת בן משפחה חדש'}
               </h3>
@@ -1146,7 +1258,7 @@ export const AdminView: React.FC = () => {
             </div>
 
             {/* Members List Table */}
-            <div className="col-span-8 glass-panel p-6 rounded-3xl border border-slate-800 max-h-[600px] overflow-y-auto">
+            <div className="col-span-12 lg:col-span-8 glass-panel p-6 rounded-3xl border border-slate-800 max-h-[600px] overflow-y-auto">
               <h3 className="text-lg font-bold mb-4 text-emerald-400 flex justify-between items-center">
                 <span>רשימת בני משפחה ({members.length})</span>
                 <span className="text-xs text-slate-500">עריכה ומחיקת נתונים</span>
@@ -1155,7 +1267,8 @@ export const AdminView: React.FC = () => {
               {members.length === 0 ? (
                 <div className="text-center py-12 text-slate-600">אין בני משפחה רשומים. ייבא מקובץ Excel או הוסף ידנית.</div>
               ) : (
-                <table className="w-full text-right text-xs">
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full text-right text-xs">
                   <thead>
                     <tr className="border-b border-slate-800 text-slate-400">
                       <th className="pb-2 font-bold w-12">תמונה</th>
@@ -1237,6 +1350,7 @@ export const AdminView: React.FC = () => {
                     })}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </div>
@@ -1247,7 +1361,7 @@ export const AdminView: React.FC = () => {
           <div className="grid grid-cols-12 gap-6">
             
             {/* Add Question Form */}
-            <div className="col-span-5 glass-panel p-6 rounded-3xl border border-slate-800">
+            <div className="col-span-12 lg:col-span-5 glass-panel p-6 rounded-3xl border border-slate-800">
               <h3 className="text-lg font-bold mb-4 text-emerald-400">הוספת שאלה (ציטוט)</h3>
               <form onSubmit={handleAddQuestion} className="space-y-4">
                 
@@ -1293,7 +1407,7 @@ export const AdminView: React.FC = () => {
             </div>
 
             {/* Questions List */}
-            <div className="col-span-7 glass-panel p-6 rounded-3xl border border-slate-800 max-h-[600px] overflow-y-auto">
+            <div className="col-span-12 lg:col-span-7 glass-panel p-6 rounded-3xl border border-slate-800 max-h-[600px] overflow-y-auto">
               <h3 className="text-lg font-bold mb-4 text-emerald-400">
                 מאגר שאלות המשחק ({questions.length})
               </h3>

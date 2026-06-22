@@ -1,6 +1,6 @@
 import { GameState, GameSettings, FamilyMember, TriviaQuestion } from './db';
 import { rtdb } from './firebase';
-import { ref, onValue, set, off } from 'firebase/database';
+import { ref, onValue, set, off, get, child } from 'firebase/database';
 
 export type SyncMessage =
   | { type: 'STATE_CHANGED'; state: GameState }
@@ -28,6 +28,11 @@ const getRoomCode = (): string | null => {
 const ROOM_CODE = getRoomCode();
 let lastFirebaseTimestamp = 0;
 
+// Caches for initial cloud data loading
+let cachedDb: SyncMessage | null = null;
+let cachedState: SyncMessage | null = null;
+let cachedSettings: SyncMessage | null = null;
+
 // Setup Firebase sync if room code exists
 if (ROOM_CODE) {
   const roomRef = ref(rtdb, `rooms/${ROOM_CODE}/lastMessage`);
@@ -43,6 +48,39 @@ if (ROOM_CODE) {
         console.error('Error parsing sync message from Firebase', e);
       }
     }
+  });
+
+  // Fetch current database and state from Firebase once on load for initial hydration
+  const dbRef = ref(rtdb);
+  get(child(dbRef, `rooms/${ROOM_CODE}/database`)).then((snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      if (data.db) {
+        cachedDb = {
+          type: 'DATABASE_SYNC',
+          members: data.db.members || [],
+          questions: data.db.questions || [],
+          settings: data.db.settings || { grandpaName: '', grandpaImage: null, grandmaName: '', grandmaImage: null, theme: 'forest', treeLayout: 'traditional' }
+        };
+        subscribers.forEach(cb => cb(cachedDb!));
+      }
+      if (data.settings) {
+        cachedSettings = {
+          type: 'SETTINGS_CHANGED',
+          settings: data.settings
+        };
+        subscribers.forEach(cb => cb(cachedSettings!));
+      }
+      if (data.state) {
+        cachedState = {
+          type: 'STATE_CHANGED',
+          state: data.state
+        };
+        subscribers.forEach(cb => cb(cachedState!));
+      }
+    }
+  }).catch((err) => {
+    console.error("Error fetching initial database from Firebase:", err);
   });
 } else {
   // Local BroadcastChannel setup for single-machine tabs syncing
@@ -85,8 +123,27 @@ export const sync = {
       }).catch(err => {
         console.error('Failed to send message via Firebase:', err);
       });
+
+      // 2. Persist database changes in Firebase Room path
+      if (message.type === 'DATABASE_SYNC') {
+        const dbPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/db`);
+        set(dbPersistRef, {
+          members: message.members,
+          questions: message.questions,
+          settings: message.settings
+        }).catch(err => console.error('Failed to persist db:', err));
+        
+        const settingsPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/settings`);
+        set(settingsPersistRef, message.settings).catch(err => console.error('Failed to persist settings:', err));
+      } else if (message.type === 'STATE_CHANGED') {
+        const statePersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/state`);
+        set(statePersistRef, message.state).catch(err => console.error('Failed to persist state:', err));
+      } else if (message.type === 'SETTINGS_CHANGED') {
+        const settingsPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/settings`);
+        set(settingsPersistRef, message.settings).catch(err => console.error('Failed to persist settings:', err));
+      }
     } else {
-      // 2. Fall back to local BroadcastChannel/localStorage
+      // 3. Fall back to local BroadcastChannel/localStorage
       if (channel) {
         channel.postMessage(message);
       } else {
@@ -101,6 +158,11 @@ export const sync = {
 
   subscribe(callback: (message: SyncMessage) => void): () => void {
     subscribers.push(callback);
+    // Push cached values if we loaded them from Firebase
+    if (cachedDb) callback(cachedDb);
+    if (cachedSettings) callback(cachedSettings);
+    if (cachedState) callback(cachedState);
+    
     return () => {
       subscribers = subscribers.filter(cb => cb !== callback);
     };

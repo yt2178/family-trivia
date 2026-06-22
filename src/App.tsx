@@ -9,6 +9,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<'cloud' | 'local'>('cloud');
   const [roomCode, setRoomCode] = useState<string>('');
   const [inputRoomCode, setInputRoomCode] = useState<string>('');
+  const [lastRoomCode, setLastRoomCode] = useState<string | null>(null);
 
   // Helper to generate a random 4-letter room code
   const generateRoomCode = () => {
@@ -21,8 +22,15 @@ function App() {
   };
 
   useEffect(() => {
-    // Generate code once on load
-    setRoomCode(generateRoomCode());
+    // Load last connected room if exists, or generate a stable new one
+    const savedCode = localStorage.getItem('last_connected_room');
+    if (savedCode) {
+      setLastRoomCode(savedCode);
+      setRoomCode(savedCode);
+    } else {
+      const newCode = generateRoomCode();
+      setRoomCode(newCode);
+    }
 
     const updateMode = () => {
       const params = new URLSearchParams(window.location.search);
@@ -43,6 +51,7 @@ function App() {
 
   const launchCloudGame = () => {
     if (!roomCode) return;
+    localStorage.setItem('last_connected_room', roomCode);
     const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
     window.open(url, '_blank', 'width=1200,height=800');
   };
@@ -56,6 +65,7 @@ function App() {
     e.preventDefault();
     if (!inputRoomCode.trim()) return;
     const cleanCode = inputRoomCode.trim().toUpperCase();
+    localStorage.setItem('last_connected_room', cleanCode);
     const url = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}`;
     window.location.href = url;
   };
@@ -219,6 +229,19 @@ function App() {
                   />
                 </div>
               </form>
+
+              {lastRoomCode && lastRoomCode !== roomCode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('last_connected_room', lastRoomCode);
+                    window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${lastRoomCode}`;
+                  }}
+                  className="w-full py-2 bg-slate-900/60 border border-slate-800 hover:border-sky-500/20 text-xs text-sky-400 font-bold rounded-xl transition-all"
+                >
+                  התחבר מחדש לחדר הקודם ({lastRoomCode})
+                </button>
+              )}
             </motion.div>
           </div>
         )}

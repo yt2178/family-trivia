@@ -4,6 +4,8 @@ import { sync } from '../utils/sync';
 import { FamilyTree } from './FamilyTree';
 import { Trophy, Volume2, Award, Sparkles, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { rtdb } from '../utils/firebase';
+import { ref, set } from 'firebase/database';
 
 // Confetti Particle Class for canvas
 class ConfettiParticle {
@@ -63,6 +65,17 @@ export const GameView: React.FC = React.memo(() => {
     // Make sure we have a game state initialized
     const currentGameState = db.getGameState();
     setGameState(currentGameState);
+
+    // Register game screen connection status in Firebase
+    const roomCode = sync.getRoomCode();
+    if (roomCode) {
+      const statusRef = ref(rtdb, `rooms/${roomCode}/gameScreenConnected`);
+      set(statusRef, true);
+      
+      return () => {
+        set(statusRef, false);
+      };
+    }
   }, []);
 
   // Sync state and listen to broadcasts
@@ -294,6 +307,10 @@ export const GameView: React.FC = React.memo(() => {
     );
   }
 
+  const totalDescendants = members.filter(m => m.generation !== 'grandparent').length;
+  const childrenAndGrandchildren = members.filter(m => m.generation === 'parent' || m.generation === 'child' || m.generation === 'grandchild').length;
+  const greatGrandchildren = members.filter(m => m.generation === 'great-grandchild').length;
+
   return (
     <div className={`relative w-full min-h-screen bg-gradient-to-b ${getThemeBackground()} text-slate-100 flex flex-col p-6 overflow-hidden`}>
       {/* Canvas for Confetti */}
@@ -321,11 +338,11 @@ export const GameView: React.FC = React.memo(() => {
                 <>
                   <span className="text-slate-600 text-[10px]">•</span>
                   <div className="flex gap-2 text-[10px] text-slate-400 font-medium bg-slate-900/40 border border-slate-800/40 px-2 py-0.5 rounded-md">
-                    <span>סה״כ צאצאים בעץ: <strong className="text-emerald-400">85</strong></span>
+                    <span>סה״כ צאצאים בעץ: <strong className="text-emerald-400">{totalDescendants}</strong></span>
                     <span>|</span>
-                    <span>ילדים ונכדים: <strong className="text-emerald-400">55</strong></span>
+                    <span>ילדים ונכדים: <strong className="text-emerald-400">{childrenAndGrandchildren}</strong></span>
                     <span>|</span>
-                    <span>נינים: <strong className="text-emerald-400">30</strong></span>
+                    <span>נינים: <strong className="text-emerald-400">{greatGrandchildren}</strong></span>
                   </div>
                 </>
               )}
