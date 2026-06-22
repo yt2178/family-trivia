@@ -551,25 +551,24 @@ export const GameView: React.FC = React.memo(() => {
           </div>
 
           {/* Dynamic Contestants Display */}
-          <div className={`flex flex-wrap items-center justify-center gap-4 max-w-2xl mx-auto py-8 ${
-            settings.contestants.length <= 2 ? 'gap-8' : 'gap-3'
+          <div className={`flex flex-wrap items-center justify-center max-w-2xl mx-auto py-8 ${
+            (settings.contestants || []).length <= 2 ? 'gap-8' : 'gap-4'
           }`}>
-            {settings.contestants.map((contestant, index) => {
+            {(settings.contestants || []).map((contestant, index) => {
               const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
-              const borderColor = colors.border.replace('border-', '');
               return (
                 <React.Fragment key={contestant.id}>
-                  {index > 0 && settings.contestants.length <= 3 && (
+                  {index > 0 && (settings.contestants || []).length <= 3 && (
                     <div className="text-center">
                       <span className="text-2xl font-black text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-2xl border border-amber-500/20 shadow-md">VS</span>
                     </div>
                   )}
                   <div className="flex flex-col items-center space-y-2">
-                    <div className={`w-20 h-20 rounded-2xl border-2 ${colors.border}/40 p-1 bg-slate-900/60 shadow-lg overflow-hidden flex items-center justify-center`}>
+                    <div className={`w-20 h-20 rounded-2xl border-2 ${colors.border} border-opacity-40 p-1 bg-slate-900/60 shadow-lg overflow-hidden flex items-center justify-center`}>
                       {contestant.image ? (
                         <img src={contestant.image} alt={contestant.name} className="w-full h-full object-cover rounded-xl" />
                       ) : (
-                        <div className={`w-full h-full bg-${borderColor}/10 flex items-center justify-center ${colors.text} rounded-xl text-2xl`}>
+                        <div className={`w-full h-full flex items-center justify-center ${colors.text} rounded-xl`}>
                           <Award size={32} />
                         </div>
                       )}
