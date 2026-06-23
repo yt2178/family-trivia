@@ -179,6 +179,7 @@ export const AdminView: React.FC = () => {
   const [hasInitializedWizard, setHasInitializedWizard] = useState(false);
   const [adminSubMode, setAdminSubMode] = useState<'menu' | 'controller' | 'wizard'>('menu');
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
+  const [wizardConfirmModal, setWizardConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   // Sync settings to local wizard states on load or changes from Firebase
   useEffect(() => {
@@ -1379,59 +1380,81 @@ export const AdminView: React.FC = () => {
     };
 
     // Wizard navigation
+    const proceedToStep = (nextStep: number) => {
+      setWizardStepLocal(nextStep);
+      const activeContestants = wizardContestants.slice(0, wizardContestantCount);
+      updateSettings({
+        ...settings,
+        hostName: wizardHostName,
+        treeLayout: wizardTreeLayout,
+        contestants: activeContestants,
+        grandpaName: activeContestants[0]?.name || 'כחול',
+        grandmaName: activeContestants[1]?.name || 'סגול',
+        grandpaImage: activeContestants[0]?.image || null,
+        grandmaImage: activeContestants[1]?.image || null,
+        questionTimer: wizardQuestionTimer,
+        wizardStep: nextStep
+      });
+      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, nextStep);
+    };
+
     const handleNext = () => {
+      const nextStep = currentStep + 1;
+
       if (currentStep === 1) {
         if (!wizardHostName.trim()) {
           alert('נא להזין שם מנחה');
           return;
         }
+        proceedToStep(nextStep);
+        return;
       }
+
       if (currentStep === 2) {
         const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
         const isDefault = wizardContestants.slice(0, wizardContestantCount).every(
           (c, idx) => c.name === defaultNames[idx]
         );
         if (isDefault) {
-          const confirmProceed = window.confirm(
-            "לא בוצע שינוי בשמות המתמודדים. נאשר אותם לפי ברירת המחדל (כחול וסגול). תמיד ניתן יהיה לערוך זאת שוב בהמשך.\nהאם להמשיך?"
-          );
-          if (!confirmProceed) return;
+          setWizardConfirmModal({
+            message: "לא בוצע שינוי בשמות המתמודדים. נאשר אותם לפי ברירת המחדל (כחול וסגול). תמיד ניתן יהיה לערוך זאת שוב בהמשך.\n\nהאם להמשיך?",
+            onConfirm: () => {
+              setWizardConfirmModal(null);
+              proceedToStep(nextStep);
+            }
+          });
+          return;
         }
       }
+
       if (currentStep === 3) {
         if (members.length === 0) {
-          const confirmProceed = window.confirm(
-            "שים לב: לא נוספו כרגע שחקנים. תוכלו להוסיף שחקנים תמיד בהמשך דרך ממשק עריכת החדר (בוויזארד), או להוריד פה את קובץ האקסל, למלא אותו ולהעלות אותו בהמשך.\nהאם להמשיך?"
-          );
-          if (!confirmProceed) return;
+          setWizardConfirmModal({
+            message: "שים לב: לא נוספו כרגע שחקנים. תוכלו להוסיף שחקנים תמיד בהמשך דרך ממשק עריכת החדר (בוויזארד), או להוריד פה את קובץ האקסל, למלא אותו ולהעלות אותו בהמשך.\n\nהאם להמשיך?",
+            onConfirm: () => {
+              setWizardConfirmModal(null);
+              proceedToStep(nextStep);
+            }
+          });
+          return;
         }
       }
+
       if (currentStep === 4) {
         if (questions.length === 0) {
-          const confirmProceed = window.confirm(
-            "שים לב: לא נוספו כרגע שאלות. תוכלו להוסיף שאלות תמיד בהמשך דרך ממשק עריכת החדר (בוויזארד), או להוריד פה את קובץ האקסל, למלא אותו ולהעלות אותו בהמשך.\nהאם להמשיך?"
-          );
-          if (!confirmProceed) return;
+          setWizardConfirmModal({
+            message: "שים לב: לא נוספו כרגע שאלות. תוכלו להוסיף שאלות תמיד בהמשך דרך ממשק עריכת החדר (בוויזארד), או להוריד פה את קובץ האקסל, למלא אותו ולהעלות אותו בהמשך.\n\nהאם להמשיך?",
+            onConfirm: () => {
+              setWizardConfirmModal(null);
+              proceedToStep(nextStep);
+            }
+          });
+          return;
         }
       }
-      if (currentStep < 6) {
-        const nextStep = currentStep + 1;
-        setWizardStepLocal(nextStep);
 
-        const activeContestants = wizardContestants.slice(0, wizardContestantCount);
-        updateSettings({
-          ...settings,
-          hostName: wizardHostName,
-          treeLayout: wizardTreeLayout,
-          contestants: activeContestants,
-          grandpaName: activeContestants[0]?.name || 'כחול',
-          grandmaName: activeContestants[1]?.name || 'סגול',
-          grandpaImage: activeContestants[0]?.image || null,
-          grandmaImage: activeContestants[1]?.image || null,
-          questionTimer: wizardQuestionTimer,
-          wizardStep: nextStep
-        });
-        saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, nextStep);
+      if (currentStep < 6) {
+        proceedToStep(nextStep);
       }
     };
 
@@ -2227,6 +2250,37 @@ export const AdminView: React.FC = () => {
               💡 אל דאגה! תוכלו לערוך ולשנות את כל הפרטים הללו גם בהמשך מתוך שלט המנחה המלא.
             </span>
           </div>
+
+          {/* Custom Confirmation Modal */}
+          {wizardConfirmModal && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 text-right" dir="rtl">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl relative overflow-hidden">
+                <div className="absolute -top-10 -left-10 w-24 h-24 bg-amber-500/5 rounded-full blur-xl" />
+                <h4 className="text-sm font-black text-amber-400 flex items-center gap-1.5">
+                  <span>⚠️ שימו לב</span>
+                </h4>
+                <p className="text-xs text-slate-350 leading-relaxed font-medium whitespace-pre-line">
+                  {wizardConfirmModal.message}
+                </p>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={wizardConfirmModal.onConfirm}
+                    className="flex-[2] py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all active:scale-95 cursor-pointer"
+                  >
+                    אישור והמשך
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWizardConfirmModal(null)}
+                    className="flex-1 py-2 bg-slate-950 border border-slate-850 hover:bg-slate-900 text-slate-400 text-xs font-black rounded-xl transition-all active:scale-95 cursor-pointer"
+                  >
+                    ביטול
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>
