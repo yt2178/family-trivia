@@ -94,6 +94,7 @@ export const GameView: React.FC = React.memo(() => {
   const [questions, setQuestions] = useState<any[]>([]);
   const [settings, setSettings] = useState<GameSettings>(db.getSettings());
   const [gameState, setGameState] = useState<GameState>(db.getGameState());
+  const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
   
   const hostLabel = settings.hostName || 'המנחה';
   
@@ -103,13 +104,49 @@ export const GameView: React.FC = React.memo(() => {
 
   // Load initial data
   useEffect(() => {
-    setMembers(db.getMembers());
-    setQuestions(db.getQuestions());
-    setSettings(db.getSettings());
-    
-    // Make sure we have a game state initialized
-    const currentGameState = db.getGameState();
-    setGameState(currentGameState);
+    const initData = async () => {
+      const roomCode = sync.getRoomCode();
+      if (roomCode) {
+        try {
+          const data = await sync.fetchCurrentRoomDatabase();
+          if (data) {
+            const fbMembers = data.db?.members || [];
+            const fbQuestions = data.db?.questions || [];
+            const fbSettings = data.db?.settings || data.settings || {};
+            const fbState = data.state || data.db?.state || {};
+
+            db.saveMembers(fbMembers);
+            db.saveQuestions(fbQuestions);
+            
+            const currentSettings = db.getSettings();
+            const mergedSettings = { ...currentSettings, ...fbSettings };
+            db.saveSettings(mergedSettings);
+            
+            const currentGameState = db.getGameState();
+            const mergedState = { ...currentGameState, ...fbState };
+            db.saveGameState(mergedState);
+
+            setMembers(fbMembers);
+            setQuestions(fbQuestions);
+            setSettings(mergedSettings);
+            setGameState(mergedState);
+            setIsLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to load initial room database for GameView from Firebase, falling back to localStorage", e);
+        }
+      }
+
+      // Local storage fallback
+      setMembers(db.getMembers());
+      setQuestions(db.getQuestions());
+      setSettings(db.getSettings());
+      setGameState(db.getGameState());
+      setIsLoading(false);
+    };
+
+    initData();
 
     // Register game screen connection status in Firebase
     const roomCode = sync.getRoomCode();
@@ -514,6 +551,15 @@ export const GameView: React.FC = React.memo(() => {
         return 'from-slate-950 via-emerald-950/10 to-slate-950';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-4 text-emerald-400" dir="rtl">
+        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm font-bold">טוען נתוני משחק מהענן...</span>
+      </div>
+    );
+  }
 
   const isGameStarted = totalQuestions > 0;
 

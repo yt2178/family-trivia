@@ -111,6 +111,7 @@ export const AdminView: React.FC = () => {
   const [settings, setSettings] = useState<GameSettings>(db.getSettings());
   const [gameState, setGameState] = useState<GameState>(db.getGameState());
   const [gameScreenConnected, setGameScreenConnected] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
 
   // Register controller connection and listen to game screen connection status in Firebase
   useEffect(() => {
@@ -237,28 +238,69 @@ export const AdminView: React.FC = () => {
 
   // Load Data
   useEffect(() => {
-    const loadedMembers = db.getMembers();
-    const healedMembers = healMembersGenerations(loadedMembers);
-    const loadedQuestions = db.getQuestions();
-    const loadedSettings = db.getSettings();
-    
-    setMembers(healedMembers);
-    setQuestions(loadedQuestions);
-    setSettings(loadedSettings);
-    setGameState(db.getGameState());
+    const initData = async () => {
+      const roomCode = sync.getRoomCode();
+      if (roomCode) {
+        try {
+          const data = await sync.fetchCurrentRoomDatabase();
+          if (data) {
+            const fbMembers = data.db?.members || [];
+            const fbQuestions = data.db?.questions || [];
+            const fbSettings = data.db?.settings || data.settings || {};
+            const fbState = data.state || data.db?.state || {};
 
-    const hasChanges = JSON.stringify(loadedMembers) !== JSON.stringify(healedMembers);
-    if (hasChanges) {
-      db.saveMembers(healedMembers);
-    }
+            const healed = healMembersGenerations(fbMembers);
+            
+            db.saveMembers(healed);
+            db.saveQuestions(fbQuestions);
+            
+            const currentSettings = db.getSettings();
+            const mergedSettings = { ...currentSettings, ...fbSettings };
+            db.saveSettings(mergedSettings);
+            
+            const currentGameState = db.getGameState();
+            const mergedState = { ...currentGameState, ...fbState };
+            db.saveGameState(mergedState);
 
-    // Broadcast initial database state
-    sync.sendMessage({
-      type: 'DATABASE_SYNC',
-      members: healedMembers,
-      questions: loadedQuestions,
-      settings: loadedSettings
-    });
+            setMembers(healed);
+            setQuestions(fbQuestions);
+            setSettings(mergedSettings);
+            setGameState(mergedState);
+            setIsLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to fetch initial room database from Firebase, falling back to localStorage", e);
+        }
+      }
+
+      // Local storage fallback (or local-only mode)
+      const loadedMembers = db.getMembers();
+      const loadedQuestions = db.getQuestions();
+      const loadedSettings = db.getSettings();
+
+      const healedMembers = healMembersGenerations(loadedMembers);
+      if (JSON.stringify(loadedMembers) !== JSON.stringify(healedMembers)) {
+        db.saveMembers(healedMembers);
+      }
+
+      setMembers(healedMembers);
+      setQuestions(loadedQuestions);
+      setSettings(loadedSettings);
+      setGameState(db.getGameState());
+      setIsLoading(false);
+
+      if (!roomCode) {
+        sync.sendMessage({
+          type: 'DATABASE_SYNC',
+          members: healedMembers,
+          questions: loadedQuestions,
+          settings: loadedSettings
+        });
+      }
+    };
+
+    initData();
   }, []);
 
   // Listen to remote client database requests and incoming sync updates
@@ -956,6 +998,15 @@ export const AdminView: React.FC = () => {
   const totalDescendants = members.filter(m => m.generation !== 'grandparent').length;
   const childrenAndGrandchildren = members.filter(m => m.generation === 'parent' || m.generation === 'child' || m.generation === 'grandchild').length;
   const greatGrandchildren = members.filter(m => m.generation === 'great-grandchild').length;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-4 text-emerald-400" dir="rtl">
+        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm font-bold">טוען נתוני משחק מהענן...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 flex flex-col">

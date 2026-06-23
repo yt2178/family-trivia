@@ -110,41 +110,7 @@ if (ROOM_CODE) {
       lastFirebaseTimestamp = data.timestamp;
       handleReceivedMessage(data);
     }
-  });
-
-  // Hydrate initial cloud data
-  const dbRef = ref(rtdb);
-  get(child(dbRef, `rooms/${ROOM_CODE}/database`)).then((snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      if (data.db) {
-        const cachedDb: SyncMessage = {
-          type: 'DATABASE_SYNC',
-          members: data.db.members || [],
-          questions: data.db.questions || [],
-          settings: data.db.settings || { grandpaName: '', grandpaImage: null, grandmaName: '', grandmaImage: null, theme: 'forest', treeLayout: 'traditional', contestants: [] }
-        };
-        subscribers.forEach(cb => cb(cachedDb));
-      }
-      if (data.settings) {
-        const cachedSettings: SyncMessage = {
-          type: 'SETTINGS_CHANGED',
-          settings: data.settings
-        };
-        subscribers.forEach(cb => cb(cachedSettings));
-      }
-      if (data.state) {
-        const cachedState: SyncMessage = {
-          type: 'STATE_CHANGED',
-          state: data.state
-        };
-        subscribers.forEach(cb => cb(cachedState));
-      }
-    }
-  }).catch((err) => {
-    console.error("Error fetching initial database from Firebase:", err);
-  });
-}
+  });}
 
 export const sync = {
   getRoomCode(): string | null {
@@ -153,6 +119,20 @@ export const sync = {
 
   isConnected(): boolean {
     return isConnected;
+  },
+
+  async fetchCurrentRoomDatabase(): Promise<any> {
+    if (!ROOM_CODE) return null;
+    try {
+      const dbRef = ref(rtdb);
+      const snapshot = await get(child(dbRef, `rooms/${ROOM_CODE}/database`));
+      if (snapshot.exists()) {
+        return snapshot.val();
+      }
+    } catch (e) {
+      console.error("Error fetching room database from Firebase:", e);
+    }
+    return null;
   },
 
   onConnectionChange(callback: (connected: boolean) => void): () => void {

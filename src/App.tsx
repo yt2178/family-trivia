@@ -33,6 +33,13 @@ function App() {
   const [isCheckingRoom, setIsCheckingRoom] = useState<boolean>(false);
   const [roomWarningCode, setRoomWarningCode] = useState<string | null>(null);
   const [treeLayoutChoice, setTreeLayoutChoice] = useState<'traditional' | 'none'>('traditional');
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCreateError(null);
+    setJoinError(null);
+    setRoomWarningCode(null);
+  }, [activeTab]);
 
   // Join tab states
   const [joinHostName, setJoinHostName] = useState<string>('');
@@ -253,17 +260,29 @@ function App() {
     const cleanCode = inputRoomCode.trim();
     if (!cleanCode) return;
     
+    if (cleanCode.length !== 4) {
+      setCreateError('נא להזין מספר חדר בן 4 ספרות בדיוק');
+      return;
+    }
+    
+    const cleanHost = hostName.trim();
+    if (!cleanHost) {
+      setCreateError('נא להזין את שם מנחה המשחק');
+      return;
+    }
+    
     setIsCheckingRoom(true);
+    setCreateError(null);
     try {
       const exists = await checkRoomExists(cleanCode);
       if (exists) {
-        setRoomWarningCode(cleanCode);
+        setCreateError(`חדר מספר ${cleanCode} כבר קיים במערכת! אנא בחרו מספר חדר אחר או לחצו על כפתור מספר אקראי.`);
       } else {
         await proceedWithRoom(cleanCode, false);
       }
     } catch (err) {
       console.error(err);
-      await proceedWithRoom(cleanCode, false);
+      setCreateError('שגיאת תקשורת בבדיקת החדר. נסה שוב.');
     } finally {
       setIsCheckingRoom(false);
     }
@@ -271,6 +290,7 @@ function App() {
 
   const handleGenerateRandomCode = async () => {
     setIsCheckingRoom(true);
+    setCreateError(null);
     try {
       let code = generateRoomCode();
       let attempts = 0;
@@ -293,6 +313,7 @@ function App() {
     const cleanCode = inputRoomCode.trim();
     const cleanJoinName = joinHostName.trim();
     if (!cleanCode) { setJoinError('נא להזין מספר חדר'); return { ok: false }; }
+    if (cleanCode.length !== 4) { setJoinError('נא להזין מספר חדר בן 4 ספרות בדיוק'); return { ok: false }; }
     if (!cleanJoinName) { setJoinError('נא להזין שם מנחה'); return { ok: false }; }
     setJoinError(null);
     setIsCheckingRoom(true);
@@ -304,7 +325,7 @@ function App() {
       }
       const data = snap.val();
       const storedName: string = (data?.settings?.hostName || data?.db?.settings?.hostName || '').trim();
-      if (storedName && storedName !== cleanJoinName) {
+      if (storedName && storedName.toLowerCase() !== cleanJoinName.toLowerCase()) {
         setJoinError('❌ שם המנחה שגוי — בדוק ונסה שוב');
         return { ok: false };
       }
@@ -322,6 +343,26 @@ function App() {
     if (!ok) return;
     const cleanCode = inputRoomCode.trim();
     localStorage.setItem('last_connected_room', cleanCode);
+    
+    // Fetch data from Firebase first to populate localStorage
+    try {
+      const roomDbRef = ref(rtdb, `rooms/${cleanCode}/database`);
+      const snap = await get(roomDbRef);
+      if (snap.exists()) {
+        const data = snap.val();
+        if (data.db) {
+          if (data.db.members) localStorage.setItem('family_game_members', JSON.stringify(data.db.members));
+          if (data.db.questions) localStorage.setItem('family_game_questions', JSON.stringify(data.db.questions));
+          if (data.db.settings) localStorage.setItem('family_game_settings', JSON.stringify(data.db.settings));
+        }
+        if (data.state) {
+          localStorage.setItem('family_game_state', JSON.stringify(data.state));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to sync room data to localStorage on admin join", e);
+    }
+    
     window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}`;
   };
 
@@ -465,14 +506,18 @@ function App() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">2. בחרו מספר לחדר (ספרות בלבד, למשל 4):</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">2. בחרו מספר לחדר בן 4 ספרות:</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       required
+                      maxLength={4}
                       value={inputRoomCode}
-                      onChange={(e) => setInputRoomCode(e.target.value.replace(/\D/g, ''))}
-                      placeholder="הקלד מספר חדר (לדוגמה: 4)"
+                      onChange={(e) => {
+                        setInputRoomCode(e.target.value.replace(/\D/g, '').slice(0, 4));
+                        setCreateError(null);
+                      }}
+                      placeholder="הקלד מספר חדר בן 4 ספרות"
                       className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-sm font-black text-emerald-400 placeholder-slate-650 focus:outline-none focus:border-emerald-500 font-mono"
                     />
                     <button
@@ -525,37 +570,18 @@ function App() {
                 </div>
               </div>
 
-              {roomWarningCode && (
-                <div className="bg-amber-500/10 border-2 border-amber-500/30 p-4 rounded-2xl text-right space-y-3 relative z-20">
-                  <p className="text-xs font-bold text-amber-300">
-                    ⚠️ חדר מספר <strong className="text-white underline">{roomWarningCode}</strong> כבר קיים במערכת עם נתונים שמורים.
+              {createError && (
+                <div className="bg-rose-500/10 border-2 border-rose-500/30 p-4 rounded-2xl text-right relative z-20">
+                  <p className="text-xs font-bold text-rose-400">
+                    ⚠️ {createError}
                   </p>
-                  <div className="flex gap-2 justify-end">
-                    <button
-                      type="button"
-                      onClick={() => proceedWithRoom(roomWarningCode, true)}
-                      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-lg transition-colors flex items-center gap-1"
-                    >
-                      <span>שחזר והתחבר למשחק הקיים 🔄</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRoomWarningCode(null);
-                        setInputRoomCode('');
-                      }}
-                      className="px-3 py-1.5 bg-rose-500 hover:bg-rose-450 text-white text-xs font-black rounded-lg transition-colors"
-                    >
-                      <span>החלף מספר חדר ❌</span>
-                    </button>
-                  </div>
                 </div>
               )}
 
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={isCheckingRoom || !!roomWarningCode}
+                  disabled={isCheckingRoom || !!createError}
                   className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>{isCheckingRoom ? 'בודק זמינות חדר... ⏳' : 'צור חדר והתחל משחק 🎮'}</span>
@@ -580,14 +606,14 @@ function App() {
             </div>
 
             <div className="space-y-3">
-              {/* Room code */}
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">מספר חדר:</label>
                 <input
                   type="text"
+                  maxLength={4}
                   value={inputRoomCode}
-                  onChange={(e) => { setInputRoomCode(e.target.value.replace(/\D/g, '')); setJoinError(null); setJoinWaiting(false); }}
-                  placeholder="לדוגמה: 1234"
+                  onChange={(e) => { setInputRoomCode(e.target.value.replace(/\D/g, '').slice(0, 4)); setJoinError(null); setJoinWaiting(false); }}
+                  placeholder="הקלד מספר חדר בן 4 ספרות"
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-lg font-black text-emerald-400 placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono"
                 />
               </div>
