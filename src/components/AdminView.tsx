@@ -177,6 +177,8 @@ export const AdminView: React.FC = () => {
   const [wizardContestants, setWizardContestants] = useState<Array<{ id: string; name: string; image: string | null }>>([]);
   const [wizardStepLocal, setWizardStepLocal] = useState<number | null>(null);
   const [hasInitializedWizard, setHasInitializedWizard] = useState(false);
+  const [adminSubMode, setAdminSubMode] = useState<'menu' | 'controller' | 'wizard'>('menu');
+  const [showSuccessScreen, setShowSuccessScreen] = useState(false);
 
   // Sync settings to local wizard states on load or changes from Firebase
   useEffect(() => {
@@ -234,6 +236,11 @@ export const AdminView: React.FC = () => {
         setWizardContestants(arr);
       }
       setHasInitializedWizard(true);
+      if (settings.setupComplete) {
+        setAdminSubMode('menu');
+      } else {
+        setAdminSubMode('wizard');
+      }
     }
   }, [settings, hasInitializedWizard]);
 
@@ -1098,6 +1105,187 @@ export const AdminView: React.FC = () => {
   const childrenAndGrandchildren = members.filter(m => m.generation === 'parent' || m.generation === 'child' || m.generation === 'grandchild').length;
   const greatGrandchildren = members.filter(m => m.generation === 'great-grandchild').length;
 
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      showSuccess(`קישור ל${label} הועתק לקליפבורד! 📋`);
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+      alert('העתקה נכשלה. אנא העתק ידנית.');
+    });
+  };
+
+  const renderSuccessScreen = () => {
+    const roomCode = sync.getRoomCode() || '';
+    const projectorUrl = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+    const controllerUrl = `${window.location.origin}${window.location.pathname}?mode=admin&room=${roomCode}`;
+
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-center items-center text-right" dir="rtl">
+        <div className="max-w-xl w-full glass-panel p-8 rounded-3xl border border-emerald-550/30 space-y-6 shadow-2xl relative overflow-hidden">
+          {/* Confetti effect or glow */}
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="text-center space-y-3 relative z-10">
+            <div className="inline-flex items-center justify-center p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full animate-bounce">
+              <Check size={36} />
+            </div>
+            <h2 className="text-3xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
+              החדר נשמר בהצלחה! 🎉
+            </h2>
+            <p className="text-sm text-slate-400 font-medium">
+              השלמתם את הגדרת המשחק עבור חדר <strong className="text-emerald-400 font-mono">#{roomCode}</strong>.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/60 border border-slate-850 p-4 rounded-2xl text-right text-xs space-y-2 leading-relaxed">
+            <p className="text-amber-400 font-bold">⚠️ שימו לב - פרטי תוקף החדר:</p>
+            <p className="text-slate-350">
+              החדר והנתונים שבו יישמרו בענן של Firebase ויהיו זמינים למשך <strong className="underline font-bold">30 יום</strong> מהיום.
+            </p>
+          </div>
+
+          {/* Links Section */}
+          <div className="space-y-4 relative z-10">
+            {/* Projector Link */}
+            <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-2.5">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-300">📺 מסך ההקרנה הראשי (למחשב / טלוויזיה)</span>
+                <span className="text-[10px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded font-bold">מיועד למסך הגדול</span>
+              </div>
+              <p className="text-[11px] text-slate-400">הקישור שיוצג על הטלוויזיה ויציג את השאלות והניקוד בזמן אמת.</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={projectorUrl}
+                  className="flex-1 bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-[10px] font-mono text-left text-slate-400 select-all focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(projectorUrl, 'מסך ההקרנה')}
+                  className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs rounded-xl transition-all active:scale-95"
+                >
+                  העתק קישור 📋
+                </button>
+              </div>
+            </div>
+
+            {/* Controller Link */}
+            <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-2.5">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-300">🎮 שלט מנחה המשחק (לטלפון הנייד)</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold">מיועד לטלפון</span>
+              </div>
+              <p className="text-[11px] text-slate-400">השלט הפרטי שלך להפעלת המשחק, חשיפת התשובות ועדכון הניקוד.</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={controllerUrl}
+                  className="flex-1 bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-[10px] font-mono text-left text-slate-400 select-all focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(controllerUrl, 'שלט המנחה')}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-all active:scale-95"
+                >
+                  העתק קישור 📋
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 relative z-10">
+            <button
+              type="button"
+              onClick={() => {
+                setShowSuccessScreen(false);
+                setAdminSubMode('controller');
+                setActiveTab('control');
+              }}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-95"
+            >
+              <span>כניסה לשלט המנחה והפעלת המשחק 🚀</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderIntermediateMenu = () => {
+    const roomCode = sync.getRoomCode() || '';
+
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-center items-center text-right" dir="rtl">
+        <div className="max-w-xl w-full glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="text-center space-y-2 relative z-10">
+            <h2 className="text-2xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
+              בחירת מצב מנחה - חדר #{roomCode}
+            </h2>
+            <p className="text-xs text-slate-400">
+              ברוכים הבאים לחדר המשחק של <strong className="text-amber-400">{settings.hostName || 'המנחה'}</strong>. מה ברצונך לעשות כעת?
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 relative z-10">
+            {/* Controller Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setAdminSubMode('controller');
+                setActiveTab('control');
+              }}
+              className="p-6 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/30 rounded-2xl flex flex-col items-center justify-between text-center gap-3 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] group shadow-xl"
+            >
+              <div className="p-4 bg-emerald-500/10 text-emerald-400 rounded-full group-hover:scale-110 transition-transform">
+                <Play size={32} fill="currentColor" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-slate-100">הפעלת משחק (שלט) 🎮</h3>
+                <p className="text-[11px] text-slate-400 leading-relaxed">שלוט בשאלות, חשוף את התשובות ועדכן את הניקוד בזמן אמת.</p>
+              </div>
+            </button>
+
+            {/* Edit Wizard Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setAdminSubMode('wizard');
+                setWizardStepLocal(1);
+              }}
+              className="p-6 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-sky-500/30 rounded-2xl flex flex-col items-center justify-between text-center gap-3 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] group shadow-xl"
+            >
+              <div className="p-4 bg-sky-500/10 text-sky-400 rounded-full group-hover:scale-110 transition-transform">
+                <Settings size={32} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-slate-100">עריכת הגדרות ושאלות 📝</h3>
+                <p className="text-[11px] text-slate-400 leading-relaxed">הוספה ושינוי של מתמודדים, משתתפים ושאלות בעזרת מדריך השלבים.</p>
+              </div>
+            </button>
+          </div>
+
+          <div className="pt-4 border-t border-slate-900 text-center relative z-10">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = window.location.origin + window.location.pathname;
+              }}
+              className="px-6 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-xs text-slate-400 font-black rounded-xl transition-all active:scale-95 inline-flex items-center gap-1.5"
+            >
+              ◀️ יציאה לדף הבית
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderSetupWizard = () => {
     const currentStep = wizardStepLocal || settings.wizardStep || 1;
     const roomCode = sync.getRoomCode() || '';
@@ -1198,6 +1386,34 @@ export const AdminView: React.FC = () => {
           return;
         }
       }
+      if (currentStep === 2) {
+        const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
+        const isDefault = wizardContestants.slice(0, wizardContestantCount).every(
+          (c, idx) => c.name === defaultNames[idx]
+        );
+        if (isDefault) {
+          const confirmProceed = window.confirm(
+            "לא בוצע שינוי בשמות המתמודדים. נאשר אותם לפי ברירת המחדל (כחול וסגול). תמיד ניתן יהיה לערוך זאת שוב בהמשך.\nהאם להמשיך?"
+          );
+          if (!confirmProceed) return;
+        }
+      }
+      if (currentStep === 3) {
+        if (members.length === 0) {
+          const confirmProceed = window.confirm(
+            "שים לב: לא נוספו כרגע שחקנים. תוכלו להוסיף שחקנים תמיד בהמשך דרך ממשק עריכת החדר (בוויזארד), או להוריד פה את קובץ האקסל, למלא אותו ולהעלות אותו בהמשך.\nהאם להמשיך?"
+          );
+          if (!confirmProceed) return;
+        }
+      }
+      if (currentStep === 4) {
+        if (questions.length === 0) {
+          const confirmProceed = window.confirm(
+            "שים לב: לא נוספו כרגע שאלות. תוכלו להוסיף שאלות תמיד בהמשך דרך ממשק עריכת החדר (בוויזארד), או להוריד פה את קובץ האקסל, למלא אותו ולהעלות אותו בהמשך.\nהאם להמשיך?"
+          );
+          if (!confirmProceed) return;
+        }
+      }
       if (currentStep < 6) {
         const nextStep = currentStep + 1;
         setWizardStepLocal(nextStep);
@@ -1262,6 +1478,8 @@ export const AdminView: React.FC = () => {
         });
         const rCode = sync.getRoomCode();
         if (rCode) localStorage.removeItem(`wizard_draft_${rCode}`);
+        setAdminSubMode('controller');
+        setActiveTab('control');
       }
     };
 
@@ -1282,7 +1500,7 @@ export const AdminView: React.FC = () => {
       });
       const rCode = sync.getRoomCode();
       if (rCode) localStorage.removeItem(`wizard_draft_${rCode}`);
-      showSuccess("הגדרת החדר הושלמה בהצלחה! תהנו מהמשחק!");
+      setShowSuccessScreen(true);
     };
 
     const stepTitles = [
@@ -1307,20 +1525,31 @@ export const AdminView: React.FC = () => {
         <div className="flex justify-between items-center max-w-3xl w-full mx-auto border-b border-slate-800 pb-4 mb-6">
           <div>
             <h1 className="text-xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent flex items-center gap-2">
-              <span>הגדרת חדר משחק חדש</span>
+              <span>{settings.setupComplete ? 'עריכת חדר משחק' : 'הגדרת חדר משחק חדש'}</span>
               <span className="text-xs bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded font-mono">
                 #{roomCode}
               </span>
             </h1>
             <p className="text-[10px] text-slate-400">הגדירו את החדר שלב-אחר-שלב ליצירת חוויית משחק מושלמת</p>
           </div>
-          <button
-            type="button"
-            onClick={handleSkip}
-            className="text-xs text-slate-500 hover:text-rose-400 transition-colors font-bold px-2.5 py-1.5 rounded-lg border border-slate-800 hover:border-rose-950 bg-slate-900/30 flex items-center gap-1"
-          >
-            <span>דלג לממשק מלא ⏭️</span>
-          </button>
+          <div className="flex gap-2">
+            {settings.setupComplete && (
+              <button
+                type="button"
+                onClick={() => setAdminSubMode('menu')}
+                className="text-xs text-slate-400 hover:text-slate-200 transition-colors font-bold px-2.5 py-1.5 rounded-lg border border-slate-850 bg-slate-900/30 flex items-center gap-1"
+              >
+                <span>ביטול וחזרה ◀️</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="text-xs text-slate-500 hover:text-rose-400 transition-colors font-bold px-2.5 py-1.5 rounded-lg border border-slate-800 hover:border-rose-950 bg-slate-900/30 flex items-center gap-1"
+            >
+              <span>דלג לממשק מלא ⏭️</span>
+            </button>
+          </div>
         </div>
 
         {/* Stepper Progress Bar */}
@@ -1534,6 +1763,11 @@ export const AdminView: React.FC = () => {
                       );
                     })}
                   </div>
+                  {wizardContestants.slice(0, wizardContestantCount).every((c, idx) => c.name === ['כחול', 'סגול', 'ירוק', 'כתום'][idx]) && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-right text-[11px] text-amber-300 font-medium">
+                      💡 לא בוצע שינוי בשמות המתמודדים - נאשר אותם לפי ברירת המחדל (כחול וסגול). תמיד ניתן יהיה לערוך זאת שוב בהמשך.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1715,6 +1949,22 @@ export const AdminView: React.FC = () => {
                       })
                     )}
                   </div>
+                  {members.length === 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-right text-xs text-amber-300 font-medium space-y-2">
+                      <p>⚠️ שים לב: לא נוספו כרגע שחקנים. אפשר יהיה תמיד להוסיף שחקנים בהמשך דרך ממשק עריכת החדר (בוויזארד).</p>
+                      <div className="flex items-center gap-2">
+                        <span>או שתוכלו להוריד פה את קובץ האקסל לדוגמה, למלא אותו ולהעלות אותו בהמשך:</span>
+                        <button
+                          type="button"
+                          onClick={() => excelHelper.downloadTemplate(wizardTreeLayout === 'traditional' ? 'tree' : 'list')}
+                          className="px-2 py-1 bg-amber-500 text-slate-950 hover:bg-amber-400 font-bold text-[10px] rounded transition-all flex items-center gap-1"
+                        >
+                          <Download size={10} />
+                          <span>הורד אבטיפוס Excel 📥</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1732,7 +1982,7 @@ export const AdminView: React.FC = () => {
                   <div className="flex gap-1.5">
                     <button
                       type="button"
-                      onClick={() => excelHelper.downloadTemplate('list')}
+                      onClick={() => excelHelper.downloadQuestionsTemplate()}
                       className="px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
                       title="הורד אבטיפוס שאלות למילוי"
                     >
@@ -1821,6 +2071,22 @@ export const AdminView: React.FC = () => {
                       })
                     )}
                   </div>
+                  {questions.length === 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-right text-xs text-amber-300 font-medium space-y-2 mt-4">
+                      <p>⚠️ שים לב: לא נוספו כרגע שאלות. אפשר יהיה תמיד להוסיף שאלות בהמשך דרך ממשק עריכת החדר (בוויזארד).</p>
+                      <div className="flex items-center gap-2">
+                        <span>או שתוכלו להוריד פה את קובץ האקסל לדוגמה, למלא אותו ולהעלות אותו בהמשך:</span>
+                        <button
+                          type="button"
+                          onClick={() => excelHelper.downloadQuestionsTemplate()}
+                          className="px-2 py-1 bg-amber-500 text-slate-950 hover:bg-amber-400 font-bold text-[10px] rounded transition-all flex items-center gap-1"
+                        >
+                          <Download size={10} />
+                          <span>הורד אבטיפוס Excel 📥</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1976,8 +2242,16 @@ export const AdminView: React.FC = () => {
     );
   }
 
-  if (!settings.setupComplete) {
+  if (showSuccessScreen) {
+    return renderSuccessScreen();
+  }
+
+  if (!settings.setupComplete || adminSubMode === 'wizard') {
     return renderSetupWizard();
+  }
+
+  if (adminSubMode === 'menu') {
+    return renderIntermediateMenu();
   }
 
   return (
@@ -2035,63 +2309,16 @@ export const AdminView: React.FC = () => {
           )}
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 overflow-x-auto max-w-full whitespace-nowrap scrollbar-none flex-shrink-0">
-          <button
-            onClick={() => setActiveTab('control')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'control' ? 'bg-emerald-600 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <LayoutGrid size={14} />
-            <span>בקרה ושליטה</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'members' ? 'bg-emerald-600 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Users size={14} />
-            <span>{settings.treeLayout === 'none' ? 'ניהול משתתפים' : 'ניהול משפחה'}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('questions')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'questions' ? 'bg-emerald-600 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <HelpCircle size={14} />
-            <span>שאלות וציטוטים</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'settings' ? 'bg-emerald-600 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Settings size={14} />
-            <span>הגדרות משחק</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('import')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'import' ? 'bg-emerald-600 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <FileSpreadsheet size={14} />
-            <span>ייבוא וגיבוי</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('stats')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'stats' ? 'bg-emerald-600 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <LayoutGrid size={14} />
-            <span>סטטיסטיקת משפחות</span>
-          </button>
-        </div>
+        {/* Exit Button */}
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = window.location.origin + window.location.pathname;
+          }}
+          className="px-4 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-xs text-slate-400 hover:text-slate-200 font-black rounded-xl transition-all flex items-center gap-1.5 shadow"
+        >
+          ◀️ יציאה לדף הבית
+        </button>
       </header>
 
       {/* Main Tab Content */}

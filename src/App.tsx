@@ -663,7 +663,7 @@ function App() {
                   className="py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-lg flex flex-col items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <SettingsIcon size={16} />
-                  <span>{isCheckingRoom ? '...' : 'שלט מנחה 👑'}</span>
+                  <span>{isCheckingRoom ? '...' : 'התחבר כמנחה המשחק 👑'}</span>
                 </button>
 
                 <button

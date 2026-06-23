@@ -243,31 +243,31 @@ export const excelHelper = {
               warnings.push(`שורה ${index + 2}: חסר משפט/ציטוט, שורה זו דולגה.`);
               return;
             }
-            if (!speakerName) {
-              warnings.push(`שורה ${index + 2}: חסר שם האומר עבור המשפט "${text.substring(0, 15)}...", שורה זו דולגה.`);
-              return;
-            }
 
             const cleanText = text.trim();
-            const cleanSpeaker = speakerName.trim();
-            let speakerId = memberMap[cleanSpeaker.toLowerCase()];
+            let speakerId = '';
 
-            if (!speakerId) {
-              // Create placeholder/temporary member for missing speakers
-              const newId = 'placeholder_' + Math.random().toString(36).substr(2, 9);
-              const placeholderMember: FamilyMember = {
-                id: newId,
-                name: cleanSpeaker,
-                generation: 'grandchild',
-                parentId: null,
-                image: null,
-                gender: 'male',
-                familyName: ''
-              };
-              tempMembers.push(placeholderMember);
-              memberMap[cleanSpeaker.toLowerCase()] = newId;
-              speakerId = newId;
-              warnings.push(`שורה ${index + 2}: בן המשפחה "${cleanSpeaker}" לא נמצא בעץ. נוצר משתתף זמני עבורו.`);
+            if (speakerName) {
+              const cleanSpeaker = speakerName.trim();
+              speakerId = memberMap[cleanSpeaker.toLowerCase()] || '';
+
+              if (!speakerId) {
+                // Create placeholder/temporary member for missing speakers
+                const newId = 'placeholder_' + Math.random().toString(36).substr(2, 9);
+                const placeholderMember: FamilyMember = {
+                  id: newId,
+                  name: cleanSpeaker,
+                  generation: 'grandchild',
+                  parentId: null,
+                  image: null,
+                  gender: 'male',
+                  familyName: ''
+                };
+                tempMembers.push(placeholderMember);
+                memberMap[cleanSpeaker.toLowerCase()] = newId;
+                speakerId = newId;
+                warnings.push(`שורה ${index + 2}: בן המשפחה "${cleanSpeaker}" לא נמצא בעץ. נוצר משתתף זמני עבורו.`);
+              }
             }
 
             importedQuestions.push({
@@ -338,5 +338,18 @@ export const excelHelper = {
       // Save/Download workbook
       XLSX.writeFile(workbook, 'תבנית_משחק_ללא_עץ.xlsx');
     }
+  },
+
+  // Download dedicated Questions Template
+  downloadQuestionsTemplate(): void {
+    const workbook = XLSX.utils.book_new();
+    const questionsData = [
+      { 'משפט': 'אני לא סובל בצל באוכל!', 'מי אמר': 'יוסי' },
+      { 'משפט': 'בואו נשחק כדורגל בחצר', 'מי אמר': '' },
+      { 'משפט': 'מי מהילדים הכי גבוה במשפחה?', 'מי אמר': '' }
+    ];
+    const questionsSheet = XLSX.utils.json_to_sheet(questionsData);
+    XLSX.utils.book_append_sheet(workbook, questionsSheet, 'שאלות וציטוטים');
+    XLSX.writeFile(workbook, 'תבנית_שאלות_וציטוטים.xlsx');
   }
 };
