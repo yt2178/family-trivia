@@ -204,7 +204,7 @@ export const AdminView: React.FC = () => {
         setWizardStepLocal(draft.wizardStep || settings.wizardStep || 1);
         
         const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
-        const defaultIds = ['grandpa', 'grandma', 'contestant_3', 'contestant_4'];
+        const defaultIds = ['contestant_1', 'contestant_2', 'contestant_3', 'contestant_4'];
         const arr = [];
         for (let i = 0; i < 4; i++) {
           const existing = draft.contestants?.[i] || settings.contestants?.[i];
@@ -223,7 +223,7 @@ export const AdminView: React.FC = () => {
         setWizardStepLocal(settings.wizardStep || 1);
         
         const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
-        const defaultIds = ['grandpa', 'grandma', 'contestant_3', 'contestant_4'];
+        const defaultIds = ['contestant_1', 'contestant_2', 'contestant_3', 'contestant_4'];
         const arr = [];
         for (let i = 0; i < 4; i++) {
           const existing = settings.contestants?.[i];

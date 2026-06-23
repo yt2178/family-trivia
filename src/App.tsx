@@ -175,8 +175,8 @@ function App() {
               theme: 'classic',
               treeLayout: treeLayoutChoice,
               contestants: [
-                { id: 'grandpa', name: 'כחול', image: null },
-                { id: 'grandma', name: 'סגול', image: null }
+                { id: 'contestant_1', name: 'כחול', image: null },
+                { id: 'contestant_2', name: 'סגול', image: null }
               ],
               hostName: cleanName,
               setupComplete: false,
@@ -192,8 +192,8 @@ function App() {
             theme: 'classic',
             treeLayout: treeLayoutChoice,
             contestants: [
-              { id: 'grandpa', name: 'כחול', image: null },
-              { id: 'grandma', name: 'סגול', image: null }
+              { id: 'contestant_1', name: 'כחול', image: null },
+              { id: 'contestant_2', name: 'סגול', image: null }
             ],
             hostName: cleanName,
             setupComplete: false,
@@ -202,7 +202,7 @@ function App() {
           },
           state: {
             currentQuestionIndex: 0,
-            scores: { grandpa: 0, grandma: 0 },
+            scores: { contestant_1: 0, contestant_2: 0 },
             solvedQuestions: {},
             revealedSpeakers: {},
             shuffledQuestionIds: [],
@@ -224,8 +224,8 @@ function App() {
           theme: 'classic',
           treeLayout: treeLayoutChoice,
           contestants: [
-            { id: 'grandpa', name: 'כחול', image: null },
-            { id: 'grandma', name: 'סגול', image: null }
+            { id: 'contestant_1', name: 'כחול', image: null },
+            { id: 'contestant_2', name: 'סגול', image: null }
           ],
           hostName: cleanName,
           setupComplete: false,

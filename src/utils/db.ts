@@ -65,8 +65,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   theme: 'classic',
   treeLayout: 'traditional',
   contestants: [
-    { id: 'grandpa', name: 'כחול', image: null },
-    { id: 'grandma', name: 'סגול', image: null }
+    { id: 'contestant_1', name: 'כחול', image: null },
+    { id: 'contestant_2', name: 'סגול', image: null }
   ],
   hostName: '',
   questionTimer: null,
@@ -75,7 +75,7 @@ const DEFAULT_SETTINGS: GameSettings = {
 
 const DEFAULT_GAME_STATE: GameState = {
   currentQuestionIndex: 0,
-  scores: { grandpa: 0, grandma: 0 },
+  scores: { contestant_1: 0, contestant_2: 0 },
   solvedQuestions: {},
   revealedSpeakers: {},
   shuffledQuestionIds: [],
@@ -177,8 +177,8 @@ export const db = {
       // Migrate/Validate contestants if missing or has less than 2
       if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
         parsed.contestants = [
-          { id: 'grandpa', name: parsed.grandpaName || 'כחול', image: parsed.grandpaImage || null },
-          { id: 'grandma', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
+          { id: 'contestant_1', name: parsed.grandpaName || 'כחול', image: parsed.grandpaImage || null },
+          { id: 'contestant_2', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
         ];
         changed = true;
       }
