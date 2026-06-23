@@ -98,6 +98,25 @@ export const CONTESTANT_COLORS = [
   }
 ];
 
+const healSettings = (s: any): GameSettings => {
+  const defaultSettings = db.getSettings();
+  if (!s) return defaultSettings;
+  const parsed = { ...s };
+  if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
+    parsed.contestants = [
+      { id: 'contestant_1', name: parsed.grandpaName || 'כחול', image: parsed.grandpaImage || null },
+      { id: 'contestant_2', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
+    ];
+  }
+  if (!parsed.treeLayout) {
+    parsed.treeLayout = 'traditional';
+  }
+  if (parsed.hostName === undefined) {
+    parsed.hostName = '';
+  }
+  return parsed;
+};
+
 export const AdminView: React.FC = () => {
   // Tabs: 'control' | 'members' | 'questions' | 'settings' | 'import' | 'stats'
   const [activeTab, setActiveTab] = useState<'control' | 'members' | 'questions' | 'settings' | 'import' | 'stats'>(() => {
@@ -108,7 +127,7 @@ export const AdminView: React.FC = () => {
   // Core Data State
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [questions, setQuestions] = useState<TriviaQuestion[]>([]);
-  const [settings, setSettings] = useState<GameSettings>(db.getSettings());
+  const [settings, setSettings] = useState<GameSettings>(healSettings(db.getSettings()));
   const [gameState, setGameState] = useState<GameState>(db.getGameState());
   const [gameScreenConnected, setGameScreenConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
@@ -179,7 +198,12 @@ export const AdminView: React.FC = () => {
   const [hasInitializedWizard, setHasInitializedWizard] = useState(false);
   const [adminSubMode, setAdminSubMode] = useState<'menu' | 'controller' | 'wizard'>('menu');
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
-  const [wizardConfirmModal, setWizardConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const [wizardConfirmModal, setWizardConfirmModal] = useState<{ 
+    message: string; 
+    onConfirm: () => void;
+    showExcelDownload?: 'players' | 'questions';
+  } | null>(null);
+  const [showMidSetupNotice, setShowMidSetupNotice] = useState<boolean>(false);
 
   // Sync settings to local wizard states on load or changes from Firebase
   useEffect(() => {
@@ -241,6 +265,9 @@ export const AdminView: React.FC = () => {
         setAdminSubMode('menu');
       } else {
         setAdminSubMode('wizard');
+        if (!hasInitializedWizard) {
+          setShowMidSetupNotice(true);
+        }
       }
     }
   }, [settings, hasInitializedWizard]);
@@ -415,18 +442,20 @@ export const AdminView: React.FC = () => {
         });
       } else if (msg.type === 'DATABASE_SYNC') {
         const healed = healMembersGenerations(msg.members);
+        const healedSettings = healSettings(msg.settings);
         setMembers(healed);
         setQuestions(msg.questions);
-        setSettings(msg.settings);
+        setSettings(healedSettings);
         db.saveMembers(healed);
         db.saveQuestions(msg.questions);
-        db.saveSettings(msg.settings);
+        db.saveSettings(healedSettings);
       } else if (msg.type === 'STATE_CHANGED') {
         setGameState(msg.state);
         db.saveGameState(msg.state);
       } else if (msg.type === 'SETTINGS_CHANGED') {
-        setSettings(msg.settings);
-        db.saveSettings(msg.settings);
+        const healedSettings = healSettings(msg.settings);
+        setSettings(healedSettings);
+        db.saveSettings(healedSettings);
       }
     });
     return () => unsubscribe();
@@ -446,7 +475,7 @@ export const AdminView: React.FC = () => {
     // Update scores in gameState for new contestants if not exists
     const newScores = { ...gameState.scores };
     let scoreChanged = false;
-    newSettings.contestants.forEach(c => {
+    (newSettings.contestants || []).forEach(c => {
       if (newScores[c.id] === undefined) {
         newScores[c.id] = 0;
         scoreChanged = true;
@@ -454,7 +483,7 @@ export const AdminView: React.FC = () => {
     });
     // Clean up scores of removed contestants
     Object.keys(newScores).forEach(key => {
-      if (!newSettings.contestants.some(c => c.id === key)) {
+      if (!(newSettings.contestants || []).some(c => c.id === key)) {
         delete newScores[key];
         scoreChanged = true;
       }
@@ -545,13 +574,13 @@ export const AdminView: React.FC = () => {
         } else {
           delete newSolved[currentQId];
         }
-        showSuccess(`בוטל הניקוד עבור ${settings.contestants.find(c => c.id === winner)?.name || 'מתמודד זה'}.`);
+        showSuccess(`בוטל הניקוד עבור ${settings.contestants?.find(c => c.id === winner)?.name || 'מתמודד זה'}.`);
       } else {
         // Toggle on (Add winner point)
         const updatedWinners = [...currentWinners, winner];
         newScores[winner] = (newScores[winner] || 0) + 1;
         newSolved[currentQId] = updatedWinners.join(',');
-        showSuccess(`התווספה נקודה עבור ${settings.contestants.find(c => c.id === winner)?.name || 'מתמודד זה'}!`);
+        showSuccess(`התווספה נקודה עבור ${settings.contestants?.find(c => c.id === winner)?.name || 'מתמודד זה'}!`);
       }
     }
 
@@ -1048,15 +1077,15 @@ export const AdminView: React.FC = () => {
       const base64 = await fileToBase64(file);
       const compressed = await compressImage(base64);
       
-      const updatedContestants = settings.contestants.map(c => 
+      const updatedContestants = (settings.contestants || []).map(c => 
         c.id === contestantId ? { ...c, image: compressed } : c
       );
       
       // For backward compatibility
       let grandpaImage = settings.grandpaImage;
       let grandmaImage = settings.grandmaImage;
-      if (contestantId === 'grandpa' || settings.contestants[0]?.id === contestantId) grandpaImage = compressed;
-      if (contestantId === 'grandma' || settings.contestants[1]?.id === contestantId) grandmaImage = compressed;
+      if (contestantId === 'grandpa' || settings.contestants?.[0]?.id === contestantId) grandpaImage = compressed;
+      if (contestantId === 'grandma' || settings.contestants?.[1]?.id === contestantId) grandmaImage = compressed;
 
       updateSettings({ 
         ...settings, 
@@ -1430,7 +1459,8 @@ export const AdminView: React.FC = () => {
       if (currentStep === 3) {
         if (members.length === 0) {
           setWizardConfirmModal({
-            message: "שים לב: לא נוספו כרגע שחקנים. תוכלו להוסיף שחקנים תמיד בהמשך דרך ממשק עריכת החדר (בוויזארד), או להוריד פה את קובץ האקסל, למלא אותו ולהעלות אותו בהמשך.\n\nהאם להמשיך?",
+            message: "⚠️ שים לב: לא נוספו כרגע שחקנים. אפשר יהיה תמיד להוסיף שחקנים בהמשך דרך ממשק עריכת החדר (בוויזארד).\n\nאו שתוכלו להוריד פה את קובץ האקסל לדוגמה, למלא אותו ולהעלות אותו בהמשך:",
+            showExcelDownload: 'players',
             onConfirm: () => {
               setWizardConfirmModal(null);
               proceedToStep(nextStep);
@@ -1443,7 +1473,8 @@ export const AdminView: React.FC = () => {
       if (currentStep === 4) {
         if (questions.length === 0) {
           setWizardConfirmModal({
-            message: "שים לב: לא נוספו כרגע שאלות. תוכלו להוסיף שאלות תמיד בהמשך דרך ממשק עריכת החדר (בוויזארד), או להוריד פה את קובץ האקסל, למלא אותו ולהעלות אותו בהמשך.\n\nהאם להמשיך?",
+            message: "⚠️ שים לב: לא נוספו כרגע שאלות. אפשר יהיה תמיד להוסיף שאלות בהמשך דרך ממשק עריכת החדר (בוויזארד).\n\nאו שתוכלו להוריד פה את קובץ האקסל לדוגמה, למלא אותו ולהעלות אותו בהמשך:",
+            showExcelDownload: 'questions',
             onConfirm: () => {
               setWizardConfirmModal(null);
               proceedToStep(nextStep);
@@ -1972,22 +2003,7 @@ export const AdminView: React.FC = () => {
                       })
                     )}
                   </div>
-                  {members.length === 0 && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-right text-xs text-amber-300 font-medium space-y-2">
-                      <p>⚠️ שים לב: לא נוספו כרגע שחקנים. אפשר יהיה תמיד להוסיף שחקנים בהמשך דרך ממשק עריכת החדר (בוויזארד).</p>
-                      <div className="flex items-center gap-2">
-                        <span>או שתוכלו להוריד פה את קובץ האקסל לדוגמה, למלא אותו ולהעלות אותו בהמשך:</span>
-                        <button
-                          type="button"
-                          onClick={() => excelHelper.downloadTemplate(wizardTreeLayout === 'traditional' ? 'tree' : 'list')}
-                          className="px-2 py-1 bg-amber-500 text-slate-950 hover:bg-amber-400 font-bold text-[10px] rounded transition-all flex items-center gap-1"
-                        >
-                          <Download size={10} />
-                          <span>הורד אבטיפוס Excel 📥</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  {/* Warning removed from main screen */}
                 </div>
               </div>
             )}
@@ -2094,22 +2110,7 @@ export const AdminView: React.FC = () => {
                       })
                     )}
                   </div>
-                  {questions.length === 0 && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-right text-xs text-amber-300 font-medium space-y-2 mt-4">
-                      <p>⚠️ שים לב: לא נוספו כרגע שאלות. אפשר יהיה תמיד להוסיף שאלות בהמשך דרך ממשק עריכת החדר (בוויזארד).</p>
-                      <div className="flex items-center gap-2">
-                        <span>או שתוכלו להוריד פה את קובץ האקסל לדוגמה, למלא אותו ולהעלות אותו בהמשך:</span>
-                        <button
-                          type="button"
-                          onClick={() => excelHelper.downloadQuestionsTemplate()}
-                          className="px-2 py-1 bg-amber-500 text-slate-950 hover:bg-amber-400 font-bold text-[10px] rounded transition-all flex items-center gap-1"
-                        >
-                          <Download size={10} />
-                          <span>הורד אבטיפוס Excel 📥</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  {/* Warning removed from main screen */}
                 </div>
               </div>
             )}
@@ -2262,6 +2263,41 @@ export const AdminView: React.FC = () => {
                 <p className="text-xs text-slate-350 leading-relaxed font-medium whitespace-pre-line">
                   {wizardConfirmModal.message}
                 </p>
+
+                {wizardConfirmModal.showExcelDownload === 'players' && (
+                  <div className="flex flex-col gap-2 pt-1 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => excelHelper.downloadTemplate('list')}
+                      className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Download size={12} />
+                      <span>הורד אבטיפוס Excel (רשימה) 📥</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => excelHelper.downloadTemplate('tree')}
+                      className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Download size={12} />
+                      <span>הורד אבטיפוס Excel (עץ משפחתי) 📥</span>
+                    </button>
+                  </div>
+                )}
+
+                {wizardConfirmModal.showExcelDownload === 'questions' && (
+                  <div className="pt-1 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => excelHelper.downloadQuestionsTemplate()}
+                      className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Download size={12} />
+                      <span>הורד אבטיפוס Excel (שאלות) 📥</span>
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
@@ -2294,6 +2330,52 @@ export const AdminView: React.FC = () => {
         <span className="text-sm font-bold">טוען נתוני משחק מהענן...</span>
       </div>
     );
+  }
+
+  const renderMidSetupNoticeScreen = () => {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-center items-center text-right" dir="rtl">
+        <div className="max-w-md w-full glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="text-center space-y-3 relative z-10">
+            <div className="inline-flex items-center justify-center p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-2xl shadow-xl animate-pulse">
+              <span className="text-3xl">⏳</span>
+            </div>
+            <h2 className="text-2xl font-black bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
+              שנייה, אתה באמצע עריכה!
+            </h2>
+            <p className="text-slate-300 text-sm leading-relaxed font-semibold">
+              שמנו לב שלא סיימת להכניס את כל הפרטים עבור חדר המשחק שלך.
+            </p>
+          </div>
+
+          <div className="bg-slate-950/40 border border-slate-850 p-4 rounded-2xl space-y-2 relative z-10 text-xs text-slate-400 leading-relaxed font-medium" dir="rtl">
+            <p>השלבים שנותרו לך להשלים:</p>
+            <ul className="list-disc list-inside space-y-1 pr-2">
+              <li>הגדרת שחקנים ועץ משפחתי 👥</li>
+              <li>הוספת שאלות, ציטוטים ורמזים 📝</li>
+              <li>הגדרת טיימר מענה לשאלות ⏱️</li>
+            </ul>
+          </div>
+
+          <div className="pt-2 relative z-10">
+            <button
+              type="button"
+              onClick={() => setShowMidSetupNotice(false)}
+              className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>המשך לעריכת החדר 🛠️</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (showMidSetupNotice) {
+    return renderMidSetupNoticeScreen();
   }
 
   if (showSuccessScreen) {
@@ -3133,15 +3215,15 @@ export const AdminView: React.FC = () => {
 
               <div className="border-t border-slate-800 pt-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h4 className="font-bold text-sm text-slate-200">פרטי המתמודדים במשחק ({settings.contestants.length})</h4>
-                  {settings.contestants.length < 4 && (
+                  <h4 className="font-bold text-sm text-slate-200">פרטי המתמודדים במשחק ({settings.contestants?.length || 0})</h4>
+                  {(settings.contestants?.length || 0) < 4 && (
                     <button
                       type="button"
                       onClick={() => {
                         const newId = `contestant_${Math.random().toString(36).substr(2, 9)}`;
                         const updated = [
-                          ...settings.contestants,
-                          { id: newId, name: `מתמודד/ת ${settings.contestants.length + 1}`, image: null }
+                          ...(settings.contestants || []),
+                          { id: newId, name: `מתמודד/ת ${(settings.contestants?.length || 0) + 1}`, image: null }
                         ];
                         updateSettings({ ...settings, contestants: updated });
                       }}
@@ -3154,15 +3236,15 @@ export const AdminView: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {settings.contestants.map((c, index) => {
+                  {(settings.contestants || []).map((c, index) => {
                     const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
                     return (
                       <div key={c.id} className="p-4 bg-slate-905/40 border border-slate-800 rounded-2xl space-y-4 relative group">
-                        {settings.contestants.length > 2 && (
+                        {(settings.contestants?.length || 0) > 2 && (
                           <button
                             type="button"
                             onClick={() => {
-                              const updated = settings.contestants.filter(item => item.id !== c.id);
+                              const updated = (settings.contestants || []).filter(item => item.id !== c.id);
                               updateSettings({ ...settings, contestants: updated });
                             }}
                             className="absolute top-3 left-3 p-1.5 text-rose-500 hover:text-rose-400 bg-rose-500/10 rounded-lg transition-colors"
@@ -3184,7 +3266,7 @@ export const AdminView: React.FC = () => {
                               type="text"
                               value={c.name}
                               onChange={e => {
-                                const updated = settings.contestants.map(item =>
+                                const updated = (settings.contestants || []).map(item =>
                                   item.id === c.id ? { ...item, name: e.target.value } : item
                                 );
                                 // Keep grandpaName and grandmaName synced for backward compatibility

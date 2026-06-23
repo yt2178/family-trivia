@@ -136,10 +136,29 @@ class ConfettiParticle {
   }
 }
 
+const healSettings = (s: any): GameSettings => {
+  const defaultSettings = db.getSettings();
+  if (!s) return defaultSettings;
+  const parsed = { ...s };
+  if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
+    parsed.contestants = [
+      { id: 'contestant_1', name: parsed.grandpaName || 'כחול', image: parsed.grandpaImage || null },
+      { id: 'contestant_2', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
+    ];
+  }
+  if (!parsed.treeLayout) {
+    parsed.treeLayout = 'traditional';
+  }
+  if (parsed.hostName === undefined) {
+    parsed.hostName = '';
+  }
+  return parsed;
+};
+
 export const GameView: React.FC = React.memo(() => {
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
-  const [settings, setSettings] = useState<GameSettings>(db.getSettings());
+  const [settings, setSettings] = useState<GameSettings>(healSettings(db.getSettings()));
   const [gameState, setGameState] = useState<GameState>(db.getGameState());
   const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
   
@@ -166,7 +185,7 @@ export const GameView: React.FC = React.memo(() => {
             db.saveQuestions(fbQuestions);
             
             const currentSettings = db.getSettings();
-            const mergedSettings = { ...currentSettings, ...fbSettings };
+            const mergedSettings = healSettings({ ...currentSettings, ...fbSettings });
             db.saveSettings(mergedSettings);
             
             const currentGameState = db.getGameState();
@@ -244,17 +263,18 @@ export const GameView: React.FC = React.memo(() => {
           return msg.state;
         });
       } else if (msg.type === 'SETTINGS_CHANGED') {
-        setSettings(msg.settings);
-        const freshSettings = db.getSettings();
-        setSettings(freshSettings);
+        const healedSettings = healSettings(msg.settings);
+        db.saveSettings(healedSettings);
+        setSettings(healedSettings);
       } else if (msg.type === 'DATABASE_SYNC') {
+        const healedSettings = healSettings(msg.settings);
         db.saveMembers(msg.members);
         db.saveQuestions(msg.questions);
-        db.saveSettings(msg.settings);
+        db.saveSettings(healedSettings);
         
         setMembers(msg.members);
         setQuestions(msg.questions);
-        setSettings(msg.settings);
+        setSettings(healedSettings);
       } else if (msg.type === 'TRIGGER_CONFETTI') {
         if (msg.isUndo) {
           playGameSound('undo');
@@ -283,7 +303,7 @@ export const GameView: React.FC = React.memo(() => {
     if (!canvas) return;
 
     let colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6']; // Gold, green, etc.
-    const contestantIndex = settings.contestants.findIndex(c => c.id === winner);
+    const contestantIndex = settings.contestants?.findIndex(c => c.id === winner) ?? -1;
     if (contestantIndex === 0 || winner === 'grandpa') {
       colors = ['#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#ffffff']; // Blue tones
     } else if (contestantIndex === 1 || winner === 'grandma') {
@@ -454,7 +474,7 @@ export const GameView: React.FC = React.memo(() => {
     let winnerId = 'tie';
     let isTie = false;
     
-    settings.contestants.forEach(c => {
+    (settings.contestants || []).forEach(c => {
       const score = gameState.scores[c.id] || 0;
       if (score > maxScore) {
         maxScore = score;
@@ -470,18 +490,18 @@ export const GameView: React.FC = React.memo(() => {
 
   // Split contestants into left and right columns
   const leftContestants = React.useMemo(() => {
-    if (!settings.contestants || settings.contestants.length === 0) return [];
+    if (!settings?.contestants || settings.contestants.length === 0) return [];
     if (settings.contestants.length <= 2) return [settings.contestants[0]];
     if (settings.contestants.length === 3) return [settings.contestants[0]];
     return [settings.contestants[0], settings.contestants[1]]; // 4 players
-  }, [settings.contestants]);
+  }, [settings?.contestants]);
 
   const rightContestants = React.useMemo(() => {
-    if (!settings.contestants || settings.contestants.length <= 1) return [];
+    if (!settings?.contestants || settings.contestants.length <= 1) return [];
     if (settings.contestants.length === 2) return [settings.contestants[1]];
     if (settings.contestants.length === 3) return [settings.contestants[1], settings.contestants[2]];
     return [settings.contestants[2], settings.contestants[3]]; // 4 players
-  }, [settings.contestants]);
+  }, [settings?.contestants]);
 
   // Progress percentage helpers
   const getProgressPercent = (score: number) => {
@@ -608,7 +628,7 @@ export const GameView: React.FC = React.memo(() => {
     );
   }
 
-  const isGameStarted = totalQuestions > 0;
+  const isGameStarted = settings?.setupComplete && totalQuestions > 0;
 
   if (!isGameStarted) {
     return (
@@ -673,21 +693,48 @@ export const GameView: React.FC = React.memo(() => {
             })}
           </div>
 
-          {/* Ready Check Title */}
-          <div className="space-y-3">
-            <h2 className="text-3xl font-extrabold text-amber-400 animate-pulse">
-              האם כולם מוכנים?
-            </h2>
-            <p className="text-slate-400 text-sm max-w-md mx-auto">
-              {hostLabel} יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
-            </p>
-            {sync.getRoomCode() && (
-              <div className="inline-block mt-4 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl">
-                <span className="text-slate-400 text-xs ml-2">קוד חדר להתחברות:</span>
-                <strong className="text-emerald-400 font-mono text-lg font-black tracking-widest">{sync.getRoomCode()}</strong>
-              </div>
-            )}
-          </div>
+          {/* Ready Check Title / Setup status */}
+          {settings?.setupComplete === false ? (
+            <div className="space-y-3">
+              <h2 className="text-3xl font-extrabold text-amber-400 animate-pulse flex items-center justify-center gap-2">
+                <span>⏳ המנחה עדיין עורך את פרטי המשחק...</span>
+              </h2>
+              <p className="text-slate-350 text-base max-w-md mx-auto">
+                המנחה עורך כעת את <strong className="text-teal-455">שלב {settings.wizardStep || 1}: {
+                  settings.wizardStep === 1 ? 'פרטי חדר' :
+                  settings.wizardStep === 2 ? 'בחירת מתמודדים' :
+                  settings.wizardStep === 3 ? (settings.treeLayout === 'traditional' ? 'הוספת שחקנים ועץ משפחתי' : 'הוספת שחקנים') :
+                  settings.wizardStep === 4 ? 'הוספת שאלות וציטוטים' :
+                  settings.wizardStep === 5 ? 'הגדרת טיימר' :
+                  settings.wizardStep === 6 ? 'סיכום ואישור' : 'עריכת פרטי המשחק'
+                }</strong>.
+              </p>
+              <p className="text-emerald-405 text-sm font-black mt-2 animate-bounce">
+                המסך ייפתח אוטומטית ברגע שהוא ייסיים! 🚀
+              </p>
+              {sync.getRoomCode() && (
+                <div className="inline-block mt-4 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl">
+                  <span className="text-slate-400 text-xs ml-2">קוד חדר להתחברות:</span>
+                  <strong className="text-emerald-400 font-mono text-lg font-black tracking-widest">{sync.getRoomCode()}</strong>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <h2 className="text-3xl font-extrabold text-amber-400 animate-pulse">
+                האם כולם מוכנים?
+              </h2>
+              <p className="text-slate-400 text-sm max-w-md mx-auto">
+                {hostLabel} יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
+              </p>
+              {sync.getRoomCode() && (
+                <div className="inline-block mt-4 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl">
+                  <span className="text-slate-400 text-xs ml-2">קוד חדר להתחברות:</span>
+                  <strong className="text-emerald-400 font-mono text-lg font-black tracking-widest">{sync.getRoomCode()}</strong>
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
       </div>
     );
@@ -889,33 +936,29 @@ export const GameView: React.FC = React.memo(() => {
             >
               {/* Confetti decoration */}
               <div className="absolute -top-16 -left-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="inline-flex items-center justify-center p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full mb-6">
-                <Trophy size={48} className="animate-bounce" />
-              </div>
-
-              <h2 className="text-4xl font-extrabold text-slate-100 mb-2">
-                סיום המשחק!
-              </h2>
-              <p className="text-slate-400 text-sm mb-6">
-                כל המשפטים נפתרו, והנה התוצאות הסופיות
-              </p>
-
-              {/* Score comparisons */}
-              <div className={`grid gap-4 mb-8 ${settings.contestants.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
-                {settings.contestants.map((c, index) => {
+              <div className={`grid gap-4 mb-8 ${(settings.contestants?.length || 0) <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+                {(settings.contestants || []).map((c, index) => {
                   const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
+                  const score = gameState.scores[c.id] || 0;
                   return (
-                    <div key={c.id} className={`p-4 bg-slate-900 border ${colors.border}/20 rounded-2xl`}>
-                      <span className={`text-xs ${colors.text} font-semibold`}>{c.name}</span>
-                      <div className="text-3xl font-extrabold text-slate-200 mt-1">{(gameState.scores[c.id] || 0)} נק׳</div>
+                    <div key={c.id} className="glass-panel p-6 rounded-3xl border border-slate-800 text-center relative overflow-hidden">
+                      <div className={`absolute -top-12 -right-12 w-24 h-24 bg-${colors.border.split('-')[1]}-500/5 rounded-full blur-2xl`} />
+                      <div className={`w-16 h-16 rounded-2xl border-2 ${colors.border}/30 mx-auto mb-3 overflow-hidden flex items-center justify-center p-0.5`}>
+                        {c.image ? (
+                          <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-xl" />
+                        ) : (
+                          <div className={`w-full h-full flex items-center justify-center ${colors.text}`}>
+                            <Award size={24} />
+                          </div>
+                        )}
+                      </div>
+                      <h3 className="font-bold text-slate-200 truncate">{c.name}</h3>
+                      <div className={`text-3xl font-black mt-2 ${colors.text}`}>{score} נק׳</div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Winner Declaration */}
               <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl mb-8">
                 {getGameWinner() === 'tie' ? (
                   <div>
