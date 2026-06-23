@@ -5,7 +5,21 @@ import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, Q
 import { motion } from 'framer-motion';
 import { rtdb } from './utils/firebase';
 import { ref, onValue, off, set, get, child } from 'firebase/database';
-import { sync } from './utils/sync';
+import { sync, useConnectionStatus } from './utils/sync';
+
+function ConnectionStatusBadge() {
+  const connected = useConnectionStatus();
+  return (
+    <div className={`fixed bottom-4 right-4 z-[9999] flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg border backdrop-blur-sm transition-all duration-300 ${
+      connected 
+        ? 'bg-emerald-950/80 border-emerald-500/30 text-emerald-400' 
+        : 'bg-rose-950/80 border-rose-500/30 text-rose-400 animate-pulse'
+    }`} dir="rtl">
+      <span className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+      <span>{connected ? 'שרת מחובר 🟢' : 'אין חיבור לשרת 🔴'}</span>
+    </div>
+  );
+}
 
 function App() {
   const [mode, setMode] = useState<'welcome' | 'admin' | 'game'>('welcome');
@@ -345,11 +359,21 @@ function App() {
   };
 
   if (mode === 'admin') {
-    return <AdminView />;
+    return (
+      <>
+        <AdminView />
+        <ConnectionStatusBadge />
+      </>
+    );
   }
 
   if (mode === 'game') {
-    return <GameView />;
+    return (
+      <>
+        <GameView />
+        <ConnectionStatusBadge />
+      </>
+    );
   }
 
   const adminMobileUrl = `${window.location.origin}${window.location.pathname}?mode=admin&room=${roomCode}`;
@@ -657,6 +681,7 @@ function App() {
         </footer>
 
       </motion.div>
+      <ConnectionStatusBadge />
     </div>
   );
 }

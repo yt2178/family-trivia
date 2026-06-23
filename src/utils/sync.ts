@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { GameState, GameSettings, FamilyMember, TriviaQuestion } from './db';
 import { rtdb } from './firebase';
 import { ref, onValue, set, off, get, child } from 'firebase/database';
@@ -19,6 +20,24 @@ const CLIENT_ID = Math.random().toString(36).substring(2, 15);
 let channel: BroadcastChannel | null = null;
 let subscribers: Array<(message: SyncMessage) => void> = [];
 let fallbackInterval: number | null = null;
+
+// Track Firebase connection status
+let isConnected = false;
+const connectionCallbacks = new Set<(connected: boolean) => void>();
+
+const connectedRef = ref(rtdb, '.info/connected');
+onValue(connectedRef, (snap) => {
+  const connected = snap.val() === true;
+  isConnected = connected;
+  console.log(`[Firebase Connection] ${connected ? '🟢 Connected' : '🔴 Disconnected'}`);
+  connectionCallbacks.forEach(cb => {
+    try {
+      cb(connected);
+    } catch (e) {
+      console.error('Error in connection callback', e);
+    }
+  });
+});
 
 // Get room code from URL parameters
 const getRoomCode = (): string | null => {
@@ -132,6 +151,18 @@ export const sync = {
     return ROOM_CODE;
   },
 
+  isConnected(): boolean {
+    return isConnected;
+  },
+
+  onConnectionChange(callback: (connected: boolean) => void): () => void {
+    connectionCallbacks.add(callback);
+    callback(isConnected);
+    return () => {
+      connectionCallbacks.delete(callback);
+    };
+  },
+
   sendMessage(message: SyncMessage): void {
     const msgId = Math.random().toString(36).substring(2, 10);
     const timestamp = Date.now();
@@ -202,3 +233,11 @@ export const sync = {
     subscribers = [];
   }
 };
+
+export function useConnectionStatus() {
+  const [connected, setConnected] = useState(sync.isConnected());
+  useEffect(() => {
+    return sync.onConnectionChange(setConnected);
+  }, []);
+  return connected;
+}

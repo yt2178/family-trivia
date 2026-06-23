@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase } from 'firebase/database';
+import { getDatabase, enableLogging } from 'firebase/database';
 
 // Firebase configuration for family-trivia-sync
 // This database has open read/write rules for /rooms/* to allow zero-configuration rooms
@@ -14,4 +14,9 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+// Enable logging to console so we can diagnose connection issues
+enableLogging(true);
+
 export const rtdb = getDatabase(app);
+
