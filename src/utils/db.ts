@@ -65,8 +65,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   theme: 'classic',
   treeLayout: 'traditional',
   contestants: [
-    { id: 'grandpa', name: 'סבא', image: null },
-    { id: 'grandma', name: 'סבתא', image: null }
+    { id: 'grandpa', name: 'כחול', image: null },
+    { id: 'grandma', name: 'סגול', image: null }
   ],
   hostName: '',
   questionTimer: null,
@@ -177,8 +177,8 @@ export const db = {
       // Migrate/Validate contestants if missing or has less than 2
       if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
         parsed.contestants = [
-          { id: 'grandpa', name: parsed.grandpaName || 'סבא', image: parsed.grandpaImage || null },
-          { id: 'grandma', name: parsed.grandmaName || 'סבתא', image: parsed.grandmaImage || null }
+          { id: 'grandpa', name: parsed.grandpaName || 'כחול', image: parsed.grandpaImage || null },
+          { id: 'grandma', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
         ];
         changed = true;
       }

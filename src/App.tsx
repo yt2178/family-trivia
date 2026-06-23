@@ -168,15 +168,15 @@ function App() {
             members: [],
             questions: [],
             settings: {
-              grandpaName: 'סבא',
+              grandpaName: 'כחול',
               grandpaImage: null,
-              grandmaName: 'סבתא',
+              grandmaName: 'סגול',
               grandmaImage: null,
               theme: 'classic',
               treeLayout: treeLayoutChoice,
               contestants: [
-                { id: 'grandpa', name: 'סבא', image: null },
-                { id: 'grandma', name: 'סבתא', image: null }
+                { id: 'grandpa', name: 'כחול', image: null },
+                { id: 'grandma', name: 'סגול', image: null }
               ],
               hostName: cleanName,
               setupComplete: false,
@@ -185,15 +185,15 @@ function App() {
             }
           },
           settings: {
-            grandpaName: 'סבא',
+            grandpaName: 'כחול',
             grandpaImage: null,
-            grandmaName: 'סבתא',
+            grandmaName: 'סגול',
             grandmaImage: null,
             theme: 'classic',
             treeLayout: treeLayoutChoice,
             contestants: [
-              { id: 'grandpa', name: 'סבא', image: null },
-              { id: 'grandma', name: 'סבתא', image: null }
+              { id: 'grandpa', name: 'כחול', image: null },
+              { id: 'grandma', name: 'סגול', image: null }
             ],
             hostName: cleanName,
             setupComplete: false,
@@ -217,15 +217,15 @@ function App() {
         localStorage.removeItem('family_game_members');
         localStorage.removeItem('family_game_questions');
         localStorage.setItem('family_game_settings', JSON.stringify({
-          grandpaName: 'סבא',
+          grandpaName: 'כחול',
           grandpaImage: null,
-          grandmaName: 'סבתא',
+          grandmaName: 'סגול',
           grandmaImage: null,
           theme: 'classic',
           treeLayout: treeLayoutChoice,
           contestants: [
-            { id: 'grandpa', name: 'סבא', image: null },
-            { id: 'grandma', name: 'סבתא', image: null }
+            { id: 'grandpa', name: 'כחול', image: null },
+            { id: 'grandma', name: 'סגול', image: null }
           ],
           hostName: cleanName,
           setupComplete: false,

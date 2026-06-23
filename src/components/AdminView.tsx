@@ -169,6 +169,98 @@ export const AdminView: React.FC = () => {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Local wizard buffer states to prevent saving to Firebase on every keystroke
+  const [wizardHostName, setWizardHostName] = useState('');
+  const [wizardTreeLayout, setWizardTreeLayout] = useState<'botanical' | 'traditional' | 'none'>('traditional');
+  const [wizardContestantCount, setWizardContestantCount] = useState(2);
+  const [wizardQuestionTimer, setWizardQuestionTimer] = useState<number | null>(null);
+  const [wizardContestants, setWizardContestants] = useState<Array<{ id: string; name: string; image: string | null }>>([]);
+  const [wizardStepLocal, setWizardStepLocal] = useState<number | null>(null);
+  const [hasInitializedWizard, setHasInitializedWizard] = useState(false);
+
+  // Sync settings to local wizard states on load or changes from Firebase
+  useEffect(() => {
+    if (settings && !hasInitializedWizard) {
+      const rCode = sync.getRoomCode();
+      let draft: any = null;
+      if (rCode) {
+        try {
+          const draftStr = localStorage.getItem(`wizard_draft_${rCode}`);
+          if (draftStr) {
+            draft = JSON.parse(draftStr);
+          }
+        } catch (e) {
+          console.error("Failed to parse wizard draft", e);
+        }
+      }
+
+      if (draft) {
+        setWizardHostName(draft.hostName || '');
+        setWizardTreeLayout(draft.treeLayout || settings.treeLayout || 'traditional');
+        setWizardContestantCount(draft.contestantCount || 2);
+        setWizardQuestionTimer(draft.questionTimer !== undefined ? draft.questionTimer : (settings.questionTimer || null));
+        setWizardStepLocal(draft.wizardStep || settings.wizardStep || 1);
+        
+        const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
+        const defaultIds = ['grandpa', 'grandma', 'contestant_3', 'contestant_4'];
+        const arr = [];
+        for (let i = 0; i < 4; i++) {
+          const existing = draft.contestants?.[i] || settings.contestants?.[i];
+          arr.push({
+            id: existing?.id || defaultIds[i],
+            name: existing?.name || defaultNames[i],
+            image: existing?.image || null
+          });
+        }
+        setWizardContestants(arr);
+      } else {
+        setWizardHostName(settings.hostName || '');
+        setWizardTreeLayout(settings.treeLayout || 'traditional');
+        setWizardContestantCount(settings.contestants?.length || 2);
+        setWizardQuestionTimer(settings.questionTimer !== undefined ? settings.questionTimer : null);
+        setWizardStepLocal(settings.wizardStep || 1);
+        
+        const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
+        const defaultIds = ['grandpa', 'grandma', 'contestant_3', 'contestant_4'];
+        const arr = [];
+        for (let i = 0; i < 4; i++) {
+          const existing = settings.contestants?.[i];
+          arr.push({
+            id: existing?.id || defaultIds[i],
+            name: existing?.name || defaultNames[i],
+            image: existing?.image || null
+          });
+        }
+        setWizardContestants(arr);
+      }
+      setHasInitializedWizard(true);
+    }
+  }, [settings, hasInitializedWizard]);
+
+  const saveDraftToLocalStorage = (
+    hostName: string,
+    treeLayout: 'botanical' | 'traditional' | 'none',
+    contestantCount: number,
+    contestants: Array<{ id: string; name: string; image: string | null }>,
+    questionTimer: number | null,
+    step: number
+  ) => {
+    const rCode = sync.getRoomCode();
+    if (!rCode) return;
+    try {
+      localStorage.setItem(`wizard_draft_${rCode}`, JSON.stringify({
+        hostName,
+        treeLayout,
+        contestantCount,
+        contestants: contestants.slice(0, contestantCount),
+        questionTimer,
+        wizardStep: step
+      }));
+    } catch (e) {
+      console.error("Failed to save wizard draft to localStorage", e);
+    }
+  };
+
   const renderParentOptions = (generation: FamilyMember['generation']) => {
     const groupMembers = members.filter(m => m.generation === generation && m.id !== editingMemberId);
     const renderedIds = new Set<string>();
@@ -1007,54 +1099,22 @@ export const AdminView: React.FC = () => {
   const greatGrandchildren = members.filter(m => m.generation === 'great-grandchild').length;
 
   const renderSetupWizard = () => {
-    const currentStep = settings.wizardStep || 1;
+    const currentStep = wizardStepLocal || settings.wizardStep || 1;
     const roomCode = sync.getRoomCode() || '';
 
     // Handle contestant count changes
     const handleWizardContestantCountChange = (count: number) => {
-      let updated = [...(settings.contestants || [])];
-      const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
-      const defaultIds = ['grandpa', 'grandma', 'contestant_3', 'contestant_4'];
-
-      if (count > updated.length) {
-        for (let i = updated.length; i < count; i++) {
-          updated.push({
-            id: defaultIds[i],
-            name: defaultNames[i],
-            image: null
-          });
-        }
-      } else if (count < updated.length) {
-        updated = updated.slice(0, count);
-      }
-
-      updateSettings({ 
-        ...settings, 
-        contestants: updated,
-        grandpaName: updated[0]?.name || 'סבא',
-        grandmaName: updated[1]?.name || 'סבתא',
-        grandpaImage: updated[0]?.image || null,
-        grandmaImage: updated[1]?.image || null
-      });
+      setWizardContestantCount(count);
+      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, count, wizardContestants, wizardQuestionTimer, currentStep);
     };
 
     // Handle contestant field changes
     const handleWizardContestantNameChange = (index: number, name: string) => {
-      const updated = [...(settings.contestants || [])];
+      const updated = [...wizardContestants];
       if (updated[index]) {
         updated[index] = { ...updated[index], name };
-        
-        let grandpaName = settings.grandpaName;
-        let grandmaName = settings.grandmaName;
-        if (index === 0) grandpaName = name;
-        if (index === 1) grandmaName = name;
-
-        updateSettings({ 
-          ...settings, 
-          contestants: updated,
-          grandpaName,
-          grandmaName
-        });
+        setWizardContestants(updated);
+        saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, currentStep);
       }
     };
 
@@ -1064,21 +1124,11 @@ export const AdminView: React.FC = () => {
         try {
           const base64 = await fileToBase64(file);
           const compressed = await compressImage(base64);
-          const updated = [...(settings.contestants || [])];
+          const updated = [...wizardContestants];
           if (updated[index]) {
             updated[index] = { ...updated[index], image: compressed };
-            
-            let grandpaImage = settings.grandpaImage;
-            let grandmaImage = settings.grandmaImage;
-            if (index === 0) grandpaImage = compressed;
-            if (index === 1) grandmaImage = compressed;
-
-            updateSettings({ 
-              ...settings, 
-              contestants: updated,
-              grandpaImage,
-              grandmaImage
-            });
+            setWizardContestants(updated);
+            saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, currentStep);
           }
         } catch (err) {
           console.error(err);
@@ -1087,21 +1137,11 @@ export const AdminView: React.FC = () => {
     };
 
     const handleRemoveContestantImage = (index: number) => {
-      const updated = [...(settings.contestants || [])];
+      const updated = [...wizardContestants];
       if (updated[index]) {
         updated[index] = { ...updated[index], image: null };
-        
-        let grandpaImage = settings.grandpaImage;
-        let grandmaImage = settings.grandmaImage;
-        if (index === 0) grandpaImage = null;
-        if (index === 1) grandmaImage = null;
-
-        updateSettings({ 
-          ...settings, 
-          contestants: updated,
-          grandpaImage,
-          grandmaImage
-        });
+        setWizardContestants(updated);
+        saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, currentStep);
       }
     };
 
@@ -1153,19 +1193,51 @@ export const AdminView: React.FC = () => {
     // Wizard navigation
     const handleNext = () => {
       if (currentStep === 1) {
-        if (!settings.hostName?.trim()) {
+        if (!wizardHostName.trim()) {
           alert('נא להזין שם מנחה');
           return;
         }
       }
       if (currentStep < 6) {
-        updateSettings({ ...settings, wizardStep: currentStep + 1 });
+        const nextStep = currentStep + 1;
+        setWizardStepLocal(nextStep);
+
+        const activeContestants = wizardContestants.slice(0, wizardContestantCount);
+        updateSettings({
+          ...settings,
+          hostName: wizardHostName,
+          treeLayout: wizardTreeLayout,
+          contestants: activeContestants,
+          grandpaName: activeContestants[0]?.name || 'כחול',
+          grandmaName: activeContestants[1]?.name || 'סגול',
+          grandpaImage: activeContestants[0]?.image || null,
+          grandmaImage: activeContestants[1]?.image || null,
+          questionTimer: wizardQuestionTimer,
+          wizardStep: nextStep
+        });
+        saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, nextStep);
       }
     };
 
     const handleBack = () => {
       if (currentStep > 1) {
-        updateSettings({ ...settings, wizardStep: currentStep - 1 });
+        const prevStep = currentStep - 1;
+        setWizardStepLocal(prevStep);
+
+        const activeContestants = wizardContestants.slice(0, wizardContestantCount);
+        updateSettings({
+          ...settings,
+          hostName: wizardHostName,
+          treeLayout: wizardTreeLayout,
+          contestants: activeContestants,
+          grandpaName: activeContestants[0]?.name || 'כחול',
+          grandmaName: activeContestants[1]?.name || 'סגול',
+          grandpaImage: activeContestants[0]?.image || null,
+          grandmaImage: activeContestants[1]?.image || null,
+          questionTimer: wizardQuestionTimer,
+          wizardStep: prevStep
+        });
+        saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, prevStep);
       }
     };
 
@@ -1174,20 +1246,42 @@ export const AdminView: React.FC = () => {
         "האם אתה בטוח שברצונך לדלג על תהליך הרישום?\n\nעליך יהיה להזין את כל הפרטים (מתמודדים, שחקנים ושאלות) בתוך שלט המנחה המלא. מסך ההקרנה לא יוכל לפעול כל עוד לא תשלים את הגדרת המשחק ותסיים את הגדרת החדר."
       );
       if (confirmSkip) {
+        const activeContestants = wizardContestants.slice(0, wizardContestantCount);
         updateSettings({ 
           ...settings, 
+          hostName: wizardHostName,
+          treeLayout: wizardTreeLayout,
+          contestants: activeContestants,
+          grandpaName: activeContestants[0]?.name || 'כחול',
+          grandmaName: activeContestants[1]?.name || 'סגול',
+          grandpaImage: activeContestants[0]?.image || null,
+          grandmaImage: activeContestants[1]?.image || null,
+          questionTimer: wizardQuestionTimer,
           setupComplete: true, 
           wizardStep: undefined 
         });
+        const rCode = sync.getRoomCode();
+        if (rCode) localStorage.removeItem(`wizard_draft_${rCode}`);
       }
     };
 
     const handleFinish = () => {
+      const activeContestants = wizardContestants.slice(0, wizardContestantCount);
       updateSettings({ 
         ...settings, 
+        hostName: wizardHostName,
+        treeLayout: wizardTreeLayout,
+        contestants: activeContestants,
+        grandpaName: activeContestants[0]?.name || 'כחול',
+        grandmaName: activeContestants[1]?.name || 'סגול',
+        grandpaImage: activeContestants[0]?.image || null,
+        grandmaImage: activeContestants[1]?.image || null,
+        questionTimer: wizardQuestionTimer,
         setupComplete: true, 
         wizardStep: undefined 
       });
+      const rCode = sync.getRoomCode();
+      if (rCode) localStorage.removeItem(`wizard_draft_${rCode}`);
       showSuccess("הגדרת החדר הושלמה בהצלחה! תהנו מהמשחק!");
     };
 
@@ -1246,7 +1340,23 @@ export const AdminView: React.FC = () => {
                   <button
                     type="button"
                     disabled={stepNum > currentStep && !isCompleted}
-                    onClick={() => updateSettings({ ...settings, wizardStep: stepNum })}
+                    onClick={() => {
+                      setWizardStepLocal(stepNum);
+                      const activeContestants = wizardContestants.slice(0, wizardContestantCount);
+                      updateSettings({
+                        ...settings,
+                        hostName: wizardHostName,
+                        treeLayout: wizardTreeLayout,
+                        contestants: activeContestants,
+                        grandpaName: activeContestants[0]?.name || 'כחול',
+                        grandmaName: activeContestants[1]?.name || 'סגול',
+                        grandpaImage: activeContestants[0]?.image || null,
+                        grandmaImage: activeContestants[1]?.image || null,
+                        questionTimer: wizardQuestionTimer,
+                        wizardStep: stepNum
+                      });
+                      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, stepNum);
+                    }}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                       isActive 
                         ? 'bg-emerald-500 text-slate-950 ring-4 ring-emerald-500/20 scale-110 shadow-lg shadow-emerald-550/20' 
@@ -1284,8 +1394,11 @@ export const AdminView: React.FC = () => {
                     <input
                       type="text"
                       required
-                      value={settings.hostName || ''}
-                      onChange={(e) => updateSettings({ ...settings, hostName: e.target.value })}
+                      value={wizardHostName}
+                      onChange={(e) => {
+                        setWizardHostName(e.target.value);
+                        saveDraftToLocalStorage(e.target.value, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, currentStep);
+                      }}
                       placeholder="הקלד שם מנחה"
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 text-sm font-bold"
                     />
@@ -1303,9 +1416,12 @@ export const AdminView: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <button
                         type="button"
-                        onClick={() => updateSettings({ ...settings, treeLayout: 'traditional' })}
+                        onClick={() => {
+                          setWizardTreeLayout('traditional');
+                          saveDraftToLocalStorage(wizardHostName, 'traditional', wizardContestantCount, wizardContestants, wizardQuestionTimer, currentStep);
+                        }}
                         className={`p-4 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
-                          settings.treeLayout === 'traditional'
+                          wizardTreeLayout === 'traditional'
                             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/80 shadow-md shadow-emerald-950/10'
                             : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
                         }`}
@@ -1317,9 +1433,12 @@ export const AdminView: React.FC = () => {
 
                       <button
                         type="button"
-                        onClick={() => updateSettings({ ...settings, treeLayout: 'none' })}
+                        onClick={() => {
+                          setWizardTreeLayout('none');
+                          saveDraftToLocalStorage(wizardHostName, 'none', wizardContestantCount, wizardContestants, wizardQuestionTimer, currentStep);
+                        }}
                         className={`p-4 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
-                          settings.treeLayout === 'none'
+                          wizardTreeLayout === 'none'
                             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/80 shadow-md shadow-emerald-950/10'
                             : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
                         }`}
@@ -1352,7 +1471,7 @@ export const AdminView: React.FC = () => {
                           type="button"
                           onClick={() => handleWizardContestantCountChange(num)}
                           className={`flex-1 py-2 text-xs font-black rounded-lg border transition-all ${
-                            settings.contestants?.length === num
+                            wizardContestantCount === num
                               ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-md'
                               : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
                           }`}
@@ -1364,7 +1483,7 @@ export const AdminView: React.FC = () => {
                   </div>
 
                   <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
-                    {settings.contestants?.map((c, idx) => {
+                    {wizardContestants.slice(0, wizardContestantCount).map((c, idx) => {
                       const theme = CONTESTANT_THEMES[idx % CONTESTANT_THEMES.length];
                       return (
                         <div key={c.id} className={`flex items-center gap-3 p-3 bg-slate-950/70 border ${theme.border} rounded-2xl`}>
@@ -1424,15 +1543,19 @@ export const AdminView: React.FC = () => {
               <div className="space-y-4">
                 <div className="text-right flex justify-between items-start">
                   <div>
-                    <h3 className="text-lg font-black text-slate-100">שלב 3: הוספת שחקנים (בני משפחה)</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">הזן את שמות בני המשפחה או העלה מקובץ Excel</p>
+                    <h3 className="text-lg font-black text-slate-100">
+                      {wizardTreeLayout === 'traditional' ? 'שלב 3: הוספת שחקנים (בני משפחה)' : 'שלב 3: הוספת שחקנים'}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {wizardTreeLayout === 'traditional' ? 'הזן את שמות בני המשפחה או העלה מקובץ Excel' : 'הזן את שמות השחקנים או העלה מקובץ Excel'}
+                    </p>
                   </div>
                   
                   {/* Excel Actions */}
                   <div className="flex gap-1.5">
                     <button
                       type="button"
-                      onClick={() => excelHelper.downloadTemplate(settings.treeLayout === 'traditional' ? 'tree' : 'list')}
+                      onClick={() => excelHelper.downloadTemplate(wizardTreeLayout === 'traditional' ? 'tree' : 'list')}
                       className="px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
                       title="הורד קובץ שחקנים למילוי"
                     >
@@ -1496,7 +1619,7 @@ export const AdminView: React.FC = () => {
                     </div>
                   </div>
 
-                  {settings.treeLayout === 'traditional' ? (
+                  {wizardTreeLayout === 'traditional' ? (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-[10px] font-bold text-slate-400 block mb-0.5">הורה משויך בעץ המשפחה:</label>
@@ -1526,7 +1649,7 @@ export const AdminView: React.FC = () => {
                         </select>
                       </div>
                     </div>
-                  ) : (
+                  ) : wizardTreeLayout === 'botanical' ? (
                     <div>
                       <label className="text-[10px] font-bold text-slate-400 block mb-0.5">דור (שיוך דורות):</label>
                       <select
@@ -1540,7 +1663,7 @@ export const AdminView: React.FC = () => {
                         <option value="grandchild">דור 4 - נינים</option>
                       </select>
                     </div>
-                  )}
+                  ) : null}
 
                   <div className="flex justify-end pt-1">
                     <button
@@ -1548,7 +1671,7 @@ export const AdminView: React.FC = () => {
                       className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-lg transition-colors flex items-center gap-1"
                     >
                       <Plus size={14} />
-                      <span>הוסף שחקן משפחה</span>
+                      <span>{wizardTreeLayout === 'traditional' ? 'הוסף שחקן משפחה' : 'הוסף שחקן'}</span>
                     </button>
                   </div>
                 </form>
@@ -1568,10 +1691,12 @@ export const AdminView: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <span className="text-base">{m.gender === 'female' ? '👩' : '👨'}</span>
                               <span className="font-bold text-slate-200">{m.name}</span>
-                              <span className="text-[9px] bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-medium">
-                                {m.generation === 'grandparent' ? 'דור 1' : m.generation === 'parent' ? 'דור 2' : m.generation === 'child' ? 'דור 3' : 'דור 4'}
-                              </span>
-                              {settings.treeLayout === 'traditional' && (
+                              {wizardTreeLayout === 'traditional' && (
+                                <span className="text-[9px] bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-medium">
+                                  {m.generation === 'grandparent' ? 'דור 1' : m.generation === 'parent' ? 'דור 2' : m.generation === 'child' ? 'דור 3' : 'דור 4'}
+                                </span>
+                              )}
+                              {wizardTreeLayout === 'traditional' && (
                                 <span className="text-[8px] text-slate-500">
                                   {parent && ` | הורה: ${parent.name}`}
                                   {spouse && ` | זוג: ${spouse.name}`}
@@ -1712,11 +1837,12 @@ export const AdminView: React.FC = () => {
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-2">מגבלת זמן למענה על שאלה:</label>
                     <select
-                      value={settings.questionTimer === undefined || settings.questionTimer === null ? 'unlimited' : settings.questionTimer.toString()}
+                      value={wizardQuestionTimer === undefined || wizardQuestionTimer === null ? 'unlimited' : wizardQuestionTimer.toString()}
                       onChange={e => {
                         const val = e.target.value;
                         const seconds = val === 'unlimited' ? null : parseInt(val);
-                        updateSettings({ ...settings, questionTimer: seconds });
+                        setWizardQuestionTimer(seconds);
+                        saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, seconds, currentStep);
                       }}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 text-sm font-black"
                     >
@@ -1750,7 +1876,7 @@ export const AdminView: React.FC = () => {
                   
                   <div className="flex justify-between items-center border-b border-slate-900 pb-2">
                     <span className="text-xs text-slate-400">שם מנחה המשחק:</span>
-                    <strong className="text-xs text-slate-200 font-bold">{settings.hostName}</strong>
+                    <strong className="text-xs text-slate-200 font-bold">{wizardHostName}</strong>
                   </div>
 
                   <div className="flex justify-between items-center border-b border-slate-900 pb-2">
@@ -1761,14 +1887,14 @@ export const AdminView: React.FC = () => {
                   <div className="flex justify-between items-center border-b border-slate-900 pb-2">
                     <span className="text-xs text-slate-400">סוג לוח:</span>
                     <span className="text-xs text-slate-200 font-bold">
-                      {settings.treeLayout === 'traditional' ? '🌳 עץ יוחסין משפחתי' : '📋 רשימה פשוטה'}
+                      {wizardTreeLayout === 'traditional' ? '🌳 עץ יוחסין משפחתי' : '📋 רשימה פשוטה'}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3 text-center">
                     <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-850">
                       <span className="text-[10px] text-slate-500 block font-bold">מתמודדים</span>
-                      <strong className="text-base text-sky-400 font-black">{settings.contestants?.length || 0}</strong>
+                      <strong className="text-base text-sky-400 font-black">{wizardContestantCount}</strong>
                     </div>
                     <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-850">
                       <span className="text-[10px] text-slate-500 block font-bold">שחקנים</span>
@@ -1787,7 +1913,7 @@ export const AdminView: React.FC = () => {
                     <span>⚠️ שימו לב - שמרו את פרטי החדר!</span>
                   </p>
                   <p className="text-[10px] text-slate-400 leading-relaxed font-bold">
-                    עליכם לזכור את <strong className="text-amber-400 underline">מספר החדר ({roomCode})</strong> ואת <strong className="text-amber-400 underline">שם המנחה ({settings.hostName})</strong>. אלו הם פרטי הזיהוי של החדר שלכם. ללא שני הפרטים האלה, לא תוכלו לחזור ולהתחבר לחדר זה בהמשך או להפעיל את מסך ההקרנה!
+                    עליכם לזכור את <strong className="text-amber-400 underline">מספר החדר ({roomCode})</strong> ואת <strong className="text-amber-400 underline">שם המנחה ({wizardHostName})</strong>. אלו הם פרטי הזיהוי של החדר שלכם. ללא שני הפרטים האלה, לא תוכלו לחזור ולהתחבר לחדר זה בהמשך או להפעיל את מסך ההקרנה!
                   </p>
                 </div>
               </div>
