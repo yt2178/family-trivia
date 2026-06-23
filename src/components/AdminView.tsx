@@ -36,8 +36,7 @@ const AdminViewInner: React.FC = () => {
     isLoading,
     successMsg,
     gameScreenConnected,
-    showMidSetupNotice,
-    setShowMidSetupNotice
+    copyToClipboard
   } = useAdmin();
 
   // ── Loading screen ──
@@ -55,41 +54,6 @@ const AdminViewInner: React.FC = () => {
     return <AdminWizard />;
   }
 
-  // ── Mid-setup notice (setup was started but not completed) ──
-  if (showMidSetupNotice) {
-    return (
-      <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-sm flex items-center justify-center z-50 p-6">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="max-w-md w-full bg-slate-900 border border-amber-500/40 rounded-3xl p-8 text-center shadow-2xl shadow-amber-500/10"
-        >
-          <span className="text-5xl block mb-4">⏳</span>
-          <h2 className="text-xl font-bold text-amber-400 mb-3">ההגדרה טרם הסתיימה</h2>
-          <p className="text-slate-400 text-sm mb-6">
-            נראה שהמנחה עדיין מגדיר את המשחק. האם ברצונך להמשיך מהשלב שנעצרת? או להיכנס ישירות לניהול?
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => {
-                setShowMidSetupNotice(false);
-                setAdminSubMode('wizard');
-              }}
-              className="flex-1 py-3 bg-amber-500 text-slate-950 font-bold rounded-xl hover:bg-amber-400 transition-colors"
-            >
-              המשך הגדרה 📋
-            </button>
-            <button
-              onClick={() => setShowMidSetupNotice(false)}
-              className="flex-1 py-3 bg-slate-800 text-slate-300 font-bold rounded-xl hover:bg-slate-700 transition-colors"
-            >
-              כנס לניהול ✏️
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   // ── Main Admin Panel (setup complete, menu mode) ──
   const TAB_ITEMS: Array<{
@@ -142,12 +106,28 @@ const AdminViewInner: React.FC = () => {
             </div>
           </div>
 
-          {/* Connection indicator */}
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${gameScreenConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
-            <span className="text-[10px] text-slate-400 hidden sm:block">
-              {gameScreenConnected ? 'מסך המשחק מחובר' : 'ממתין לחיבור מסך'}
-            </span>
+          {/* Connection indicator + open projector */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${gameScreenConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
+              <span className="text-[10px] text-slate-400 hidden sm:block">
+                {gameScreenConnected ? 'מסך המשחק מחובר' : 'ממתין לחיבור מסך'}
+              </span>
+            </div>
+
+            {/* Open projector screen */}
+            <button
+              onClick={() => {
+                const roomCode = new URLSearchParams(window.location.search).get('room') || '';
+                const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+                window.open(url, '_blank');
+              }}
+              className="px-3 py-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-[10px] font-bold rounded-xl transition-colors flex items-center gap-1.5"
+              title="פתח מסך הקרנה בחלון חדש"
+            >
+              <Tv size={12} />
+              <span className="hidden sm:block">📺 הקרנה</span>
+            </button>
           </div>
 
           {/* Edit room button (re-open wizard) */}

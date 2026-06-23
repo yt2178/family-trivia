@@ -56,6 +56,8 @@ export const AdminWizard: React.FC = () => {
     handleDeleteQuestion,
     handleImportMembersExcel,
     handleImportQuestionsExcel,
+    setMembers,
+    setQuestions,
     showSuccess,
     copyToClipboard,
     saveDraftToLocalStorage
@@ -145,54 +147,9 @@ export const AdminWizard: React.FC = () => {
     }
   };
 
-  const handleWizardImportMembers = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        const result = await excelHelper.importMembers(file, members);
-        if (result && result.members) {
-          const updatedMembers = result.members;
-          // Context triggers members state update
-          useAdmin().setMembers(updatedMembers);
-          db.saveMembers(updatedMembers);
-          sync.sendMessage({
-            type: 'DATABASE_SYNC',
-            members: updatedMembers,
-            questions,
-            settings
-          });
-          showSuccess(`ייבוא שחקנים הושלם בהצלחה! נוספו ${updatedMembers.length - members.length} שחקנים.`);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('ייבוא קובץ אקסל נכשל. ודא שהקובץ נכון.');
-      }
-    }
-  };
-
-  const handleWizardImportQuestions = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        const result = await excelHelper.importQuestions(file, members, questions);
-        if (result && result.questions) {
-          const updatedQuestions = result.questions;
-          useAdmin().setQuestions(updatedQuestions);
-          db.saveQuestions(updatedQuestions);
-          sync.sendMessage({
-            type: 'DATABASE_SYNC',
-            members,
-            questions: updatedQuestions,
-            settings
-          });
-          showSuccess(`ייבוא שאלות הושלם בהצלחה! נוספו ${updatedQuestions.length - questions.length} שאלות.`);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('ייבוא שאלות נכשל. ודא שהקובץ נכון.');
-      }
-    }
-  };
+  // Use context handlers directly for Excel import in wizard steps
+  const handleWizardImportMembers = handleImportMembersExcel;
+  const handleWizardImportQuestions = handleImportQuestionsExcel;
 
   const currentStep = wizardStepLocal || settings.wizardStep || 1;
 

@@ -36,12 +36,12 @@ export const QuestionsTab: React.FC = () => {
           <div>
             <label className="text-xs text-slate-400 block mb-1">מי אמר את זה? (הדובר)</label>
             <select
-              required
               value={newQuestion.speakerId}
               onChange={e => setNewQuestion({ ...newQuestion, speakerId: e.target.value })}
               className="w-full bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
             >
-              <option value="">-- בחר את בן המשפחה --</option>
+              <option value="">-- ללא שיוך (שאלה כללית לכולם) --</option>
+              <option value="general">❓ שאלה כללית (תוצג לכולם)</option>
               {members.map(m => (
                 <option key={m.id} value={m.id}>
                   {m.name} ({m.generation === 'grandparent' ? 'סבא/ת' : m.generation === 'parent' ? 'ילד/ה' : m.generation === 'child' ? 'נכד/ה' : 'נין/ה'})
