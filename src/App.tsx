@@ -360,12 +360,22 @@ function App() {
       if (snap.exists()) {
         const data = snap.val();
         if (data.db) {
-          if (data.db.members) localStorage.setItem('family_game_members', JSON.stringify(data.db.members));
-          if (data.db.questions) localStorage.setItem('family_game_questions', JSON.stringify(data.db.questions));
-          if (data.db.settings) localStorage.setItem('family_game_settings', JSON.stringify(data.db.settings));
+          localStorage.setItem('family_game_members', JSON.stringify(data.db.members || []));
+          localStorage.setItem('family_game_questions', JSON.stringify(data.db.questions || []));
+          if (data.db.settings) {
+            localStorage.setItem('family_game_settings', JSON.stringify(data.db.settings));
+          } else {
+            localStorage.removeItem('family_game_settings');
+          }
+        } else {
+          localStorage.setItem('family_game_members', '[]');
+          localStorage.setItem('family_game_questions', '[]');
+          localStorage.removeItem('family_game_settings');
         }
         if (data.state) {
           localStorage.setItem('family_game_state', JSON.stringify(data.state));
+        } else {
+          localStorage.removeItem('family_game_state');
         }
       }
     } catch (e) {
