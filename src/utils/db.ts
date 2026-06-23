@@ -31,6 +31,8 @@ export interface GameSettings {
   contestants: Contestant[]; // Dynamic list of contestants (up to 5)
   hostName?: string; // Optional host name
   setupComplete?: boolean; // Whether host has finished setting up the room
+  questionTimer?: number | null; // Timer in seconds (null/0 means unlimited)
+  wizardStep?: number; // Current wizard step (1-6) if setup not complete
 }
 
 export interface GameState {
@@ -66,7 +68,9 @@ const DEFAULT_SETTINGS: GameSettings = {
     { id: 'grandpa', name: 'סבא', image: null },
     { id: 'grandma', name: 'סבתא', image: null }
   ],
-  hostName: ''
+  hostName: '',
+  questionTimer: null,
+  wizardStep: 1
 };
 
 const DEFAULT_GAME_STATE: GameState = {

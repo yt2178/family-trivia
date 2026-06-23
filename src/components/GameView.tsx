@@ -8,6 +8,53 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { rtdb } from '../utils/firebase';
 import { ref, set } from 'firebase/database';
 
+function CountdownTimer({ duration, isRevealed, currentQuestionId }: { duration: number; isRevealed: boolean; currentQuestionId: string }) {
+  const [timeLeft, setTimeLeft] = useState(duration);
+
+  useEffect(() => {
+    setTimeLeft(duration);
+  }, [duration, currentQuestionId]);
+
+  useEffect(() => {
+    if (isRevealed || timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          audioHelper.play('undo'); // Play warning buzzer sound
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isRevealed, timeLeft, currentQuestionId]);
+
+  if (isRevealed) return null;
+
+  const percentage = (timeLeft / duration) * 100;
+  const isLowTime = timeLeft <= 5;
+
+  return (
+    <div className="w-full mt-4 space-y-1" dir="rtl">
+      <div className="flex justify-between text-[10px] font-bold text-slate-400">
+        <span>⏱️ נותר זמן: {timeLeft} שניות</span>
+        {timeLeft === 0 && <span className="text-rose-400 animate-pulse font-black">⌛ נגמר הזמן!</span>}
+      </div>
+      <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-[1px]">
+        <div 
+          className={`h-full rounded-full transition-all duration-1000 ${
+            isLowTime ? 'bg-gradient-to-r from-rose-600 to-rose-400 animate-pulse' : 'bg-gradient-to-r from-emerald-500 to-teal-400'
+          }`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export const CONTESTANT_COLORS = [
   {
     bg: 'bg-sky-950/40 border-sky-500/40 hover:bg-sky-900/40 text-sky-100',
@@ -726,6 +773,14 @@ export const GameView: React.FC = React.memo(() => {
                 <h3 className="text-2xl md:text-3xl font-extrabold text-center px-4 leading-relaxed text-slate-100 italic">
                   ״{currentQuestion.text}״
                 </h3>
+
+                {settings.questionTimer ? (
+                  <CountdownTimer
+                    duration={settings.questionTimer}
+                    isRevealed={gameState.isRevealed}
+                    currentQuestionId={currentQuestion.id}
+                  />
+                ) : null}
               </motion.div>
             )}
           </AnimatePresence>
@@ -775,7 +830,7 @@ export const GameView: React.FC = React.memo(() => {
                               <img src={speaker.image} alt={speaker.name} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-8xl select-none">
-                                {speaker?.gender === 'female' ? '👵' : '👴'}
+                                {speaker ? (speaker.gender === 'female' ? '👵' : '👴') : '❓'}
                               </div>
                             )}
                           </div>
@@ -783,7 +838,7 @@ export const GameView: React.FC = React.memo(() => {
 
                         <div className="space-y-1">
                           <h2 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-md">
-                            {speaker?.name}
+                            {speaker?.name || 'שאלה כללית'}
                           </h2>
                           {speaker?.familyName && (
                             <p className="text-xl text-slate-400 font-medium">{speaker.familyName}</p>
@@ -791,7 +846,7 @@ export const GameView: React.FC = React.memo(() => {
                         </div>
 
                         <p className="text-slate-400 text-sm max-w-sm italic">
-                          ״אמר/ה את הציטוט בהתרגשות רבה!״
+                          {speaker ? '״אמר/ה את הציטוט בהתרגשות רבה!״' : 'שאלה כללית ללא שיוך לבן משפחה מסוים'}
                         </p>
                       </motion.div>
                     </div>

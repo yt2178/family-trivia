@@ -178,7 +178,10 @@ function App() {
                 { id: 'grandpa', name: 'סבא', image: null },
                 { id: 'grandma', name: 'סבתא', image: null }
               ],
-              hostName: cleanName
+              hostName: cleanName,
+              setupComplete: false,
+              wizardStep: 1,
+              questionTimer: null
             }
           },
           settings: {
@@ -192,7 +195,10 @@ function App() {
               { id: 'grandpa', name: 'סבא', image: null },
               { id: 'grandma', name: 'סבתא', image: null }
             ],
-            hostName: cleanName
+            hostName: cleanName,
+            setupComplete: false,
+            wizardStep: 1,
+            questionTimer: null
           },
           state: {
             currentQuestionIndex: 0,
@@ -221,7 +227,10 @@ function App() {
             { id: 'grandpa', name: 'סבא', image: null },
             { id: 'grandma', name: 'סבתא', image: null }
           ],
-          hostName: cleanName
+          hostName: cleanName,
+          setupComplete: false,
+          wizardStep: 1,
+          questionTimer: null
         }));
         localStorage.removeItem('family_game_state');
       } catch (err) {
