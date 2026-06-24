@@ -92,34 +92,79 @@ export const MembersTab: React.FC = () => {
 
           {settings.treeLayout !== 'none' && (
             <>
-              {/* Parent Dropdown */}
+              {/* Parent Selection - Dual Parent */}
               <div>
-                <label className="text-xs text-slate-400 block mb-1">שם ההורים (המקשר לעץ)</label>
-                <select
-                  value={newMember.parentId}
-                  onChange={e => setNewMember({ ...newMember, parentId: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="">ללא הורה (סבא/סבתא מייסדי המשפחה)</option>
-                  
+                <label className="text-xs text-slate-400 block mb-1">שם ההורים (המקשר לעץ) - ניתן לבחור שני הורים</label>
+                <div className="space-y-2 max-h-40 overflow-y-auto bg-slate-900 border border-slate-800 rounded-lg p-2">
                   {members.some(m => m.generation === 'grandparent') && (
-                    <optgroup label="סבים וסבתות (מייסדי המשפחה)">
-                      {renderParentOptions('grandparent')}
-                    </optgroup>
+                    <div>
+                      <div className="text-[10px] text-slate-500 font-bold mb-1">סבים וסבתות (מייסדי המשפחה)</div>
+                      {members.filter(m => m.generation === 'grandparent' && m.id !== editingMemberId).map(m => (
+                        <label key={m.id} className="flex items-center gap-2 p-1 hover:bg-slate-800 rounded cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newMember.parentIds.includes(m.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setNewMember({ ...newMember, parentIds: [...newMember.parentIds, m.id] });
+                              } else {
+                                setNewMember({ ...newMember, parentIds: newMember.parentIds.filter(id => id !== m.id) });
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500"
+                          />
+                          <span className="text-sm text-slate-300">{m.name}</span>
+                        </label>
+                      ))}
+                    </div>
                   )}
                   
                   {members.some(m => m.generation === 'parent') && (
-                    <optgroup label="דור הילדים (בנים ובנות של המייסדים)">
-                      {renderParentOptions('parent')}
-                    </optgroup>
+                    <div>
+                      <div className="text-[10px] text-slate-500 font-bold mb-1">דור הילדים (בנים ובנות של המייסדים)</div>
+                      {members.filter(m => m.generation === 'parent' && m.id !== editingMemberId).map(m => (
+                        <label key={m.id} className="flex items-center gap-2 p-1 hover:bg-slate-800 rounded cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newMember.parentIds.includes(m.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setNewMember({ ...newMember, parentIds: [...newMember.parentIds, m.id] });
+                              } else {
+                                setNewMember({ ...newMember, parentIds: newMember.parentIds.filter(id => id !== m.id) });
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500"
+                          />
+                          <span className="text-sm text-slate-300">{m.name}</span>
+                        </label>
+                      ))}
+                    </div>
                   )}
                   
                   {members.some(m => m.generation === 'child') && (
-                    <optgroup label="דור הנכדים">
-                      {renderParentOptions('child')}
-                    </optgroup>
+                    <div>
+                      <div className="text-[10px] text-slate-500 font-bold mb-1">דור הנכדים</div>
+                      {members.filter(m => m.generation === 'child' && m.id !== editingMemberId).map(m => (
+                        <label key={m.id} className="flex items-center gap-2 p-1 hover:bg-slate-800 rounded cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newMember.parentIds.includes(m.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setNewMember({ ...newMember, parentIds: [...newMember.parentIds, m.id] });
+                              } else {
+                                setNewMember({ ...newMember, parentIds: newMember.parentIds.filter(id => id !== m.id) });
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500"
+                          />
+                          <span className="text-sm text-slate-300">{m.name}</span>
+                        </label>
+                      ))}
+                    </div>
                   )}
-                </select>
+                </div>
               </div>
 
               {/* Spouse Dropdown */}
@@ -238,9 +283,7 @@ export const MembersTab: React.FC = () => {
                   return (
                     <tr
                       key={m.id}
-                      className={`hover:bg-slate-900/40 transition-colors ${
-                        isEditing ? 'bg-emerald-950/20 border-y border-emerald-500/30' : ''
-                      }`}
+                      className="hover:bg-slate-900/40 transition-colors"
                     >
                       <td className="py-2.5">
                         <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center">
@@ -283,11 +326,7 @@ export const MembersTab: React.FC = () => {
                         <div className="flex gap-1 justify-center">
                           <button
                             onClick={() => handleStartEdit(m)}
-                            className={`p-1 rounded transition-colors ${
-                              isEditing
-                                ? 'text-slate-950 bg-emerald-500 hover:bg-emerald-400'
-                                : 'text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20'
-                            }`}
+                            className="p-1 text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 rounded transition-colors"
                             title="ערוך"
                           >
                             <Pencil size={12} />

@@ -3,6 +3,7 @@ export interface FamilyMember {
   name: string;
   generation: 'grandparent' | 'parent' | 'child' | 'grandchild' | 'great-grandchild';
   parentId: string | null;
+  parentIds: string[]; // Array of parent IDs (for dual parent selection)
   image: string | null; // Base64 data or URL
   gender?: 'male' | 'female';
   spouseId?: string | null; // ID of spouse if married
@@ -43,6 +44,7 @@ export interface GameState {
   shuffledQuestionIds: string[];
   isRevealed: boolean;
   isPlaying: boolean;
+  isPaused: boolean; // Whether game is paused (host disconnected)
 }
 
 const STORAGE_KEYS = {
@@ -81,6 +83,7 @@ const DEFAULT_GAME_STATE: GameState = {
   shuffledQuestionIds: [],
   isRevealed: false,
   isPlaying: false,
+  isPaused: false,
 };
 
 // Healing function for GameState to handle null/undefined from Firebase
@@ -328,6 +331,7 @@ export const db = {
       shuffledQuestionIds: ids,
       isRevealed: false,
       isPlaying: true,
+      isPaused: false,
     };
     
     this.saveGameState(newState);

@@ -509,7 +509,7 @@ function App() {
                 } catch (e) {
                   console.error("Failed to sync room data to localStorage", e);
                 }
-                window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}`;
+                window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}&wizard=true`;
               }}
               className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-400 hover:from-amber-400 hover:to-orange-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3"
             >
@@ -730,10 +730,10 @@ function App() {
                       }`}
                     >
                       <span className="text-lg">🌳</span>
-                      <span className="font-bold">עץ יוחסין משפחתי</span>
+                      <span className="font-bold">עץ יוחסין</span>
                       <span className="text-[9px] text-slate-500 font-normal">מחבר בני משפחה לדורות והורים</span>
                     </button>
-                    
+
                     <button
                       type="button"
                       onClick={() => setTreeLayoutChoice('none')}

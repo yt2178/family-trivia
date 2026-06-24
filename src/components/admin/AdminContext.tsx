@@ -95,6 +95,7 @@ interface MemberFormState {
   name: string;
   generation: FamilyMember['generation'];
   parentId: string;
+  parentIds: string[];
   image: string | null;
   gender: 'male' | 'female';
   familyName: string;
@@ -183,6 +184,7 @@ interface AdminContextType {
   handleImportQuestionsExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleAbsoluteReset: () => Promise<void>;
   handleSettingsImageUpload: (e: React.ChangeEvent<HTMLInputElement>, contestantId: string) => Promise<void>;
+  handleTogglePause: () => void;
   showSuccess: (msg: string) => void;
   copyToClipboard: (text: string, label: string) => void;
   validateRelations: (name: string, parentId: string | null, spouseId: string | null, currentId: string | null) => string | null;
@@ -263,6 +265,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     name: '',
     generation: 'grandchild',
     parentId: '',
+    parentIds: [],
     image: null,
     gender: 'male',
     familyName: '',
@@ -297,6 +300,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Sync settings to local wizard states on load or changes from Firebase
   useEffect(() => {
     if (settings && !hasInitializedWizard) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const controllerMode = urlParams.get('controller') === 'true';
+      const wizardMode = urlParams.get('wizard') === 'true';
+      
       const rCode = sync.getRoomCode();
       let draft: any = null;
       if (rCode) {
@@ -350,7 +357,13 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardContestants(arr);
       }
       setHasInitializedWizard(true);
-      if (settings.setupComplete) {
+      
+      // Set mode based on URL parameters or setupComplete
+      if (controllerMode) {
+        setAdminSubMode('controller');
+      } else if (wizardMode) {
+        setAdminSubMode('wizard');
+      } else if (settings.setupComplete) {
         setAdminSubMode('controller');
       } else {
         setAdminSubMode('wizard');
@@ -457,9 +470,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const controllerMode = urlParams.get('controller') === 'true';
+    const wizardMode = urlParams.get('wizard') === 'true';
     
     if (controllerMode) {
       setAdminSubMode('controller');
+    } else if (wizardMode) {
+      setAdminSubMode('wizard');
     }
     
     const initData = async () => {
@@ -811,6 +827,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       name: newMember.name.trim(),
       generation,
       parentId: newMember.parentId || null,
+      parentIds: [],
       image: newMember.image,
       gender: newMember.gender,
       familyName,
@@ -839,6 +856,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNewMember({
       name: '',
       parentId: '',
+      parentIds: [],
       gender: 'male',
       image: null,
       generation: 'grandchild',
@@ -875,6 +893,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNewMember({
       name: m.name,
       parentId: m.parentId || '',
+      parentIds: m.parentIds || [],
       gender: m.gender || 'male',
       image: m.image || null,
       generation: m.generation,
@@ -978,6 +997,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNewMember({
       name: '',
       parentId: '',
+      parentIds: [],
       gender: 'male',
       image: null,
       generation: 'grandchild',
@@ -993,6 +1013,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNewMember({
       name: '',
       parentId: '',
+      parentIds: [],
       gender: 'male',
       image: null,
       generation: 'grandchild',
@@ -1162,6 +1183,13 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const handleTogglePause = () => {
+    const updated = { ...gameState, isPaused: !gameState.isPaused };
+    setGameState(updated);
+    db.saveGameState(updated);
+    sync.sendMessage({ type: 'DATABASE_SYNC', members, questions, settings });
+  };
+
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 3000);
@@ -1246,6 +1274,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       handleImportQuestionsExcel,
       handleAbsoluteReset,
       handleSettingsImageUpload,
+      handleTogglePause,
       showSuccess,
       copyToClipboard,
       validateRelations,

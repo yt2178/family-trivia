@@ -27,8 +27,8 @@ export const SettingsTab: React.FC = () => {
         </div>
 
         <div>
-          <label className="text-xs text-slate-400 block mb-2 font-semibold">סוג תצוגת לוח המשחק (מצב עץ יוחסין)</label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <label className="text-xs text-slate-400 block mb-2 font-semibold">סוג תצוגת לוח המשחק</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => updateSettings({ ...settings, treeLayout: 'traditional' })}
@@ -38,19 +38,7 @@ export const SettingsTab: React.FC = () => {
                   : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
               }`}
             >
-              <span>🌳 עץ יוחסין מסורתי</span>
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => updateSettings({ ...settings, treeLayout: 'botanical' })}
-              className={`py-2.5 px-4 text-xs font-bold rounded-xl border transition-all flex justify-center items-center gap-2 ${
-                settings.treeLayout === 'botanical'
-                  ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-md shadow-emerald-500/20'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>🌸 עץ יוחסין בוטני</span>
+              <span>🌳 עץ יוחסין</span>
             </button>
 
             <button

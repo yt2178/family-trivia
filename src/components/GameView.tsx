@@ -759,6 +759,44 @@ export const GameView: React.FC = React.memo(() => {
 
   const isGameStarted = settings?.setupComplete && totalQuestions > 0;
 
+  // Pause screen when host is away
+  if (gameState.isPaused && isGameStarted) {
+    return (
+      <div className={`relative w-full min-h-screen bg-gradient-to-b ${getThemeBackground()} text-slate-100 flex flex-col items-center justify-center p-6 overflow-hidden`}>
+        {/* Decorative blur elements */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-3xl w-full text-center z-10 space-y-8 glass-panel p-12 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden"
+        >
+          {/* Logo/Icon */}
+          <div className="flex flex-col items-center space-y-4">
+            <motion.div
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+              className="inline-flex items-center justify-center p-6 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full shadow-xl"
+            >
+              <RefreshCw size={64} className="text-amber-400" />
+            </motion.div>
+            <h1 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-amber-400 via-orange-300 to-yellow-400 bg-clip-text text-transparent">
+              המשחק מושהה
+            </h1>
+            <p className="text-xl text-slate-300 mt-4">
+              המנחה יחזור בקרוב...
+            </p>
+            <p className="text-sm text-slate-400">
+              המשחק ימשיך מאיפה שהוא עצר
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!isGameStarted) {
     return (
       <div className={`relative w-full min-h-screen bg-gradient-to-b ${getThemeBackground()} text-slate-100 flex flex-col items-center justify-center p-6 overflow-hidden`}>
