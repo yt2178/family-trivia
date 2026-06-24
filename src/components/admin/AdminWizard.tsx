@@ -60,7 +60,8 @@ export const AdminWizard: React.FC = () => {
     setQuestions,
     showSuccess,
     copyToClipboard,
-    saveDraftToLocalStorage
+    saveDraftToLocalStorage,
+    setActiveTab
   } = useAdmin();
 
   const roomCode = sync.getRoomCode() || '';

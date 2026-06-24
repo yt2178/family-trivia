@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AdminView } from './components/AdminView';
+import AdminView from './components/AdminView';
 import { GameView } from './components/GameView';
 import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, QrCode, ArrowRight, RefreshCw, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
