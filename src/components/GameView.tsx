@@ -735,7 +735,7 @@ export const GameView: React.FC = React.memo(() => {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-4 text-emerald-400" dir="rtl">
         <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm font-bold">טוען נתוני משחק מהענן...</span>
+        <span className="text-sm font-bold">טוען נתוני חדר...</span>
       </div>
     );
   }
