@@ -535,9 +535,17 @@ function App() {
                     </button>
                   </div>
                   
-                  <p className="text-[11px] text-amber-400/90 leading-relaxed mt-2 bg-amber-500/5 border border-amber-500/10 p-3 rounded-xl font-medium">
-                    ⚠️ עליך לזכור את המספר כי פה יישמרו כל השאלות והתמונות שלכם. אם תשכח אותו, לא תוכל לגשת לחידון שלך ותצטרך ליצור חדר חדש מהתחלה, סתם חבל.
-                  </p>
+                  <div className="bg-amber-500/10 border border-amber-500/25 p-4 rounded-xl text-xs md:text-sm text-slate-200 leading-relaxed font-bold space-y-2 mt-2">
+                    <p className="flex items-center gap-1.5 text-amber-400 font-extrabold text-sm md:text-base">
+                      <span>⚠️ שים לב - מידע חשוב לשמירת החידון שלך:</span>
+                    </p>
+                    <p>
+                      כל השאלות, השחקנים והתמונות שתכניסו בהמשך <strong className="text-emerald-400 font-extrabold">יישמרו אוטומטית בענן בכל שלב</strong> – אין מה לדאוג!
+                    </p>
+                    <p className="text-amber-300">
+                      הדבר היחיד שעליכם לעשות הוא לזכור היטב את שם המנחה שהזנתם ואת מספר החדר שבחרתם. ללא שני הפרטים האלו, לא תוכלו להתחבר מחדש לחדר או להפעיל את מסך ההקרנה!
+                    </p>
+                  </div>
                 </div>
 
                 <div>
