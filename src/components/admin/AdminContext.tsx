@@ -4,7 +4,7 @@ import { sync } from '../../utils/sync';
 import { excelHelper } from '../../utils/excelHelper';
 import { audioHelper } from '../../utils/audioHelper';
 import { rtdb } from '../../utils/firebase';
-import { ref, onValue, off, set } from 'firebase/database';
+import { ref, onValue, off, set, remove } from 'firebase/database';
 
 export const CONTESTANT_COLORS = [
   {
@@ -179,8 +179,7 @@ interface AdminContextType {
   handleExcelTemplateDownload: (mode: 'tree' | 'list') => void;
   handleImportMembersExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleImportQuestionsExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleExportBackup: () => void;
-  handleImportBackup: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleAbsoluteReset: () => Promise<void>;
   handleSettingsImageUpload: (e: React.ChangeEvent<HTMLInputElement>, contestantId: string) => Promise<void>;
   showSuccess: (msg: string) => void;
   copyToClipboard: (text: string, label: string) => void;
@@ -576,7 +575,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const handleNextQuestion = () => {
-    const total = gameState.shuffledQuestionIds.length;
+    const total = (gameState.shuffledQuestionIds || []).length;
     if (gameState.currentQuestionIndex < total) {
       const nextIndex = gameState.currentQuestionIndex + 1;
       updateGameState({
@@ -606,7 +605,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const handleAssignPoints = (winner: string) => {
-    const currentQId = gameState.shuffledQuestionIds[gameState.currentQuestionIndex];
+    const currentQId = (gameState.shuffledQuestionIds || [])[gameState.currentQuestionIndex];
     if (!currentQId) return;
 
     const currentSolvedValue = gameState.solvedQuestions[currentQId];
@@ -1063,41 +1062,41 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const handleExportBackup = () => {
-    const json = db.exportBackup();
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'מי_אמר_מה_גיבוי_משחק.json';
-    link.click();
-    showSuccess('קובץ הגיבוי יוצא בהצלחה!');
+  const handleAbsoluteReset = async () => {
+    const confirmed = window.confirm(
+      "⚠️ איפוס מוחלט של החדר!\n\nפעולה זו תמחק את כל הנתונים של החדר מהענן ותנקה את הדפדפן. לא ניתן לשחזר!\n\nהאם אתה בטוח?"
+    );
+    if (!confirmed) return;
+    
+    try {
+      const roomCode = sync.getRoomCode();
+      // Delete Firebase room data
+      if (roomCode) {
+        const roomRef = ref(rtdb, `rooms/${roomCode}`);
+        await remove(roomRef);
+      }
+    } catch (e) {
+      console.error('Failed to delete Firebase room', e);
+    }
+    
+    // Clear all local storage room keys
+    try {
+      localStorage.removeItem('family_game_members');
+      localStorage.removeItem('family_game_questions');
+      localStorage.removeItem('family_game_settings');
+      localStorage.removeItem('family_game_state');
+      const roomCode = sync.getRoomCode();
+      if (roomCode) {
+        localStorage.removeItem(`wizard_draft_${roomCode}`);
+      }
+    } catch (e) {
+      console.error('Failed to clear localStorage', e);
+    }
+    
+    // Redirect to home page
+    window.location.href = window.location.origin + window.location.pathname;
   };
 
-  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const text = event.target?.result as string;
-        const success = db.importBackup(text);
-        if (success) {
-          const m = db.getMembers();
-          const q = db.getQuestions();
-          const s = db.getSettings();
-          setMembers(m);
-          setQuestions(q);
-          setSettings(s);
-          setGameState(db.getGameState());
-          sync.sendMessage({ type: 'DATABASE_SYNC', members: m, questions: q, settings: s });
-          showSuccess('שחזור הגיבוי המלא הושלם בהצלחה!');
-        } else {
-          alert('קובץ הגיבוי אינו תקין.');
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
 
   const handleSettingsImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, contestantId: string) => {
     const file = e.target.files?.[0];
@@ -1203,8 +1202,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       handleExcelTemplateDownload,
       handleImportMembersExcel,
       handleImportQuestionsExcel,
-      handleExportBackup,
-      handleImportBackup,
+      handleAbsoluteReset,
       handleSettingsImageUpload,
       showSuccess,
       copyToClipboard,

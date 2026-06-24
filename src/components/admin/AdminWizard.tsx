@@ -14,7 +14,8 @@ import {
   Image as ImageIcon,
   ChevronLeft,
   ChevronRight,
-  Tv
+  Tv,
+  Pencil
 } from 'lucide-react';
 
 export const AdminWizard: React.FC = () => {
@@ -29,6 +30,7 @@ export const AdminWizard: React.FC = () => {
     newQuestion,
     setNewQuestion,
     editingMemberId,
+    setEditingMemberId,
     wizardHostName,
     setWizardHostName,
     wizardTreeLayout,
@@ -52,10 +54,14 @@ export const AdminWizard: React.FC = () => {
     updateSettings,
     handleAddMember,
     handleDeleteMember,
+    handleStartEdit,
+    handleSaveEdit,
+    handleCancelEdit,
     handleAddQuestion,
     handleDeleteQuestion,
     handleImportMembersExcel,
     handleImportQuestionsExcel,
+    handleAbsoluteReset,
     setMembers,
     setQuestions,
     showSuccess,
@@ -375,7 +381,7 @@ export const AdminWizard: React.FC = () => {
           <div className="bg-slate-900/60 border border-slate-850 p-4 rounded-2xl text-right text-xs space-y-2 leading-relaxed">
             <p className="text-amber-400 font-bold">⚠️ שימו לב - פרטי תוקף החדר:</p>
             <p className="text-slate-350">
-              החדר והנתונים שבו יישמרו בענן של Firebase ויהיו זמינים למשך <strong className="underline font-bold">30 יום</strong> מהיום.
+              החדר והנתונים שבו יישמרו בענן של Firebase ויהיו זמינים למשך <strong className="underline font-bold">45 יום</strong> מהיום.
             </p>
           </div>
 
@@ -716,40 +722,47 @@ export const AdminWizard: React.FC = () => {
           {/* Step 3: משתתפים */}
           {currentStep === 3 && (
             <div className="space-y-4">
-              <div className="text-right flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-black text-slate-100">
-                    {wizardTreeLayout === 'traditional' ? 'שלב 3: הוספת שחקנים (בני משפחה)' : 'שלב 3: הוספת שחקנים'}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {wizardTreeLayout === 'traditional' ? 'הזן את שמות בני המשפחה או העלה מקובץ Excel' : 'הזן את שמות השחקנים או העלה מקובץ Excel'}
-                  </p>
-                </div>
-                
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => excelHelper.downloadTemplate(wizardTreeLayout === 'traditional' ? 'tree' : 'list')}
-                    className="px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
-                    title="הורד קובץ שחקנים למילוי"
-                  >
-                    <Download size={12} />
-                    <span>אבטיפוס Excel 📥</span>
-                  </button>
-                  <label className="px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer">
-                    <Upload size={12} />
-                    <span>העלה Excel 📤</span>
-                    <input
-                      type="file"
-                      accept=".xlsx, .xls"
-                      onChange={handleWizardImportMembers}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
+              <div className="text-right">
+                <h3 className="text-lg font-black text-slate-100">
+                  {wizardTreeLayout === 'traditional' ? 'שלב 3: הוספת שחקנים (בני משפחה)' : 'שלב 3: הוספת שחקנים'}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {wizardTreeLayout === 'traditional' ? 'הזן את שמות בני המשפחה או העלה מקובץ Excel' : 'הזן את שמות השחקנים או העלה מקובץ Excel'}
+                </p>
+              </div>
+              
+              {/* Excel Buttons - below description */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => excelHelper.downloadTemplate(wizardTreeLayout === 'traditional' ? 'tree' : 'list')}
+                  className="flex-1 px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1"
+                  title="הורד קובץ שחקנים למילוי"
+                >
+                  <Download size={12} />
+                  <span>הורד תבנית Excel 📥</span>
+                </button>
+                <label className="flex-1 px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer">
+                  <Upload size={12} />
+                  <span>העלה Excel 📤</span>
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls"
+                    onChange={handleWizardImportMembers}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
-              <form onSubmit={handleAddMember} className="bg-slate-950/60 p-4 border border-slate-850 rounded-2xl space-y-3 text-right">
+              <form onSubmit={editingMemberId ? handleSaveEdit : handleAddMember} className="bg-slate-950/60 p-4 border border-slate-850 rounded-2xl space-y-3 text-right">
+                {editingMemberId && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-amber-400">✏️ עורך שחקן קיים...</span>
+                    <button type="button" onClick={handleCancelEdit} className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-1">
+                      <X size={10} /> ביטול עריכה
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 block mb-0.5">שם מלא:</label>
@@ -838,13 +851,23 @@ export const AdminWizard: React.FC = () => {
                   </div>
                 ) : null}
 
-                <div className="flex justify-end pt-1">
+                <div className="flex justify-end pt-1 gap-2">
+                  {editingMemberId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      <X size={14} />
+                      <span>ביטול</span>
+                    </button>
+                  )}
                   <button
                     type="submit"
                     className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-lg transition-colors flex items-center gap-1"
                   >
                     <Plus size={14} />
-                    <span>{wizardTreeLayout === 'traditional' ? 'הוסף שחקן משפחה' : 'הוסף שחקן'}</span>
+                    <span>{editingMemberId ? 'שמור שינויים' : (wizardTreeLayout === 'traditional' ? 'הוסף שחקן משפחה' : 'הוסף שחקן')}</span>
                   </button>
                 </div>
               </form>
@@ -858,8 +881,9 @@ export const AdminWizard: React.FC = () => {
                     members.map(m => {
                       const parent = members.find(p => p.id === m.parentId);
                       const spouse = members.find(s => s.id === m.spouseId);
+                      const isBeingEdited = editingMemberId === m.id;
                       return (
-                        <div key={m.id} className="flex justify-between items-center bg-slate-950/70 border border-slate-850 p-2 rounded-xl text-xs">
+                        <div key={m.id} className={`flex justify-between items-center border p-2 rounded-xl text-xs ${isBeingEdited ? 'bg-amber-950/30 border-amber-500/30' : 'bg-slate-950/70 border-slate-850'}`}>
                           <div className="flex items-center gap-2">
                             <span className="text-base">{m.gender === 'female' ? '👩' : '👨'}</span>
                             <span className="font-bold text-slate-200">{m.name}</span>
@@ -875,13 +899,23 @@ export const AdminWizard: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteMember(m.id)}
-                            className="text-rose-400 hover:bg-rose-500/10 p-1 rounded transition-colors"
-                          >
-                            <Trash2 size={12} />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleStartEdit(m)}
+                              className="text-amber-400 hover:bg-amber-500/10 p-1 rounded transition-colors"
+                              title="ערוך שחקן"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMember(m.id)}
+                              className="text-rose-400 hover:bg-rose-500/10 p-1 rounded transition-colors"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
                       );
                     })
@@ -894,33 +928,32 @@ export const AdminWizard: React.FC = () => {
           {/* Step 4: שאלות וציטוטים */}
           {currentStep === 4 && (
             <div className="space-y-4">
-              <div className="text-right flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-black text-slate-100">שלב 4: הכנסת שאלות וציטוטים</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">הזן ציטוטים משפחתיים או העלה שאלות מקובץ Excel</p>
-                </div>
-                
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => excelHelper.downloadQuestionsTemplate()}
-                    className="px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
-                    title="הורד אבטיפוס שאלות למילוי"
-                  >
-                    <Download size={12} />
-                    <span>אבטיפוס Excel 📥</span>
-                  </button>
-                  <label className="px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer">
-                    <Upload size={12} />
-                    <span>העלה Excel 📤</span>
-                    <input
-                      type="file"
-                      accept=".xlsx, .xls"
-                      onChange={handleWizardImportQuestions}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
+              <div className="text-right">
+                <h3 className="text-lg font-black text-slate-100">שלב 4: הכנסת שאלות וציטוטים</h3>
+                <p className="text-xs text-slate-400 mt-0.5">הזן ציטוטים משפחתיים או העלה שאלות מקובץ Excel</p>
+              </div>
+              
+              {/* Excel Buttons - below description */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => excelHelper.downloadQuestionsTemplate()}
+                  className="flex-1 px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1"
+                  title="הורד אבטיפוס שאלות למילוי"
+                >
+                  <Download size={12} />
+                  <span>הורד תבנית שאלות 📥</span>
+                </button>
+                <label className="flex-1 px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer">
+                  <Upload size={12} />
+                  <span>העלה Excel 📤</span>
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls"
+                    onChange={handleWizardImportQuestions}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               <form onSubmit={handleAddQuestion} className="bg-slate-950/60 p-4 border border-slate-850 rounded-2xl space-y-3 text-right">
@@ -1001,7 +1034,7 @@ export const AdminWizard: React.FC = () => {
           {currentStep === 5 && (
             <div className="space-y-6">
               <div className="text-right">
-                <h3 className="text-lg font-black text-slate-100">שלב 5: הגגרות זמן (טיימר)</h3>
+                <h3 className="text-lg font-black text-slate-100">שלב 5: הגדרת זמן (טיימר)</h3>
                 <p className="text-xs text-slate-400 mt-1">הגדר האם תהיה הגבלת זמן מענה לכל שאלה על מסך ההקרנה</p>
               </div>
 
@@ -1086,6 +1119,18 @@ export const AdminWizard: React.FC = () => {
                   עליכם לזכור את <strong className="text-amber-400 underline font-black">מספר החדר ({roomCode})</strong> ואת <strong className="text-amber-400 underline font-black">שם המנחה ({wizardHostName})</strong>. אלו הם פרטי הזיהוי של החדר שלכם. ללא שני הפרטים האלה, לא תוכלו לחזור ולהתחבר לחדר זה בהמשך או להפעיל את מסך ההקרנה!
                 </p>
               </div>
+
+              {/* Absolute Reset */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleAbsoluteReset}
+                  className="w-full py-2.5 border border-rose-500/30 bg-rose-950/20 hover:bg-rose-900/30 text-rose-400 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={14} />
+                  <span>🗑️ איפוס מוחלט של החדר (מחיקה וחזרה לדף הבית)</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -1127,7 +1172,7 @@ export const AdminWizard: React.FC = () => {
         {/* Tip Footer Message */}
         <div className="text-center mt-4">
           <span className="text-[10px] text-slate-500 font-bold block bg-slate-950/20 py-1.5 px-3 rounded-lg border border-slate-950">
-            💡 אל דאגה! תוכלו לערוך ולשנות את כל הפרטים הללו גם בהמשך מתוך שלט המנחה המלא.
+            💡 אל דאגה! תוכלו לערוך ולשנות את כל הפרטים הללו גם בהמשך דרך מסך העריכה.
           </span>
         </div>
 

@@ -22,10 +22,13 @@ function CountdownTimer({ duration, isRevealed, currentQuestionId }: { duration:
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          audioHelper.play('undo'); // Play warning buzzer sound
           return 0;
         }
-        return prev - 1;
+        const next = prev - 1;
+        if (next === 5) {
+          audioHelper.play('undo'); // Play warning buzzer at 5 seconds remaining
+        }
+        return next;
       });
     }, 1000);
 
@@ -484,7 +487,7 @@ export const GameView: React.FC = React.memo(() => {
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         setGameState(prev => {
-          const totalQ = prev.shuffledQuestionIds.length;
+          const totalQ = (prev.shuffledQuestionIds || []).length;
           if (prev.isRevealed) {
             const nextIndex = prev.currentQuestionIndex + 1;
             const isFinished = nextIndex >= totalQ;
@@ -501,7 +504,7 @@ export const GameView: React.FC = React.memo(() => {
               ...prev,
               isRevealed: true
             };
-            const currentQId = prev.shuffledQuestionIds[prev.currentQuestionIndex];
+            const currentQId = (prev.shuffledQuestionIds || [])[prev.currentQuestionIndex];
             const q = questions.find(item => item.id === currentQId);
             if (q) {
               const updatedRevealed = { ...prev.revealedSpeakers, [q.speakerId]: true };
@@ -514,7 +517,7 @@ export const GameView: React.FC = React.memo(() => {
         });
       } else if (e.key === 'ArrowRight') {
         setGameState(prev => {
-          const totalQ = prev.shuffledQuestionIds.length;
+          const totalQ = (prev.shuffledQuestionIds || []).length;
           const nextIndex = prev.currentQuestionIndex + 1;
           if (nextIndex < totalQ) {
             const updated = {

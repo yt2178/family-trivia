@@ -7,7 +7,8 @@ import {
   X,
   RefreshCw,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Trash2
 } from 'lucide-react';
 
 export const ControlTab: React.FC = () => {
@@ -22,11 +23,13 @@ export const ControlTab: React.FC = () => {
     handleNextQuestion,
     handlePrevQuestion,
     handleRevealAnswer,
-    handleAssignPoints
+    handleAssignPoints,
+    handleAbsoluteReset
   } = useAdmin();
 
-  const isGameLoaded = gameState.shuffledQuestionIds.length > 0;
-  const activeQuestionId = gameState.shuffledQuestionIds[gameState.currentQuestionIndex];
+  const shuffledIds = gameState.shuffledQuestionIds || [];
+  const isGameLoaded = shuffledIds.length > 0;
+  const activeQuestionId = shuffledIds[gameState.currentQuestionIndex];
   const activeQuestion = questions.find(q => q.id === activeQuestionId);
   const activeSpeaker = activeQuestion ? members.find(m => m.id === activeQuestion.speakerId) : null;
 
@@ -44,8 +47,7 @@ export const ControlTab: React.FC = () => {
             )}
           </h3>
 
-          {isGameLoaded ? (
-            gameState.currentQuestionIndex < gameState.shuffledQuestionIds.length ? (
+          {isGameLoaded && gameState.currentQuestionIndex < shuffledIds.length ? (
               <div>
                 {/* Active quote */}
                 <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl mb-6">
@@ -89,7 +91,7 @@ export const ControlTab: React.FC = () => {
                   <div className={`grid gap-4 ${settings.contestants.length <= 2 ? 'grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'}`}>
                     {settings.contestants.map((c, index) => {
                       const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
-                      const solvedVal = gameState.solvedQuestions[gameState.shuffledQuestionIds[gameState.currentQuestionIndex]];
+                      const solvedVal = gameState.solvedQuestions[shuffledIds[gameState.currentQuestionIndex]];
                       const isWinner = solvedVal ? solvedVal.split(',').includes(c.id) : false;
                       return (
                         <button
@@ -119,13 +121,12 @@ export const ControlTab: React.FC = () => {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : isGameLoaded ? (
               <div className="text-center py-10">
                 <h4 className="text-xl font-bold text-amber-400 mb-2">🏆 המשחק הסתיים!</h4>
                 <p className="text-xs text-slate-400">הגענו לסוף כל השאלות.</p>
               </div>
-            )
-          ) : (
+            ) : (
             <div className="space-y-6">
               <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl text-right space-y-4">
                 <h4 className="text-base font-bold text-emerald-400 border-b border-slate-800 pb-2 flex items-center justify-between">
@@ -243,12 +244,12 @@ export const ControlTab: React.FC = () => {
             </button>
             
             <div className="text-xs text-slate-500">
-              שאלה {gameState.currentQuestionIndex + 1} מתוך {gameState.shuffledQuestionIds.length}
+              שאלה {gameState.currentQuestionIndex + 1} מתוך {shuffledIds.length}
             </div>
 
             <button
               onClick={handleNextQuestion}
-              disabled={gameState.currentQuestionIndex >= gameState.shuffledQuestionIds.length}
+              disabled={gameState.currentQuestionIndex >= shuffledIds.length}
               className="px-3 py-1.5 bg-slate-900 border border-slate-800 text-xs text-slate-400 font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
             >
               <span>שאלה הבאה</span>
@@ -289,6 +290,13 @@ export const ControlTab: React.FC = () => {
               <span>אפס והתחל משחק מחדש</span>
             </button>
           )}
+          <button
+            onClick={handleAbsoluteReset}
+            className="w-full mt-2 py-2 border border-rose-500/20 hover:bg-rose-950/30 transition-colors text-rose-400/70 hover:text-rose-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
+          >
+            <Trash2 size={12} />
+            <span>🗑️ איפוס מוחלט של החדר</span>
+          </button>
         </div>
 
         {/* Solved Status Sidebar */}
