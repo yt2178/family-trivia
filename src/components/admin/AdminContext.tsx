@@ -126,6 +126,7 @@ interface AdminContextType {
   gameScreenConnected: boolean;
   isLoading: boolean;
   roomError: string | null;
+  countdown: number;
   newMember: MemberFormState;
   setNewMember: React.Dispatch<React.SetStateAction<MemberFormState>>;
   newQuestion: QuestionFormState;
@@ -212,6 +213,17 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [gameScreenConnected, setGameScreenConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
   const [roomError, setRoomError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number>(5);
+
+  // Countdown for room error redirect
+  useEffect(() => {
+    if (roomError && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (roomError && countdown === 0) {
+      window.location.href = window.location.origin + window.location.pathname;
+    }
+  }, [roomError, countdown]);
 
   // Register controller connection and listen to game screen connection status in Firebase
   useEffect(() => {
@@ -1179,6 +1191,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       gameScreenConnected,
       isLoading,
       roomError,
+      countdown,
       newMember,
       setNewMember,
       newQuestion,

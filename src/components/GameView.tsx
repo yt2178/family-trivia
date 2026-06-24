@@ -165,12 +165,23 @@ export const GameView: React.FC = React.memo(() => {
   const [gameState, setGameState] = useState<GameState>(db.getGameState());
   const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
   const [roomError, setRoomError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number>(5);
   
   const hostLabel = settings.hostName || 'המנחה';
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const particles = useRef<ConfettiParticle[]>([]);
+
+  // Countdown for room error redirect
+  useEffect(() => {
+    if (roomError && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (roomError && countdown === 0) {
+      window.location.href = window.location.origin + window.location.pathname;
+    }
+  }, [roomError, countdown]);
 
   // Load initial data
   useEffect(() => {
@@ -737,12 +748,11 @@ export const GameView: React.FC = React.memo(() => {
         </div>
         <h2 className="text-2xl font-bold text-rose-400">שגיאה בטעינת החדר</h2>
         <p className="text-slate-300 text-center max-w-md">{roomError}</p>
-        <button
-          onClick={() => window.location.href = window.location.origin + window.location.pathname}
-          className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors"
-        >
-          חזרה לדף הבית
-        </button>
+        <div className="flex items-center gap-2 text-slate-400">
+          <span>מפנה לדף הבית תוך</span>
+          <span className="text-2xl font-bold text-emerald-400">{countdown}</span>
+          <span>שניות...</span>
+        </div>
       </div>
     );
   }
