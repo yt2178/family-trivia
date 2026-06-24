@@ -155,6 +155,18 @@ export const sync = {
     return null;
   },
 
+  async roomExists(): Promise<boolean> {
+    if (!ROOM_CODE) return false;
+    try {
+      const dbRef = ref(rtdb);
+      const snapshot = await get(child(dbRef, `rooms/${ROOM_CODE}/database`));
+      return snapshot.exists();
+    } catch (e) {
+      console.error("Error checking room existence:", e);
+      return false;
+    }
+  },
+
   onConnectionChange(callback: (connected: boolean) => void): () => void {
     connectionCallbacks.add(callback);
     callback(isConnected);
@@ -186,29 +198,39 @@ export const sync = {
 
     // B. Send via Firebase Cloud if room exists
     if (ROOM_CODE) {
-      const roomRef = ref(rtdb, `rooms/${ROOM_CODE}/lastMessage`);
-      set(roomRef, sanitizeForFirebase(envelope)).catch(err => {
-        console.error('Failed to send message via Firebase:', err);
-      });
+      // Check if room exists before writing to Firebase to avoid creating data for non-existent rooms
+      this.roomExists().then(exists => {
+        if (!exists) {
+          console.warn(`[Sync] Room ${ROOM_CODE} does not exist, skipping Firebase write`);
+          return;
+        }
 
-      // Persist states in Firebase RTDB
-      if (message.type === 'DATABASE_SYNC') {
-        const dbPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/db`);
-        set(dbPersistRef, sanitizeForFirebase({
-          members: message.members,
-          questions: message.questions,
-          settings: message.settings
-        })).catch(err => console.error('Failed to persist db:', err));
-        
-        const settingsPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/settings`);
-        set(settingsPersistRef, sanitizeForFirebase(message.settings)).catch(err => console.error('Failed to persist settings:', err));
-      } else if (message.type === 'STATE_CHANGED') {
-        const statePersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/state`);
-        set(statePersistRef, sanitizeForFirebase(message.state)).catch(err => console.error('Failed to persist state:', err));
-      } else if (message.type === 'SETTINGS_CHANGED') {
-        const settingsPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/settings`);
-        set(settingsPersistRef, sanitizeForFirebase(message.settings)).catch(err => console.error('Failed to persist settings:', err));
-      }
+        const roomRef = ref(rtdb, `rooms/${ROOM_CODE}/lastMessage`);
+        set(roomRef, sanitizeForFirebase(envelope)).catch(err => {
+          console.error('Failed to send message via Firebase:', err);
+        });
+
+        // Persist states in Firebase RTDB
+        if (message.type === 'DATABASE_SYNC') {
+          const dbPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/db`);
+          set(dbPersistRef, sanitizeForFirebase({
+            members: message.members,
+            questions: message.questions,
+            settings: message.settings
+          })).catch(err => console.error('Failed to persist db:', err));
+          
+          const settingsPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/settings`);
+          set(settingsPersistRef, sanitizeForFirebase(message.settings)).catch(err => console.error('Failed to persist settings:', err));
+        } else if (message.type === 'STATE_CHANGED') {
+          const statePersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/state`);
+          set(statePersistRef, sanitizeForFirebase(message.state)).catch(err => console.error('Failed to persist state:', err));
+        } else if (message.type === 'SETTINGS_CHANGED') {
+          const settingsPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/settings`);
+          set(settingsPersistRef, sanitizeForFirebase(message.settings)).catch(err => console.error('Failed to persist settings:', err));
+        }
+      }).catch(err => {
+        console.error('Error checking room existence before Firebase write:', err);
+      });
     }
   },
 

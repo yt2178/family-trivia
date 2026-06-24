@@ -4,7 +4,7 @@ import { sync } from '../../utils/sync';
 import { excelHelper } from '../../utils/excelHelper';
 import { audioHelper } from '../../utils/audioHelper';
 import { rtdb } from '../../utils/firebase';
-import { ref, onValue, off, set, remove } from 'firebase/database';
+import { ref, onValue, off, set, remove, get } from 'firebase/database';
 
 export const CONTESTANT_COLORS = [
   {
@@ -216,7 +216,14 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const roomCode = sync.getRoomCode();
     if (roomCode) {
       const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
-      set(controllerStatusRef, true);
+      const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
+      
+      // Only set controller status if room exists to avoid creating data for non-existent rooms
+      get(roomRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          set(controllerStatusRef, true);
+        }
+      }).catch(err => console.error("Error checking room existence:", err));
 
       // Broadcast controller connection locally for instant tab-to-tab sync
       sync.sendMessage({ type: 'CONTROLLER_CONNECTED', roomCode });
@@ -227,7 +234,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
 
       return () => {
-        set(controllerStatusRef, false);
+        get(roomRef).then((snapshot) => {
+          if (snapshot.exists()) {
+            set(controllerStatusRef, false);
+          }
+        }).catch(err => console.error("Error checking room existence:", err));
         off(statusRef);
       };
     }

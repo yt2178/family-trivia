@@ -34,7 +34,7 @@ function App() {
   const [hostName, setHostName] = useState<string>(() => localStorage.getItem('host_name') || '');
   const [isCheckingRoom, setIsCheckingRoom] = useState<boolean>(false);
   const [roomWarningCode, setRoomWarningCode] = useState<string | null>(null);
-  const [treeLayoutChoice, setTreeLayoutChoice] = useState<'traditional' | 'none'>('traditional');
+  const [treeLayoutChoice, setTreeLayoutChoice] = useState<'traditional' | 'none'>('none');
   const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
