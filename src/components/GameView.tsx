@@ -765,8 +765,8 @@ export const GameView: React.FC = React.memo(() => {
               <h2 className="text-3xl font-extrabold text-amber-400 animate-pulse flex items-center justify-center gap-2">
                 <span>⏳ המנחה עדיין עורך את פרטי המשחק...</span>
               </h2>
-              <p className="text-slate-350 text-base max-w-md mx-auto">
-                המנחה עורך כעת את <strong className="text-teal-455">שלב {settings.wizardStep || 1}: {
+              <p className="text-slate-300 text-base max-w-md mx-auto">
+                המנחה עורך כעת את <strong className="text-teal-400">שלב {settings.wizardStep || 1}: {
                   settings.wizardStep === 1 ? 'פרטי חדר' :
                   settings.wizardStep === 2 ? 'בחירת מתמודדים' :
                   settings.wizardStep === 3 ? (settings.treeLayout === 'traditional' ? 'הוספת שחקנים ועץ משפחתי' : 'הוספת שחקנים') :
@@ -775,7 +775,7 @@ export const GameView: React.FC = React.memo(() => {
                   settings.wizardStep === 6 ? 'סיכום ואישור' : 'עריכת פרטי המשחק'
                 }</strong>.
               </p>
-              <p className="text-emerald-405 text-sm font-black mt-2 animate-bounce">
+              <p className="text-emerald-400 text-sm font-black mt-2 animate-bounce">
                 המסך ייפתח אוטומטית ברגע שהוא ייסיים! 🚀
               </p>
               {sync.getRoomCode() && (
