@@ -6,7 +6,7 @@ import { FamilyTree } from './FamilyTree';
 import { Trophy, Volume2, Award, Sparkles, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { rtdb } from '../utils/firebase';
-import { ref, set } from 'firebase/database';
+import { ref, set, onValue, off } from 'firebase/database';
 
 function CountdownTimer({ duration, isRevealed, currentQuestionId }: { duration: number; isRevealed: boolean; currentQuestionId: string }) {
   const [timeLeft, setTimeLeft] = useState(duration);
@@ -178,7 +178,7 @@ export const GameView: React.FC = React.memo(() => {
           if (data) {
             const fbMembers = data.db?.members || [];
             const fbQuestions = data.db?.questions || [];
-            const fbSettings = data.db?.settings || data.settings || {};
+            const fbSettings = data.settings || data.db?.settings || {};
             const fbState = data.state || data.db?.state || {};
 
             db.saveMembers(fbMembers);
@@ -224,6 +224,72 @@ export const GameView: React.FC = React.memo(() => {
         set(statusRef, false);
       };
     }
+  }, []);
+
+  // Real-time Firebase database listeners for GameView settings/state/members/questions
+  useEffect(() => {
+    const roomCode = sync.getRoomCode();
+    if (!roomCode) return;
+
+    // Listen to settings
+    const settingsRef = ref(rtdb, `rooms/${roomCode}/database/settings`);
+    const unsubscribeSettings = onValue(settingsRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        const healedSettings = healSettings(val);
+        db.saveSettings(healedSettings);
+        setSettings(healedSettings);
+      }
+    });
+
+    // Listen to state
+    const stateRef = ref(rtdb, `rooms/${roomCode}/database/state`);
+    const unsubscribeState = onValue(stateRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        db.saveGameState(val);
+        setGameState(prev => {
+          if (!prev.isRevealed && val.isRevealed) {
+            playGameSound('reveal');
+          }
+          const totalQ = val.shuffledQuestionIds?.length || 0;
+          const prevTotalQ = prev.shuffledQuestionIds?.length || 0;
+          const prevGameOver = prevTotalQ > 0 && prev.currentQuestionIndex >= prevTotalQ;
+          const newGameOver = totalQ > 0 && val.currentQuestionIndex >= totalQ;
+          if (!prevGameOver && newGameOver) {
+            playGameSound('winner');
+          }
+          return val;
+        });
+      }
+    });
+
+    // Listen to members
+    const membersRef = ref(rtdb, `rooms/${roomCode}/database/db/members`);
+    const unsubscribeMembers = onValue(membersRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        db.saveMembers(val);
+        setMembers(val);
+      }
+    });
+
+    // Listen to questions
+    const questionsRef = ref(rtdb, `rooms/${roomCode}/database/db/questions`);
+    const unsubscribeQuestions = onValue(questionsRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        db.saveQuestions(val);
+        setQuestions(val);
+      }
+    });
+
+    return () => {
+      unsubscribeSettings();
+      unsubscribeState();
+      unsubscribeMembers();
+      unsubscribeQuestions();
+    };
   }, []);
 
   const [isAudioSuspended, setIsAudioSuspended] = useState(false);
