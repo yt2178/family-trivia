@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db, FamilyMember, GameSettings, GameState, TriviaQuestion, Contestant } from '../../utils/db';
+import { db, FamilyMember, GameSettings, GameState, TriviaQuestion, Contestant, healGameState } from '../../utils/db';
 import { sync } from '../../utils/sync';
 import { excelHelper } from '../../utils/excelHelper';
 import { audioHelper } from '../../utils/audioHelper';
@@ -451,7 +451,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             db.saveSettings(mergedSettings);
             
             const currentGameState = db.getGameState();
-            const mergedState = { ...currentGameState, ...fbState };
+            const mergedState = healGameState({ ...currentGameState, ...fbState }, mergedSettings);
             db.saveGameState(mergedState);
 
             setMembers(healed);
@@ -515,8 +515,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         db.saveQuestions(msg.questions);
         db.saveSettings(healedSettings);
       } else if (msg.type === 'STATE_CHANGED') {
-        setGameState(msg.state);
-        db.saveGameState(msg.state);
+        const healedState = healGameState(msg.state, settings);
+        setGameState(healedState);
+        db.saveGameState(healedState);
       } else if (msg.type === 'SETTINGS_CHANGED') {
         const healedSettings = healSettings(msg.settings);
         setSettings(healedSettings);
@@ -546,12 +547,14 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     });
     // Clean up scores of removed contestants
-    Object.keys(newScores).forEach(key => {
-      if (!(newSettings.contestants || []).some(c => c.id === key)) {
-        delete newScores[key];
-        scoreChanged = true;
-      }
-    });
+    if (newScores && typeof newScores === 'object') {
+      Object.keys(newScores).forEach(key => {
+        if (!(newSettings.contestants || []).some(c => c.id === key)) {
+          delete newScores[key];
+          scoreChanged = true;
+        }
+      });
+    }
     
     if (scoreChanged && gameState) {
       const updatedState = { ...gameState, scores: newScores };
@@ -608,13 +611,13 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const currentQId = (gameState.shuffledQuestionIds || [])[gameState.currentQuestionIndex];
     if (!currentQId) return;
 
-    const currentSolvedValue = gameState.solvedQuestions[currentQId];
-    const currentWinners = (!currentSolvedValue || currentSolvedValue === 'nobody') 
-      ? [] 
+    const currentSolvedValue = (gameState.solvedQuestions || {})[currentQId];
+    const currentWinners = (!currentSolvedValue || currentSolvedValue === 'nobody')
+      ? []
       : currentSolvedValue.split(',');
 
-    const newScores = { ...gameState.scores };
-    let newSolved = { ...gameState.solvedQuestions };
+    const newScores = { ...(gameState.scores || {}) };
+    let newSolved = { ...(gameState.solvedQuestions || {}) };
     let isUndo = false;
 
     if (winner === 'nobody') {

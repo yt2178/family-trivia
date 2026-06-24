@@ -83,6 +83,58 @@ const DEFAULT_GAME_STATE: GameState = {
   isPlaying: false,
 };
 
+// Healing function for GameState to handle null/undefined from Firebase
+export const healGameState = (s: any, settings?: GameSettings): GameState => {
+  const defaultState = { ...DEFAULT_GAME_STATE };
+  if (!s) return defaultState;
+  const parsed = { ...s };
+  
+  // Ensure scores is an object
+  if (!parsed.scores || typeof parsed.scores !== 'object') {
+    parsed.scores = {};
+  }
+  
+  // Ensure solvedQuestions is an object
+  if (!parsed.solvedQuestions || typeof parsed.solvedQuestions !== 'object') {
+    parsed.solvedQuestions = {};
+  }
+  
+  // Ensure revealedSpeakers is an object
+  if (!parsed.revealedSpeakers || typeof parsed.revealedSpeakers !== 'object') {
+    parsed.revealedSpeakers = {};
+  }
+  
+  // Ensure shuffledQuestionIds is an array
+  if (!Array.isArray(parsed.shuffledQuestionIds)) {
+    parsed.shuffledQuestionIds = [];
+  }
+  
+  // Ensure numeric fields
+  if (typeof parsed.currentQuestionIndex !== 'number') {
+    parsed.currentQuestionIndex = 0;
+  }
+  
+  // Ensure boolean fields
+  if (typeof parsed.isRevealed !== 'boolean') {
+    parsed.isRevealed = false;
+  }
+  
+  if (typeof parsed.isPlaying !== 'boolean') {
+    parsed.isPlaying = false;
+  }
+  
+  // Ensure all contestants have scores
+  if (settings && settings.contestants) {
+    settings.contestants.forEach(c => {
+      if (parsed.scores[c.id] === undefined) {
+        parsed.scores[c.id] = 0;
+      }
+    });
+  }
+  
+  return parsed;
+};
+
 const safeLocalStorageSet = (key: string, value: string): boolean => {
   try {
     localStorage.setItem(key, value);

@@ -84,14 +84,16 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
     const newExpanded = new Set(expandedNodes);
     
     // When a member is revealed, expand their parent to show them
-    Object.keys(revealedMembers).forEach(memberId => {
-      if (revealedMembers[memberId]) {
-        const member = layout.nodes.find(n => n.id === memberId);
-        if (member && member.parentId) {
-          newExpanded.add(member.parentId);
+    if (revealedMembers && typeof revealedMembers === 'object') {
+      Object.keys(revealedMembers).forEach(memberId => {
+        if (revealedMembers[memberId]) {
+          const member = layout.nodes.find(n => n.id === memberId);
+          if (member && member.parentId) {
+            newExpanded.add(member.parentId);
+          }
         }
-      }
-    });
+      });
+    }
     
     setExpandedNodes(newExpanded);
   }, [revealedMembers]);

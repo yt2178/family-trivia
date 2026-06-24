@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { db, FamilyMember, GameSettings, GameState } from '../utils/db';
+import { db, FamilyMember, GameSettings, GameState, healGameState } from '../utils/db';
 import { sync } from '../utils/sync';
 import { audioHelper } from '../utils/audioHelper';
 import { FamilyTree } from './FamilyTree';
@@ -192,7 +192,7 @@ export const GameView: React.FC = React.memo(() => {
             db.saveSettings(mergedSettings);
             
             const currentGameState = db.getGameState();
-            const mergedState = { ...currentGameState, ...fbState };
+            const mergedState = healGameState({ ...currentGameState, ...fbState }, mergedSettings);
             db.saveGameState(mergedState);
 
             setMembers(fbMembers);
@@ -250,19 +250,20 @@ export const GameView: React.FC = React.memo(() => {
     const unsubscribeState = onValue(stateRef, (snapshot) => {
       const val = snapshot.val();
       if (val) {
-        db.saveGameState(val);
+        const healedState = healGameState(val, settings);
+        db.saveGameState(healedState);
         setGameState(prev => {
-          if (!prev.isRevealed && val.isRevealed) {
+          if (!prev.isRevealed && healedState.isRevealed) {
             playGameSound('reveal');
           }
-          const totalQ = val.shuffledQuestionIds?.length || 0;
+          const totalQ = healedState.shuffledQuestionIds?.length || 0;
           const prevTotalQ = prev.shuffledQuestionIds?.length || 0;
           const prevGameOver = prevTotalQ > 0 && prev.currentQuestionIndex >= prevTotalQ;
-          const newGameOver = totalQ > 0 && val.currentQuestionIndex >= totalQ;
+          const newGameOver = totalQ > 0 && healedState.currentQuestionIndex >= totalQ;
           if (!prevGameOver && newGameOver) {
             playGameSound('winner');
           }
-          return val;
+          return healedState;
         });
       }
     });
@@ -331,18 +332,19 @@ export const GameView: React.FC = React.memo(() => {
   useEffect(() => {
     const unsubscribe = sync.subscribe((msg) => {
       if (msg.type === 'STATE_CHANGED') {
+        const healedState = healGameState(msg.state, settings);
         setGameState(prev => {
-          if (!prev.isRevealed && msg.state.isRevealed) {
+          if (!prev.isRevealed && healedState.isRevealed) {
             playGameSound('reveal');
           }
-          const totalQ = msg.state.shuffledQuestionIds?.length || 0;
+          const totalQ = healedState.shuffledQuestionIds?.length || 0;
           const prevTotalQ = prev.shuffledQuestionIds?.length || 0;
           const prevGameOver = prevTotalQ > 0 && prev.currentQuestionIndex >= prevTotalQ;
-          const newGameOver = totalQ > 0 && msg.state.currentQuestionIndex >= totalQ;
+          const newGameOver = totalQ > 0 && healedState.currentQuestionIndex >= totalQ;
           if (!prevGameOver && newGameOver) {
             playGameSound('winner');
           }
-          return msg.state;
+          return healedState;
         });
       } else if (msg.type === 'SETTINGS_CHANGED') {
         const healedSettings = healSettings(msg.settings);

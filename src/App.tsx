@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { rtdb } from './utils/firebase';
 import { ref, onValue, off, set, get, child } from 'firebase/database';
 import { sync, useConnectionStatus } from './utils/sync';
+import { healGameState, db } from './utils/db';
 
 function ConnectionStatusBadge() {
   const connected = useConnectionStatus();
@@ -248,7 +249,10 @@ function App() {
             if (data.db.settings) localStorage.setItem('family_game_settings', JSON.stringify(data.db.settings));
           }
           if (data.state) {
-            localStorage.setItem('family_game_state', JSON.stringify(data.state));
+            // Heal the game state to ensure null/undefined fields are properly initialized
+            const settings = data.db?.settings || data.settings || db.getSettings();
+            const healedState = healGameState(data.state, settings);
+            localStorage.setItem('family_game_state', JSON.stringify(healedState));
           }
         }
       } catch (e) {
@@ -373,7 +377,10 @@ function App() {
           localStorage.removeItem('family_game_settings');
         }
         if (data.state) {
-          localStorage.setItem('family_game_state', JSON.stringify(data.state));
+          // Heal the game state to ensure null/undefined fields are properly initialized
+          const settings = data.db?.settings || data.settings || db.getSettings();
+          const healedState = healGameState(data.state, settings);
+          localStorage.setItem('family_game_state', JSON.stringify(healedState));
         } else {
           localStorage.removeItem('family_game_state');
         }
