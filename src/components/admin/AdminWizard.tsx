@@ -204,7 +204,7 @@ export const AdminWizard: React.FC = () => {
     if (currentStep === 3) {
       if (members.length === 0) {
         setWizardConfirmModal({
-          message: "⚠️ שים לב: לא נוספו כרגע שחקנים. אפשר יהיה תמיד להוסיף שחקנים בהמשך דרך ממשק עריכת החדר (בוויזארד).\n\nאו שתוכלו להוריד פה את קובץ האקסל למילוי, למלא אותו ולהעלות אותו בהמשך:",
+          message: "⚠️ שים לב: לא נוספו כרגע שחקנים. אפשר יהיה תמיד להוסיף שחקנים בהמשך דרך ממשק עריכת החדר.\n\nאו שתוכלו להוריד פה את קובץ האקסל למילוי, למלא אותו ולהעלות אותו בהמשך:",
           showExcelDownload: 'players',
           onConfirm: () => {
             setWizardConfirmModal(null);
@@ -218,7 +218,7 @@ export const AdminWizard: React.FC = () => {
     if (currentStep === 4) {
       if (questions.length === 0) {
         setWizardConfirmModal({
-          message: "⚠️ שים לב: לא נוספו כרגע שאלות. אפשר יהיה תמיד להוסיף שאלות בהמשך דרך ממשק עריכת החדר (בוויזארד).\n\nאו שתוכלו להוריד פה את קובץ האקסל למילוי, למלא אותו ולהעלות אותו בהמשך:",
+          message: "⚠️ שים לב: לא נוספו כרגע שאלות. אפשר יהיה תמיד להוסיף שאלות בהמשך דרך ממשק עריכת החדר.\n\nאו שתוכלו להוריד פה את קובץ האקסל למילוי, למלא אותו ולהעלות אותו בהמשך:",
           showExcelDownload: 'questions',
           onConfirm: () => {
             setWizardConfirmModal(null);
@@ -1009,8 +1009,11 @@ export const AdminWizard: React.FC = () => {
                     onChange={e => setNewQuestion({ ...newQuestion, speakerId: e.target.value })}
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-350 text-xs focus:outline-none focus:border-emerald-500 font-bold"
                   >
-                    <option value="">-- ללא שיוך (שאלה כללית לכולם) --</option>
-                    <option value="general">❓ שאלה כללית (ללא שיוך לבן משפחה)</option>
+                    {wizardTreeLayout === 'none' ? (
+                      <option value="">-- ללא שיוך (שאלה כללית לכולם) --</option>
+                    ) : (
+                      <option value="general">❓ שאלה כללית (ללא שיוך לבן משפחה)</option>
+                    )}
                     {members.map(m => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}

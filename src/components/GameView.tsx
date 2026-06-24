@@ -3,7 +3,7 @@ import { db, FamilyMember, GameSettings, GameState } from '../utils/db';
 import { sync } from '../utils/sync';
 import { audioHelper } from '../utils/audioHelper';
 import { FamilyTree } from './FamilyTree';
-import { Trophy, Volume2, Award, Sparkles, RefreshCw } from 'lucide-react';
+import { Trophy, Volume2, Award, Sparkles, RefreshCw, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { rtdb } from '../utils/firebase';
 import { ref, set, onValue, off } from 'firebase/database';
@@ -293,6 +293,19 @@ export const GameView: React.FC = React.memo(() => {
   }, []);
 
   const [isAudioSuspended, setIsAudioSuspended] = useState(false);
+  const [isBgMusicMuted, setIsBgMusicMuted] = useState(false);
+
+  // Background music effect
+  useEffect(() => {
+    if (!isAudioSuspended && !isBgMusicMuted) {
+      audioHelper.startBackgroundMusic();
+    } else {
+      audioHelper.stopBackgroundMusic();
+    }
+    return () => {
+      audioHelper.stopBackgroundMusic();
+    };
+  }, [isAudioSuspended, isBgMusicMuted]);
 
   useEffect(() => {
     const ctx = audioHelper.getContext();
@@ -702,6 +715,17 @@ export const GameView: React.FC = React.memo(() => {
         {/* Canvas for Confetti */}
         <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
         
+        {/* Background Music Toggle Button */}
+        {!isAudioSuspended && (
+          <button
+            onClick={() => setIsBgMusicMuted(prev => !prev)}
+            className="fixed top-6 left-6 z-50 p-3 bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-emerald-400 rounded-full border border-slate-800/80 hover:border-emerald-500/30 transition-all duration-300 shadow-lg flex items-center justify-center backdrop-blur-sm"
+            title={isBgMusicMuted ? "הפעל מוזיקת רקע" : "השתק מוזיקת רקע"}
+          >
+            {isBgMusicMuted ? <VolumeX size={20} /> : <Volume2 size={20} className="animate-pulse" />}
+          </button>
+        )}
+
         {/* Decorative blur elements */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
@@ -763,10 +787,10 @@ export const GameView: React.FC = React.memo(() => {
           {settings?.setupComplete === false ? (
             <div className="space-y-3">
               <h2 className="text-3xl font-extrabold text-amber-400 animate-pulse flex items-center justify-center gap-2">
-                <span>⏳ המנחה עדיין עורך את פרטי המשחק...</span>
+                <span>⏳ {settings.hostName || 'המנחה'} עדיין עורך את פרטי המשחק...</span>
               </h2>
               <p className="text-slate-300 text-base max-w-md mx-auto">
-                המנחה עורך כעת את <strong className="text-teal-400">שלב {settings.wizardStep || 1}: {
+                {settings.hostName || 'המנחה'} עורך כעת את <strong className="text-teal-400">שלב {settings.wizardStep || 1}: {
                   settings.wizardStep === 1 ? 'פרטי חדר' :
                   settings.wizardStep === 2 ? 'בחירת מתמודדים' :
                   settings.wizardStep === 3 ? (settings.treeLayout === 'traditional' ? 'הוספת שחקנים ועץ משפחתי' : 'הוספת שחקנים') :
@@ -814,6 +838,17 @@ export const GameView: React.FC = React.memo(() => {
     <div className={`relative w-full min-h-screen bg-gradient-to-b ${getThemeBackground()} text-slate-100 flex flex-col p-6 overflow-hidden`}>
       {/* Canvas for Confetti */}
       <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
+
+      {/* Background Music Toggle Button */}
+      {!isAudioSuspended && (
+        <button
+          onClick={() => setIsBgMusicMuted(prev => !prev)}
+          className="fixed top-6 left-6 z-50 p-3 bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-emerald-400 rounded-full border border-slate-800/80 hover:border-emerald-500/30 transition-all duration-300 shadow-lg flex items-center justify-center backdrop-blur-sm"
+          title={isBgMusicMuted ? "הפעל מוזיקת רקע" : "השתק מוזיקת רקע"}
+        >
+          {isBgMusicMuted ? <VolumeX size={20} /> : <Volume2 size={20} className="animate-pulse" />}
+        </button>
+      )}
 
       {/* Header */}
       <header className="flex justify-between items-center mb-6 z-10">

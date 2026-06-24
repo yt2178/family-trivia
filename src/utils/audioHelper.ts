@@ -138,6 +138,88 @@ export class AudioHelper {
       console.warn("Audio playing tone failed:", e);
     }
   }
+
+  private bgOscs: OscillatorNode[] = [];
+  private bgGain: GainNode | null = null;
+  private bgInterval: number | null = null;
+  private isBgPlaying = false;
+
+  startBackgroundMusic() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx || this.isBgPlaying) return;
+
+    this.isBgPlaying = true;
+    this.bgGain = ctx.createGain();
+    this.bgGain.connect(ctx.destination);
+    this.bgGain.gain.setValueAtTime(0.015, ctx.currentTime); // Soft and ambient volume
+
+    // Ambient progression: Am - F - C - G
+    const progressions = [
+      [220.00, 261.63, 329.63], // A3, C4, E4 (Am)
+      [174.61, 220.00, 261.63], // F3, A3, C4 (F)
+      [261.63, 329.63, 392.00], // C4, E4, G4 (C)
+      [196.00, 246.94, 293.66]  // G3, B3, D4 (G)
+    ];
+
+    let currentChord = 0;
+    let step = 0;
+
+    const playStep = () => {
+      if (!this.isBgPlaying || !this.ctx) return;
+      
+      const chord = progressions[currentChord];
+      const noteFreq = chord[step % chord.length];
+      
+      const osc = this.ctx.createOscillator();
+      const gainNode = this.ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(noteFreq, this.ctx.currentTime);
+      
+      osc.connect(gainNode);
+      if (this.bgGain) {
+        gainNode.connect(this.bgGain);
+      }
+      
+      // Gentle attack and decay
+      gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.12, this.ctx.currentTime + 0.15);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.2);
+      
+      osc.start();
+      
+      setTimeout(() => {
+        try {
+          osc.stop();
+          osc.disconnect();
+          gainNode.disconnect();
+        } catch (e) {}
+      }, 1300);
+
+      step++;
+      if (step % 4 === 0) {
+        currentChord = (currentChord + 1) % progressions.length;
+      }
+    };
+
+    // Play every 400ms
+    this.bgInterval = window.setInterval(playStep, 400);
+  }
+
+  stopBackgroundMusic() {
+    this.isBgPlaying = false;
+    if (this.bgInterval) {
+      clearInterval(this.bgInterval);
+      this.bgInterval = null;
+    }
+    if (this.bgGain) {
+      try {
+        this.bgGain.disconnect();
+      } catch (e) {}
+      this.bgGain = null;
+    }
+  }
 }
 
 export const audioHelper = new AudioHelper();
