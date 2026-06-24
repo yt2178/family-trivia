@@ -331,7 +331,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } else {
         setAdminSubMode('wizard');
         if (!hasInitializedWizard) {
-          setShowMidSetupNotice(true);
+          const currentStep = draft?.wizardStep || settings.wizardStep || 1;
+          if (currentStep > 1) {
+            setShowMidSetupNotice(true);
+          }
         }
       }
     }
