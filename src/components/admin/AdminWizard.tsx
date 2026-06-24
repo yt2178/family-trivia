@@ -495,9 +495,9 @@ export const AdminWizard: React.FC = () => {
           <button
             type="button"
             onClick={handleSkip}
-            className="text-xs text-emerald-400 hover:text-emerald-350 hover:border-emerald-500/30 transition-colors font-bold px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-900/30 flex items-center gap-1"
+            className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg border border-emerald-500/30 flex items-center gap-1 shadow-md shadow-emerald-900/20"
           >
-            <span>מעבר לשלט המשחק 🎮</span>
+            <span>🎮 עבור לשלט משחק</span>
           </button>
         </div>
       </div>
