@@ -95,8 +95,14 @@ function App() {
 
     const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
     
-    // Reset stale remote connection state
-    set(controllerStatusRef, false).catch(err => console.error("Error resetting stale remote connection status:", err));
+    // Only set if room exists to avoid creating data for non-existent rooms
+    const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
+    get(roomRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        // Reset stale remote connection state
+        set(controllerStatusRef, false).catch(err => console.error("Error resetting stale remote connection status:", err));
+      }
+    }).catch(err => console.error("Error checking room existence:", err));
 
     const unsubscribe = onValue(controllerStatusRef, (snapshot) => {
       if (snapshot.exists() && snapshot.val() === true) {

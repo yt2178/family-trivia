@@ -467,6 +467,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setGameState(mergedState);
             setIsLoading(false);
             return;
+          } else {
+            // Room doesn't exist, redirect to home with error
+            alert('❌ החדר לא קיים במערכת. אנא בדוק את מספר החדר ונסה שוב.');
+            window.location.href = window.location.origin + window.location.pathname;
+            return;
           }
         } catch (e) {
           console.error("Failed to fetch initial room database from Firebase, falling back to localStorage", e);

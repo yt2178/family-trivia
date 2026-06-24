@@ -6,7 +6,7 @@ import { FamilyTree } from './FamilyTree';
 import { Trophy, Volume2, Award, Sparkles, RefreshCw, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { rtdb } from '../utils/firebase';
-import { ref, set, onValue, off } from 'firebase/database';
+import { ref, set, onValue, off, get } from 'firebase/database';
 
 function CountdownTimer({ duration, isRevealed, currentQuestionId }: { duration: number; isRevealed: boolean; currentQuestionId: string }) {
   const [timeLeft, setTimeLeft] = useState(duration);
@@ -201,6 +201,11 @@ export const GameView: React.FC = React.memo(() => {
             setGameState(mergedState);
             setIsLoading(false);
             return;
+          } else {
+            // Room doesn't exist, redirect to home with error
+            alert('❌ החדר לא קיים במערכת. אנא בדוק את מספר החדר ונסה שוב.');
+            window.location.href = window.location.origin + window.location.pathname;
+            return;
           }
         } catch (e) {
           console.error("Failed to load initial room database for GameView from Firebase, falling back to localStorage", e);
@@ -221,10 +226,21 @@ export const GameView: React.FC = React.memo(() => {
     const roomCode = sync.getRoomCode();
     if (roomCode) {
       const statusRef = ref(rtdb, `rooms/${roomCode}/gameScreenConnected`);
-      set(statusRef, true);
+      // Only set if room exists to avoid creating data for non-existent rooms
+      const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
+      get(roomRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          set(statusRef, true);
+        }
+      }).catch(err => console.error("Error checking room existence:", err));
       
       return () => {
-        set(statusRef, false);
+        const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
+        get(roomRef).then((snapshot) => {
+          if (snapshot.exists()) {
+            set(statusRef, false);
+          }
+        }).catch(err => console.error("Error checking room existence:", err));
       };
     }
   }, []);
