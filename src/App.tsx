@@ -386,24 +386,9 @@ function App() {
   };
 
   const handleOpenProjector = async () => {
-    const { ok, settings: roomSettings } = await verifyAndJoin();
+    const { ok } = await verifyAndJoin();
     if (!ok) return;
     const cleanCode = inputRoomCode.trim();
-    // Check if host finished setup
-    if (!roomSettings?.setupComplete) {
-      setJoinError('');
-      setJoinWaiting(true);
-      // Listen for setupComplete to become true
-      const settingsRef = ref(rtdb, `rooms/${cleanCode}/database/settings/setupComplete`);
-      const unsub = onValue(settingsRef, (snap) => {
-        if (snap.val() === true) {
-          off(settingsRef);
-          localStorage.setItem('last_connected_room', cleanCode);
-          window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${cleanCode}`;
-        }
-      });
-      return;
-    }
     localStorage.setItem('last_connected_room', cleanCode);
     window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${cleanCode}`;
   };
