@@ -112,6 +112,26 @@ if (ROOM_CODE) {
     }
   });}
 
+function sanitizeForFirebase(obj: any): any {
+  if (obj === null || obj === undefined) return null;
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeForFirebase);
+  }
+  if (typeof obj === 'object') {
+    const clean: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const val = obj[key];
+        if (val !== undefined) {
+          clean[key] = sanitizeForFirebase(val);
+        }
+      }
+    }
+    return clean;
+  }
+  return obj;
+}
+
 export const sync = {
   getRoomCode(): string | null {
     return ROOM_CODE;
@@ -167,27 +187,27 @@ export const sync = {
     // B. Send via Firebase Cloud if room exists
     if (ROOM_CODE) {
       const roomRef = ref(rtdb, `rooms/${ROOM_CODE}/lastMessage`);
-      set(roomRef, envelope).catch(err => {
+      set(roomRef, sanitizeForFirebase(envelope)).catch(err => {
         console.error('Failed to send message via Firebase:', err);
       });
 
       // Persist states in Firebase RTDB
       if (message.type === 'DATABASE_SYNC') {
         const dbPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/db`);
-        set(dbPersistRef, {
+        set(dbPersistRef, sanitizeForFirebase({
           members: message.members,
           questions: message.questions,
           settings: message.settings
-        }).catch(err => console.error('Failed to persist db:', err));
+        })).catch(err => console.error('Failed to persist db:', err));
         
         const settingsPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/settings`);
-        set(settingsPersistRef, message.settings).catch(err => console.error('Failed to persist settings:', err));
+        set(settingsPersistRef, sanitizeForFirebase(message.settings)).catch(err => console.error('Failed to persist settings:', err));
       } else if (message.type === 'STATE_CHANGED') {
         const statePersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/state`);
-        set(statePersistRef, message.state).catch(err => console.error('Failed to persist state:', err));
+        set(statePersistRef, sanitizeForFirebase(message.state)).catch(err => console.error('Failed to persist state:', err));
       } else if (message.type === 'SETTINGS_CHANGED') {
         const settingsPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/settings`);
-        set(settingsPersistRef, message.settings).catch(err => console.error('Failed to persist settings:', err));
+        set(settingsPersistRef, sanitizeForFirebase(message.settings)).catch(err => console.error('Failed to persist settings:', err));
       }
     }
   },

@@ -204,7 +204,7 @@ export const AdminWizard: React.FC = () => {
     if (currentStep === 3) {
       if (members.length === 0) {
         setWizardConfirmModal({
-          message: "⚠️ שים לב: לא נוספו כרגע שחקנים. אפשר יהיה תמיד להוסיף שחקנים בהמשך דרך ממשק עריכת החדר (בוויזארד).\n\nאו שתוכלו להוריד פה את קובץ האקסל לדוגמה, למלא אותו ולהעלות אותו בהמשך:",
+          message: "⚠️ שים לב: לא נוספו כרגע שחקנים. אפשר יהיה תמיד להוסיף שחקנים בהמשך דרך ממשק עריכת החדר (בוויזארד).\n\nאו שתוכלו להוריד פה את קובץ האקסל למילוי, למלא אותו ולהעלות אותו בהמשך:",
           showExcelDownload: 'players',
           onConfirm: () => {
             setWizardConfirmModal(null);
@@ -218,7 +218,7 @@ export const AdminWizard: React.FC = () => {
     if (currentStep === 4) {
       if (questions.length === 0) {
         setWizardConfirmModal({
-          message: "⚠️ שים לב: לא נוספו כרגע שאלות. אפשר יהיה תמיד להוסיף שאלות בהמשך דרך ממשק עריכת החדר (בוויזארד).\n\nאו שתוכלו להוריד פה את קובץ האקסל לדוגמה, למלא אותו ולהעלות אותו בהמשך:",
+          message: "⚠️ שים לב: לא נוספו כרגע שאלות. אפשר יהיה תמיד להוסיף שאלות בהמשך דרך ממשק עריכת החדר (בוויזארד).\n\nאו שתוכלו להוריד פה את קובץ האקסל למילוי, למלא אותו ולהעלות אותו בהמשך:",
           showExcelDownload: 'questions',
           onConfirm: () => {
             setWizardConfirmModal(null);
@@ -283,23 +283,28 @@ export const AdminWizard: React.FC = () => {
   };
 
   const handleFinish = () => {
-    const activeContestants = wizardContestants.slice(0, wizardContestantCount);
-    updateSettings({ 
-      ...settings, 
-      hostName: wizardHostName,
-      treeLayout: wizardTreeLayout,
-      contestants: activeContestants,
-      grandpaName: activeContestants[0]?.name || 'כחול',
-      grandmaName: activeContestants[1]?.name || 'סגול',
-      grandpaImage: activeContestants[0]?.image || null,
-      grandmaImage: activeContestants[1]?.image || null,
-      questionTimer: wizardQuestionTimer,
-      setupComplete: true, 
-      wizardStep: undefined 
-    });
-    const rCode = sync.getRoomCode();
-    if (rCode) localStorage.removeItem(`wizard_draft_${rCode}`);
-    setShowSuccessScreen(true);
+    try {
+      const activeContestants = wizardContestants.slice(0, wizardContestantCount);
+      updateSettings({ 
+        ...settings, 
+        hostName: wizardHostName,
+        treeLayout: wizardTreeLayout,
+        contestants: activeContestants,
+        grandpaName: activeContestants[0]?.name || 'כחול',
+        grandmaName: activeContestants[1]?.name || 'סגול',
+        grandpaImage: activeContestants[0]?.image || null,
+        grandmaImage: activeContestants[1]?.image || null,
+        questionTimer: wizardQuestionTimer,
+        setupComplete: true, 
+        wizardStep: undefined 
+      });
+      const rCode = sync.getRoomCode();
+      if (rCode) localStorage.removeItem(`wizard_draft_${rCode}`);
+      setShowSuccessScreen(true);
+    } catch (err: any) {
+      console.error("Error in handleFinish:", err);
+      alert("שגיאה בסיום הגדרת החדר: " + err.message);
+    }
   };
 
   if (showMidSetupNotice) {
@@ -1137,12 +1142,12 @@ export const AdminWizard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-amber-500/10 border-2 border-amber-500/20 p-4 rounded-2xl text-right space-y-2">
-                <p className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+              <div className="bg-amber-500/10 border-2 border-amber-500/20 p-5 rounded-2xl text-right space-y-2.5 shadow-lg">
+                <p className="text-sm md:text-base font-black text-amber-300 flex items-center gap-2">
                   <span>⚠️ שימו לב - שמרו את פרטי החדר!</span>
                 </p>
-                <p className="text-[10px] text-slate-400 leading-relaxed font-bold">
-                  עליכם לזכור את <strong className="text-amber-400 underline">מספר החדר ({roomCode})</strong> ואת <strong className="text-amber-400 underline">שם המנחה ({wizardHostName})</strong>. אלו הם פרטי הזיהוי של החדר שלכם. ללא שני הפרטים האלה, לא תוכלו לחזור ולהתחבר לחדר זה בהמשך או להפעיל את מסך ההקרנה!
+                <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-bold">
+                  עליכם לזכור את <strong className="text-amber-400 underline font-black">מספר החדר ({roomCode})</strong> ואת <strong className="text-amber-400 underline font-black">שם המנחה ({wizardHostName})</strong>. אלו הם פרטי הזיהוי של החדר שלכם. ללא שני הפרטים האלה, לא תוכלו לחזור ולהתחבר לחדר זה בהמשך או להפעיל את מסך ההקרנה!
                 </p>
               </div>
             </div>
@@ -1204,35 +1209,66 @@ export const AdminWizard: React.FC = () => {
 
               {wizardConfirmModal.showExcelDownload === 'players' && (
                 <div className="flex flex-col gap-2 pt-1 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => excelHelper.downloadTemplate('list')}
-                    className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Download size={12} />
-                    <span>הורד אבטיפוס Excel (רשימה) 📥</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => excelHelper.downloadTemplate('tree')}
-                    className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Download size={12} />
-                    <span>הורד אבטיפוס Excel (עץ משפחתי) 📥</span>
-                  </button>
+                  {wizardTreeLayout === 'none' ? (
+                    <button
+                      type="button"
+                      onClick={() => excelHelper.downloadTemplate('list')}
+                      className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Download size={12} />
+                      <span>הורד אבטיפוס Excel (רשימה) למילוי 📥</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => excelHelper.downloadTemplate('tree')}
+                      className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Download size={12} />
+                      <span>הורד אבטיפוס Excel (עץ משפחתי) למילוי 📥</span>
+                    </button>
+                  )}
+
+                  <label className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center active:scale-95 shadow-md shadow-emerald-950/20">
+                    <Upload size={12} />
+                    <span>העלה קובץ Excel למילוי 📤</span>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={(e) => {
+                        handleWizardImportMembers(e);
+                        setWizardConfirmModal(null);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               )}
 
               {wizardConfirmModal.showExcelDownload === 'questions' && (
-                <div className="pt-1 pb-2">
+                <div className="flex flex-col gap-2 pt-1 pb-2">
                   <button
                     type="button"
                     onClick={() => excelHelper.downloadQuestionsTemplate()}
                     className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Download size={12} />
-                    <span>הורד אבטיפוס Excel (שאלות) 📥</span>
+                    <span>הורד אבטיפוס Excel (שאלות) למילוי 📥</span>
                   </button>
+
+                  <label className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center active:scale-95 shadow-md shadow-emerald-950/20">
+                    <Upload size={12} />
+                    <span>העלה קובץ Excel למילוי 📤</span>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={(e) => {
+                        handleWizardImportQuestions(e);
+                        setWizardConfirmModal(null);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               )}
 

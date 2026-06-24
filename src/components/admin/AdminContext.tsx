@@ -538,7 +538,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     db.saveSettings(newSettings);
     
     // Update scores in gameState for new contestants if not exists
-    const newScores = { ...gameState.scores };
+    const newScores = { ...(gameState?.scores || {}) };
     let scoreChanged = false;
     (newSettings.contestants || []).forEach(c => {
       if (newScores[c.id] === undefined) {
@@ -554,7 +554,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     });
     
-    if (scoreChanged) {
+    if (scoreChanged && gameState) {
       const updatedState = { ...gameState, scores: newScores };
       setGameState(updatedState);
       db.saveGameState(updatedState);
