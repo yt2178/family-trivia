@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminView from './components/AdminView';
 import { GameView } from './components/GameView';
-import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, QrCode, ArrowRight, RefreshCw, Plus } from 'lucide-react';
+import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, QrCode, ArrowRight, RefreshCw, Plus, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { rtdb } from './utils/firebase';
 import { ref, onValue, off, set, get, child } from 'firebase/database';
@@ -23,11 +23,12 @@ function ConnectionStatusBadge() {
 }
 
 function App() {
-  const [mode, setMode] = useState<'welcome' | 'admin' | 'game'>('welcome');
+  const [mode, setMode] = useState<'welcome' | 'admin' | 'game' | 'join-selection' | 'admin-sub-selection'>('welcome');
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const [roomCode, setRoomCode] = useState<string>('');
   const [inputRoomCode, setInputRoomCode] = useState<string>('');
   const [lastRoomCode, setLastRoomCode] = useState<string | null>(null);
+  const [joinSelectionRoom, setJoinSelectionRoom] = useState<string | null>(null);
 
   // Custom states for host name and room confirmation step
   const [hostName, setHostName] = useState<string>(() => localStorage.getItem('host_name') || '');
@@ -357,39 +358,9 @@ function App() {
     const cleanCode = inputRoomCode.trim();
     localStorage.setItem('last_connected_room', cleanCode);
     
-    // Fetch data from Firebase first to populate localStorage
-    try {
-      const roomDbRef = ref(rtdb, `rooms/${cleanCode}/database`);
-      const snap = await get(roomDbRef);
-      if (snap.exists()) {
-        const data = snap.val();
-        if (data.db) {
-          localStorage.setItem('family_game_members', JSON.stringify(data.db.members || []));
-          localStorage.setItem('family_game_questions', JSON.stringify(data.db.questions || []));
-          if (data.db.settings) {
-            localStorage.setItem('family_game_settings', JSON.stringify(data.db.settings));
-          } else {
-            localStorage.removeItem('family_game_settings');
-          }
-        } else {
-          localStorage.setItem('family_game_members', '[]');
-          localStorage.setItem('family_game_questions', '[]');
-          localStorage.removeItem('family_game_settings');
-        }
-        if (data.state) {
-          // Heal the game state to ensure null/undefined fields are properly initialized
-          const settings = data.db?.settings || data.settings || db.getSettings();
-          const healedState = healGameState(data.state, settings);
-          localStorage.setItem('family_game_state', JSON.stringify(healedState));
-        } else {
-          localStorage.removeItem('family_game_state');
-        }
-      }
-    } catch (e) {
-      console.error("Failed to sync room data to localStorage on admin join", e);
-    }
-    
-    window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}`;
+    // Show selection screen instead of going directly to admin
+    setJoinSelectionRoom(cleanCode);
+    setMode('join-selection');
   };
 
   const handleOpenProjector = async () => {
@@ -409,6 +380,191 @@ function App() {
       set(hostNameRef, hostName.trim()).catch(err => console.error(err));
     }
   };
+
+  if (mode === 'join-selection' && joinSelectionRoom) {
+    return (
+      <div className="relative min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-md w-full text-center z-10 space-y-8"
+        >
+          <div className="flex flex-col items-center space-y-3">
+            <div className="inline-flex items-center justify-center p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-3xl shadow-xl">
+              <Sparkles size={48} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 bg-clip-text text-transparent">
+                מה תרצה לעשות?
+              </h1>
+              <p className="text-sm text-slate-400 font-semibold mt-1">
+                חדר מספר: <span className="text-emerald-400 font-mono">{joinSelectionRoom}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <button
+              onClick={() => {
+                window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${joinSelectionRoom}`;
+              }}
+              className="w-full py-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3"
+            >
+              <Tv size={24} />
+              <span>📺 פתח מסך הקרנה</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setMode('admin-sub-selection');
+              }}
+              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3"
+            >
+              <SettingsIcon size={24} />
+              <span>👑 ניהול מנחה</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setMode('welcome');
+                setJoinSelectionRoom(null);
+              }}
+              className="w-full py-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 font-bold text-sm rounded-xl transition-all"
+            >
+              חזרה לדף הבית
+            </button>
+          </div>
+        </motion.div>
+        <ConnectionStatusBadge />
+      </div>
+    );
+  }
+
+  if (mode === 'admin-sub-selection' && joinSelectionRoom) {
+    return (
+      <div className="relative min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-md w-full text-center z-10 space-y-8"
+        >
+          <div className="flex flex-col items-center space-y-3">
+            <div className="inline-flex items-center justify-center p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-3xl shadow-xl">
+              <SettingsIcon size={48} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 bg-clip-text text-transparent">
+                מצב ניהול
+              </h1>
+              <p className="text-sm text-slate-400 font-semibold mt-1">
+                חדר מספר: <span className="text-emerald-400 font-mono">{joinSelectionRoom}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <button
+              onClick={async () => {
+                // Fetch data and go to admin mode with wizard
+                try {
+                  const roomDbRef = ref(rtdb, `rooms/${joinSelectionRoom}/database`);
+                  const snap = await get(roomDbRef);
+                  if (snap.exists()) {
+                    const data = snap.val();
+                    if (data.db) {
+                      localStorage.setItem('family_game_members', JSON.stringify(data.db.members || []));
+                      localStorage.setItem('family_game_questions', JSON.stringify(data.db.questions || []));
+                      if (data.db.settings) {
+                        localStorage.setItem('family_game_settings', JSON.stringify(data.db.settings));
+                      } else {
+                        localStorage.removeItem('family_game_settings');
+                      }
+                    } else {
+                      localStorage.setItem('family_game_members', '[]');
+                      localStorage.setItem('family_game_questions', '[]');
+                      localStorage.removeItem('family_game_settings');
+                    }
+                    if (data.state) {
+                      const settings = data.db?.settings || data.settings || db.getSettings();
+                      const healedState = healGameState(data.state, settings);
+                      localStorage.setItem('family_game_state', JSON.stringify(healedState));
+                    } else {
+                      localStorage.removeItem('family_game_state');
+                    }
+                  }
+                } catch (e) {
+                  console.error("Failed to sync room data to localStorage", e);
+                }
+                window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}`;
+              }}
+              className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-400 hover:from-amber-400 hover:to-orange-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3"
+            >
+              <Pencil size={24} />
+              <span>✏️ עריכת החדר הקיים</span>
+            </button>
+
+            <button
+              onClick={async () => {
+                // Fetch data and go to controller mode
+                try {
+                  const roomDbRef = ref(rtdb, `rooms/${joinSelectionRoom}/database`);
+                  const snap = await get(roomDbRef);
+                  if (snap.exists()) {
+                    const data = snap.val();
+                    if (data.db) {
+                      localStorage.setItem('family_game_members', JSON.stringify(data.db.members || []));
+                      localStorage.setItem('family_game_questions', JSON.stringify(data.db.questions || []));
+                      if (data.db.settings) {
+                        localStorage.setItem('family_game_settings', JSON.stringify(data.db.settings));
+                      } else {
+                        localStorage.removeItem('family_game_settings');
+                      }
+                    } else {
+                      localStorage.setItem('family_game_members', '[]');
+                      localStorage.setItem('family_game_questions', '[]');
+                      localStorage.removeItem('family_game_settings');
+                    }
+                    if (data.state) {
+                      const settings = data.db?.settings || data.settings || db.getSettings();
+                      const healedState = healGameState(data.state, settings);
+                      localStorage.setItem('family_game_state', JSON.stringify(healedState));
+                    } else {
+                      localStorage.removeItem('family_game_state');
+                    }
+                  }
+                } catch (e) {
+                  console.error("Failed to sync room data to localStorage", e);
+                }
+                window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}&controller=true`;
+              }}
+              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3"
+            >
+              <Play size={24} />
+              <span>🎮 שלט משחק (בלייב)</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setMode('join-selection');
+              }}
+              className="w-full py-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 font-bold text-sm rounded-xl transition-all"
+            >
+              חזרה אחורה
+            </button>
+          </div>
+        </motion.div>
+        <ConnectionStatusBadge />
+      </div>
+    );
+  }
 
   if (mode === 'admin') {
     return (

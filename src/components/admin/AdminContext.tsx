@@ -430,6 +430,13 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Load Data
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const controllerMode = urlParams.get('controller') === 'true';
+    
+    if (controllerMode) {
+      setAdminSubMode('controller');
+    }
+    
     const initData = async () => {
       const roomCode = sync.getRoomCode();
       if (roomCode) {
