@@ -257,29 +257,30 @@ export const AdminWizard: React.FC = () => {
   };
 
   const handleSkip = () => {
-    const confirmSkip = window.confirm(
-      "האם אתה בטוח שברצונך לדלג על תהליך הרישום?\n\nעליך יהיה להזין את כל הפרטים (מתמודדים, שחקנים ושאלות) בתוך שלט המנחה המלא. מסך ההקרנה לא יוכל לפעול כל עוד לא תשלים את הגדרת המשחק ותסיים את הגדרת החדר."
-    );
-    if (confirmSkip) {
-      const activeContestants = wizardContestants.slice(0, wizardContestantCount);
-      updateSettings({ 
-        ...settings, 
-        hostName: wizardHostName,
-        treeLayout: wizardTreeLayout,
-        contestants: activeContestants,
-        grandpaName: activeContestants[0]?.name || 'כחול',
-        grandmaName: activeContestants[1]?.name || 'סגול',
-        grandpaImage: activeContestants[0]?.image || null,
-        grandmaImage: activeContestants[1]?.image || null,
-        questionTimer: wizardQuestionTimer,
-        setupComplete: true, 
-        wizardStep: undefined 
-      });
-      const rCode = sync.getRoomCode();
-      if (rCode) localStorage.removeItem(`wizard_draft_${rCode}`);
-      setAdminSubMode('controller');
-      setActiveTab('control');
+    if (!settings.setupComplete) {
+      const confirmSkip = window.confirm(
+        "האם אתה בטוח שברצונך לדלג על תהליך ההגדרה?\n\nמסך ההקרנה לא יוכל לפעול בצורה תקינה כל עוד לא תשלים את הזנת השחקנים והשאלות באשף."
+      );
+      if (!confirmSkip) return;
     }
+    const activeContestants = wizardContestants.slice(0, wizardContestantCount);
+    updateSettings({ 
+      ...settings, 
+      hostName: wizardHostName,
+      treeLayout: wizardTreeLayout,
+      contestants: activeContestants,
+      grandpaName: activeContestants[0]?.name || 'כחול',
+      grandmaName: activeContestants[1]?.name || 'סגול',
+      grandpaImage: activeContestants[0]?.image || null,
+      grandmaImage: activeContestants[1]?.image || null,
+      questionTimer: wizardQuestionTimer,
+      setupComplete: true, 
+      wizardStep: undefined 
+    });
+    const rCode = sync.getRoomCode();
+    if (rCode) localStorage.removeItem(`wizard_draft_${rCode}`);
+    setAdminSubMode('controller');
+    setActiveTab('control');
   };
 
   const handleFinish = () => {
@@ -446,74 +447,6 @@ export const AdminWizard: React.FC = () => {
     );
   }
 
-  if (adminSubMode === 'menu') {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-center items-center text-right" dir="rtl">
-        <div className="max-w-xl w-full glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl relative overflow-hidden">
-          <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="text-center space-y-2 relative z-10">
-            <h2 className="text-2xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
-              בחירת מצב מנחה - חדר #{roomCode}
-            </h2>
-            <p className="text-xs text-slate-400">
-              ברוכים הבאים לחדר המשחק של <strong className="text-amber-400">{settings.hostName || 'המנחה'}</strong>. מה ברצונך לעשות כעת?
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 relative z-10">
-            <button
-              type="button"
-              onClick={() => {
-                setAdminSubMode('controller');
-                setActiveTab('control');
-              }}
-              className="p-6 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/30 rounded-2xl flex flex-col items-center justify-between text-center gap-3 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] group shadow-xl"
-            >
-              <div className="p-4 bg-emerald-500/10 text-emerald-400 rounded-full group-hover:scale-110 transition-transform">
-                <Play size={32} fill="currentColor" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-black text-slate-100">הפעלת משחק (שלט) 🎮</h3>
-                <p className="text-[11px] text-slate-400 leading-relaxed">שלוט בשאלות, חשוף את התשובות ועדכן את הניקוד בזמן אמת.</p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAdminSubMode('wizard');
-                setWizardStepLocal(1);
-              }}
-              className="p-6 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-sky-500/30 rounded-2xl flex flex-col items-center justify-between text-center gap-3 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] group shadow-xl"
-            >
-              <div className="p-4 bg-sky-500/10 text-sky-400 rounded-full group-hover:scale-110 transition-transform">
-                <Settings size={32} />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-black text-slate-100">עריכת הגדרות ושאלות 📝</h3>
-                <p className="text-[11px] text-slate-400 leading-relaxed">הוספה ושינוי של מתמודדים, משתתפים ושאלות בעזרת מדריך השלבים.</p>
-              </div>
-            </button>
-          </div>
-
-          <div className="pt-4 border-t border-slate-900 text-center relative z-10">
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = window.location.origin + window.location.pathname;
-              }}
-              className="px-6 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-xs text-slate-400 font-black rounded-xl transition-all active:scale-95 inline-flex items-center gap-1.5"
-            >
-              ◀️ יציאה לדף הבית
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const stepTitles = [
     "פרטי חדר",
     "מתמודדים",
@@ -547,18 +480,18 @@ export const AdminWizard: React.FC = () => {
           {settings.setupComplete && (
             <button
               type="button"
-              onClick={() => setAdminSubMode('menu')}
+              onClick={() => setAdminSubMode('controller')}
               className="text-xs text-slate-400 hover:text-slate-200 transition-colors font-bold px-2.5 py-1.5 rounded-lg border border-slate-850 bg-slate-900/30 flex items-center gap-1"
             >
-              <span>ביטול וחזרה ◀️</span>
+              <span>ביטול וחזרה לשלט ◀️</span>
             </button>
           )}
           <button
             type="button"
             onClick={handleSkip}
-            className="text-xs text-slate-500 hover:text-rose-400 transition-colors font-bold px-2.5 py-1.5 rounded-lg border border-slate-800 hover:border-rose-950 bg-slate-900/30 flex items-center gap-1"
+            className="text-xs text-emerald-400 hover:text-emerald-350 hover:border-emerald-500/30 transition-colors font-bold px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-900/30 flex items-center gap-1"
           >
-            <span>דלג לממשק מלא ⏭️</span>
+            <span>מעבר לשלט המשחק 🎮</span>
           </button>
         </div>
       </div>

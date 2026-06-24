@@ -151,8 +151,8 @@ interface AdminContextType {
   setWizardStepLocal: React.Dispatch<React.SetStateAction<number | null>>;
   hasInitializedWizard: boolean;
   setHasInitializedWizard: React.Dispatch<React.SetStateAction<boolean>>;
-  adminSubMode: 'menu' | 'controller' | 'wizard';
-  setAdminSubMode: React.Dispatch<React.SetStateAction<'menu' | 'controller' | 'wizard'>>;
+  adminSubMode: 'controller' | 'wizard';
+  setAdminSubMode: React.Dispatch<React.SetStateAction<'controller' | 'wizard'>>;
   showSuccessScreen: boolean;
   setShowSuccessScreen: React.Dispatch<React.SetStateAction<boolean>>;
   wizardConfirmModal: WizardConfirmModalState | null;
@@ -265,7 +265,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [wizardContestants, setWizardContestants] = useState<Array<{ id: string; name: string; image: string | null }>>([]);
   const [wizardStepLocal, setWizardStepLocal] = useState<number | null>(null);
   const [hasInitializedWizard, setHasInitializedWizard] = useState(false);
-  const [adminSubMode, setAdminSubMode] = useState<'menu' | 'controller' | 'wizard'>('menu');
+  const [adminSubMode, setAdminSubMode] = useState<'controller' | 'wizard'>('controller');
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
   const [wizardConfirmModal, setWizardConfirmModal] = useState<WizardConfirmModalState | null>(null);
   const [showMidSetupNotice, setShowMidSetupNotice] = useState<boolean>(false);
@@ -327,7 +327,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       setHasInitializedWizard(true);
       if (settings.setupComplete) {
-        setAdminSubMode('menu');
+        setAdminSubMode('controller');
       } else {
         setAdminSubMode('wizard');
         if (!hasInitializedWizard) {
