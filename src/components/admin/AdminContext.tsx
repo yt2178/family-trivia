@@ -125,6 +125,7 @@ interface AdminContextType {
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   gameScreenConnected: boolean;
   isLoading: boolean;
+  roomError: string | null;
   newMember: MemberFormState;
   setNewMember: React.Dispatch<React.SetStateAction<MemberFormState>>;
   newQuestion: QuestionFormState;
@@ -210,6 +211,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [gameState, setGameState] = useState<GameState>(db.getGameState());
   const [gameScreenConnected, setGameScreenConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
+  const [roomError, setRoomError] = useState<string | null>(null);
 
   // Register controller connection and listen to game screen connection status in Firebase
   useEffect(() => {
@@ -479,9 +481,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setIsLoading(false);
             return;
           } else {
-            // Room doesn't exist, redirect to home with error
-            alert('❌ החדר לא קיים במערכת. אנא בדוק את מספר החדר ונסה שוב.');
-            window.location.href = window.location.origin + window.location.pathname;
+            // Room doesn't exist, show error in app
+            setRoomError('החדר לא קיים במערכת. אנא בדוק את מספר החדר ונסה שוב.');
+            setIsLoading(false);
             return;
           }
         } catch (e) {
@@ -1176,6 +1178,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setGameState,
       gameScreenConnected,
       isLoading,
+      roomError,
       newMember,
       setNewMember,
       newQuestion,

@@ -36,6 +36,7 @@ const AdminViewInner: React.FC = () => {
     adminSubMode,
     setAdminSubMode,
     isLoading,
+    roomError,
     successMsg,
     gameScreenConnected,
     copyToClipboard
@@ -47,6 +48,25 @@ const AdminViewInner: React.FC = () => {
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50">
         <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-6" />
         <p className="text-slate-400 text-lg font-semibold">טוען נתוני חדר...</p>
+      </div>
+    );
+  }
+
+  // ── Room error screen ──
+  if (roomError) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-6 text-slate-100 p-6" dir="rtl">
+        <div className="w-16 h-16 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center">
+          <span className="text-4xl">❌</span>
+        </div>
+        <h2 className="text-2xl font-bold text-rose-400">שגיאה בטעינת החדר</h2>
+        <p className="text-slate-300 text-center max-w-md">{roomError}</p>
+        <button
+          onClick={() => window.location.href = window.location.origin + window.location.pathname}
+          className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors"
+        >
+          חזרה לדף הבית
+        </button>
       </div>
     );
   }

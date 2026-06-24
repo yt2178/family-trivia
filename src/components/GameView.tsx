@@ -164,6 +164,7 @@ export const GameView: React.FC = React.memo(() => {
   const [settings, setSettings] = useState<GameSettings>(healSettings(db.getSettings()));
   const [gameState, setGameState] = useState<GameState>(db.getGameState());
   const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
+  const [roomError, setRoomError] = useState<string | null>(null);
   
   const hostLabel = settings.hostName || 'המנחה';
   
@@ -202,9 +203,9 @@ export const GameView: React.FC = React.memo(() => {
             setIsLoading(false);
             return;
           } else {
-            // Room doesn't exist, redirect to home with error
-            alert('❌ החדר לא קיים במערכת. אנא בדוק את מספר החדר ונסה שוב.');
-            window.location.href = window.location.origin + window.location.pathname;
+            // Room doesn't exist, show error in app
+            setRoomError('החדר לא קיים במערכת. אנא בדוק את מספר החדר ונסה שוב.');
+            setIsLoading(false);
             return;
           }
         } catch (e) {
@@ -724,6 +725,24 @@ export const GameView: React.FC = React.memo(() => {
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-4 text-emerald-400" dir="rtl">
         <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
         <span className="text-sm font-bold">טוען נתוני משחק מהענן...</span>
+      </div>
+    );
+  }
+
+  if (roomError) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-6 text-slate-100 p-6" dir="rtl">
+        <div className="w-16 h-16 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center">
+          <span className="text-4xl">❌</span>
+        </div>
+        <h2 className="text-2xl font-bold text-rose-400">שגיאה בטעינת החדר</h2>
+        <p className="text-slate-300 text-center max-w-md">{roomError}</p>
+        <button
+          onClick={() => window.location.href = window.location.origin + window.location.pathname}
+          className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors"
+        >
+          חזרה לדף הבית
+        </button>
       </div>
     );
   }
