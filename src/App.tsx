@@ -884,7 +884,7 @@ function App() {
         {/* Footer */}
         <footer className="text-[10px] text-slate-600 pt-8 border-t border-slate-900 flex justify-between max-w-md mx-auto w-full">
           <span>סנכרון ענן Firebase בזמן אמת</span>
-          <span>שעשועון מי אמר מה? &copy; 2026</span>
+          <span>The Creator YT &copy; 2026</span>
         </footer>
 
       </motion.div>
