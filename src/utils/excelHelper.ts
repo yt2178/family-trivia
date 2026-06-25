@@ -127,6 +127,7 @@ export const excelHelper = {
               name: cleanName,
               generation,
               parentId: null,
+              parentIds: [],
               image: null,
               gender,
               familyName: familyName.trim()
@@ -259,6 +260,7 @@ export const excelHelper = {
                   name: cleanSpeaker,
                   generation: 'grandchild',
                   parentId: null,
+                  parentIds: [],
                   image: null,
                   gender: 'male',
                   familyName: ''
