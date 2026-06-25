@@ -41,7 +41,7 @@ export const ControlTab: React.FC = () => {
   const activeSpeaker = activeQuestion ? members.find(m => m.id === activeQuestion.speakerId) : null;
 
   // Function to get father's name
-  const getFatherName = (member: FamilyMember | null): string | null => {
+  const getFatherName = (member: FamilyMember | null | undefined): string | null => {
     if (!member || !member.parentId) return null;
     const father = members.find(m => m.id === member.parentId);
     return father?.name || null;
@@ -54,7 +54,7 @@ export const ControlTab: React.FC = () => {
     const q = questions.find(question => question.id === qId);
     const speaker = q ? members.find(m => m.id === q.speakerId) : null;
     return speaker;
-  }).filter(Boolean);
+  }).filter((speaker): speaker is FamilyMember => speaker !== null && speaker !== undefined);
 
   return (
     <div className="grid grid-cols-12 gap-6 items-stretch">
