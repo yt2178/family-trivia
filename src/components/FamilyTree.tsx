@@ -60,8 +60,8 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
       }
     });
 
-    // Also show current speaker and their ancestors
-    if (currentSpeakerId) {
+    // Also show current speaker and their ancestors ONLY when answer is revealed
+    if (currentSpeakerId && isAnswerRevealed) {
       let currentNode = layout.nodes.find(n => n.id === currentSpeakerId);
       while (currentNode) {
         visible.add(currentNode.id);
