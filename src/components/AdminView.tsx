@@ -106,7 +106,7 @@ const AdminViewInner: React.FC = () => {
               <div>
                 <h1 className="text-base font-black text-slate-100 leading-none">שלט מנחה המשחק</h1>
                 <p className="text-[10px] text-slate-500 leading-none mt-0.5">
-                  חדר #{sync.getRoomCode()} · מנחה: {settings.hostName || 'המנחה'}
+                  חדר {sync.getRoomCode()} · מנחה: {settings.hostName || 'המנחה'}
                 </p>
               </div>
             </div>

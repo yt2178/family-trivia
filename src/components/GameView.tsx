@@ -166,6 +166,7 @@ export const GameView: React.FC = React.memo(() => {
   const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
   const [roomError, setRoomError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
+  const [winnerRevealTimer, setWinnerRevealTimer] = useState<number>(0);
   
   const hostLabel = settings.hostName || 'המנחה';
   
@@ -182,6 +183,21 @@ export const GameView: React.FC = React.memo(() => {
       window.location.href = window.location.origin + window.location.pathname;
     }
   }, [roomError, countdown]);
+
+  // Suspense timer for winner reveal
+  useEffect(() => {
+    const totalQ = (gameState.shuffledQuestionIds || []).length;
+    const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
+    
+    if (isGameOver && winnerRevealTimer === 0) {
+      setWinnerRevealTimer(5); // 5 second suspense timer
+    }
+    
+    if (winnerRevealTimer > 0) {
+      const timer = setTimeout(() => setWinnerRevealTimer(prev => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, winnerRevealTimer]);
 
   // Load initial data
   useEffect(() => {
@@ -874,22 +890,40 @@ export const GameView: React.FC = React.memo(() => {
           {/* Ready Check Title / Setup status */}
           {settings?.setupComplete === false ? (
             <div className="space-y-3">
-              <h2 className="text-3xl font-extrabold text-amber-400 animate-pulse flex items-center justify-center gap-2">
-                <span>⏳ {settings.hostName || 'המנחה'} עדיין עורך את פרטי המשחק...</span>
-              </h2>
-              <p className="text-slate-300 text-base max-w-md mx-auto">
-                {settings.hostName || 'המנחה'} עורך כעת את <strong className="text-teal-400">שלב {settings.wizardStep || 1}: {
-                  settings.wizardStep === 1 ? 'פרטי חדר' :
-                  settings.wizardStep === 2 ? 'בחירת מתמודדים' :
-                  settings.wizardStep === 3 ? (settings.treeLayout === 'traditional' ? 'הוספת שחקנים ועץ משפחתי' : 'הוספת שחקנים') :
-                  settings.wizardStep === 4 ? 'הוספת שאלות וציטוטים' :
-                  settings.wizardStep === 5 ? 'הגדרת טיימר' :
-                  settings.wizardStep === 6 ? 'סיכום ואישור' : 'עריכת פרטי המשחק'
-                }</strong>.
-              </p>
-              <p className="text-emerald-400 text-sm font-black mt-2 animate-bounce">
-                המסך ייפתח אוטומטית ברגע שהוא ייסיים! 🚀
-              </p>
+              {gameState && gameState.currentQuestionIndex > 0 ? (
+                // Game was already started and host entered edit mode
+                <>
+                  <h2 className="text-3xl font-extrabold text-amber-400 animate-pulse flex items-center justify-center gap-2">
+                    <span>⏸️ המשחק מושהה זמנית</span>
+                  </h2>
+                  <p className="text-slate-300 text-base max-w-md mx-auto">
+                    {settings.hostName || 'המנחה'} עורך כעת את פרטי המשחק. המשחק יימשך ברגע שהוא יסיים את העריכה.
+                  </p>
+                  <p className="text-emerald-400 text-sm font-black mt-2 animate-bounce">
+                    המסך ייפתח אוטומטית ברגע שהוא ייסיים! 🚀
+                  </p>
+                </>
+              ) : (
+                // Initial setup phase
+                <>
+                  <h2 className="text-3xl font-extrabold text-amber-400 animate-pulse flex items-center justify-center gap-2">
+                    <span>⏳ {settings.hostName || 'המנחה'} עדיין עורך את פרטי המשחק...</span>
+                  </h2>
+                  <p className="text-slate-300 text-base max-w-md mx-auto">
+                    {settings.hostName || 'המנחה'} עורך כעת את <strong className="text-teal-400">שלב {settings.wizardStep || 1}: {
+                      settings.wizardStep === 1 ? 'פרטי חדר' :
+                      settings.wizardStep === 2 ? 'בחירת מתמודדים' :
+                      settings.wizardStep === 3 ? (settings.treeLayout === 'traditional' ? 'הוספת שחקנים ועץ משפחתי' : 'הוספת שחקנים') :
+                      settings.wizardStep === 4 ? 'הוספת שאלות וציטוטים' :
+                      settings.wizardStep === 5 ? 'הגדרת טיימר' :
+                      settings.wizardStep === 6 ? 'סיכום ואישור' : 'עריכת פרטי המשחק'
+                    }</strong>.
+                  </p>
+                  <p className="text-emerald-400 text-sm font-black mt-2 animate-bounce">
+                    המסך ייפתח אוטומטית ברגע שהוא ייסיים! 🚀
+                  </p>
+                </>
+              )}
               {sync.getRoomCode() && (
                 <div className="inline-block mt-4 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl">
                   <span className="text-slate-400 text-xs ml-2">קוד חדר להתחברות:</span>
@@ -1149,7 +1183,15 @@ export const GameView: React.FC = React.memo(() => {
               </div>
 
               <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl mb-8">
-                {getGameWinner() === 'tie' ? (
+                {winnerRevealTimer > 0 ? (
+                  // Suspense timer countdown
+                  <div>
+                    <h3 className="text-3xl font-black text-slate-300 flex items-center justify-center gap-2 animate-pulse">
+                      {winnerRevealTimer}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-2">הזוכה ייחשף בקרוב...</p>
+                  </div>
+                ) : getGameWinner() === 'tie' ? (
                   <div>
                     <h3 className="text-2xl font-bold text-amber-400 flex items-center justify-center gap-2">
                       🤝 תיקו משפחתי מהמם!

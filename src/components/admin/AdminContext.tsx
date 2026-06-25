@@ -138,6 +138,10 @@ interface AdminContextType {
   setWarnings: React.Dispatch<React.SetStateAction<string[]>>;
   successMsg: string | null;
   setSuccessMsg: React.Dispatch<React.SetStateAction<string | null>>;
+  nextQuestionTimer: number;
+  setNextQuestionTimer: React.Dispatch<React.SetStateAction<number>>;
+  showContestantOrderModal: boolean;
+  setShowContestantOrderModal: React.Dispatch<React.SetStateAction<boolean>>;
   
   // Wizard buffers
   wizardHostName: string;
@@ -167,6 +171,7 @@ interface AdminContextType {
   updateGameState: (newState: GameState) => void;
   updateSettings: (newSettings: GameSettings) => void;
   handleStartGame: () => void;
+  handleStartGameAfterContestantOrder: () => void;
   handleNextQuestion: () => void;
   handlePrevQuestion: () => void;
   handleRevealAnswer: () => void;
@@ -195,6 +200,7 @@ interface AdminContextType {
     contestantCount: number,
     contestants: Array<{ id: string; name: string; image: string | null }>,
     questionTimer: number | null,
+    questionOrder: 'sequential' | 'random',
     step: number
   ) => void;
 }
@@ -283,6 +289,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Warnings / Notifications
   const [warnings, setWarnings] = useState<string[]>([]);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [nextQuestionTimer, setNextQuestionTimer] = useState<number>(0);
+  const [showContestantOrderModal, setShowContestantOrderModal] = useState<boolean>(false);
 
   // Local wizard buffer states to prevent saving to Firebase on every keystroke
   const [wizardHostName, setWizardHostName] = useState('');
@@ -377,12 +385,23 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [settings, hasInitializedWizard]);
 
+  // Timer for next question countdown
+  useEffect(() => {
+    if (nextQuestionTimer > 0) {
+      const interval = setInterval(() => {
+        setNextQuestionTimer(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [nextQuestionTimer]);
+
   const saveDraftToLocalStorage = (
     hostName: string,
     treeLayout: 'botanical' | 'traditional' | 'none',
     contestantCount: number,
     contestants: Array<{ id: string; name: string; image: string | null }>,
     questionTimer: number | null,
+    questionOrder: 'sequential' | 'random',
     step: number
   ) => {
     const rCode = sync.getRoomCode();
@@ -394,6 +413,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         contestantCount,
         contestants: contestants.slice(0, contestantCount),
         questionTimer,
+        questionOrder,
         wizardStep: step
       }));
     } catch (e) {
@@ -621,6 +641,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const handleStartGame = () => {
+    // If sequential order is selected, show contestant order modal first
+    if (settings.questionOrder === 'sequential') {
+      setShowContestantOrderModal(true);
+      return;
+    }
+
     const freshState = db.resetGame();
     updateGameState(freshState);
     const newSettings = { ...settings, setupComplete: true };
@@ -628,6 +654,17 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setSettings(newSettings);
     sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
     showSuccess('המשחק אותחל וערבוב השאלות הושלם בהצלחה!');
+  };
+
+  const handleStartGameAfterContestantOrder = () => {
+    setShowContestantOrderModal(false);
+    const freshState = db.resetGame();
+    updateGameState(freshState);
+    const newSettings = { ...settings, setupComplete: true };
+    db.saveSettings(newSettings);
+    setSettings(newSettings);
+    sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
+    showSuccess('המשחק אותחל בהצלחה!');
   };
 
   const handleNextQuestion = () => {
@@ -712,6 +749,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (winner !== 'nobody') {
       sync.sendMessage({ type: 'TRIGGER_CONFETTI', winner, isUndo });
     }
+
+    // Start 10-second timer after assigning points
+    setNextQuestionTimer(10);
   };
 
   const validateRelations = (
@@ -1230,6 +1270,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setWarnings,
       successMsg,
       setSuccessMsg,
+      nextQuestionTimer,
+      setNextQuestionTimer,
+      showContestantOrderModal,
+      setShowContestantOrderModal,
       
       wizardHostName,
       setWizardHostName,
@@ -1257,6 +1301,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updateGameState,
       updateSettings,
       handleStartGame,
+      handleStartGameAfterContestantOrder,
       handleNextQuestion,
       handlePrevQuestion,
       handleRevealAnswer,

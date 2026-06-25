@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminView from './components/AdminView';
 import { GameView } from './components/GameView';
-import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, QrCode, ArrowRight, RefreshCw, Plus, Pencil } from 'lucide-react';
+import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, QrCode, ArrowRight, RefreshCw, Plus, Pencil, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { rtdb } from './utils/firebase';
 import { ref, onValue, off, set, get, child } from 'firebase/database';
@@ -25,6 +25,7 @@ function ConnectionStatusBadge() {
 function App() {
   const [mode, setMode] = useState<'welcome' | 'admin' | 'game' | 'join-selection' | 'admin-sub-selection'>('welcome');
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
+  const [showForm, setShowForm] = useState<boolean>(false);
   const [roomCode, setRoomCode] = useState<string>('');
   const [inputRoomCode, setInputRoomCode] = useState<string>('');
   const [lastRoomCode, setLastRoomCode] = useState<string | null>(null);
@@ -624,37 +625,39 @@ function App() {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex bg-slate-900/60 p-1.5 rounded-2xl max-w-md mx-auto border border-slate-800">
-          <button
-            onClick={() => setActiveTab('create')}
-            className={`flex-1 py-2 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'create'
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-950/20'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Plus size={16} />
-            <span>➕ צור חדר חדש</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('join')}
-            className={`flex-1 py-2 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'join'
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-950/20'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Play size={16} />
-            <span>🔌 התחבר לחדר קיים</span>
-          </button>
-        </div>
+        {!showForm && (
+          <div className="flex bg-slate-900/60 p-1.5 rounded-2xl max-w-md mx-auto border border-slate-800">
+            <button
+              onClick={() => { setActiveTab('create'); setShowForm(true); }}
+              className="flex-1 py-2 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-emerald-500 text-slate-950 shadow-md shadow-emerald-950/20 hover:bg-emerald-400"
+            >
+              <Plus size={16} />
+              <span>➕ צור חדר חדש</span>
+            </button>
+            <button
+              onClick={() => { setActiveTab('join'); setShowForm(true); }}
+              className="flex-1 py-2 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-sky-500 text-slate-950 shadow-md shadow-sky-950/20 hover:bg-sky-400"
+            >
+              <Play size={16} />
+              <span>🔌 התחבר לחדר קיים</span>
+            </button>
+          </div>
+        )}
 
         {/* Create Room View */}
-        {activeTab === 'create' && (
+        {showForm && activeTab === 'create' && (
           <div className="max-w-2xl mx-auto glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 hover:border-emerald-500/10 transition-all shadow-2xl relative overflow-hidden text-right">
             {/* Glowing background highlights */}
             <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
 
             <form onSubmit={handleConfirmRoom} className="space-y-6 relative z-10">
               <div className="text-center space-y-2 mb-4">
@@ -773,10 +776,18 @@ function App() {
         )}
 
         {/* Join Room View */}
-        {activeTab === 'join' && (
+        {showForm && activeTab === 'join' && (
           <div className="max-w-md mx-auto glass-panel p-8 rounded-3xl border border-slate-800 space-y-5 hover:border-emerald-500/10 transition-all shadow-2xl relative overflow-hidden text-right">
             <div className="absolute -top-24 -left-24 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
             <div className="absolute -bottom-24 -right-24 w-32 h-32 bg-sky-500/5 rounded-full blur-2xl pointer-events-none" />
+
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
 
             <div className="text-center space-y-1 mb-2">
               <h3 className="text-2xl font-black text-slate-100 flex items-center justify-center gap-2">
@@ -876,7 +887,7 @@ function App() {
           <ol className="list-decimal list-inside space-y-2 text-slate-350 pr-1 leading-relaxed">
             <li><strong>הכנה מהטלפון:</strong> פתחו את הקישור בטלפון, לחצו <strong>"צור חדר חדש"</strong>, הזינו שם מנחה ומספר חדר ולחצו <strong>צור חדר</strong>.</li>
             <li><strong>הזנת תוכן:</strong> במסך המנחה בטלפון — הוסיפו את בני המשפחה, המתמודדים, השאלות והציטוטים (או ייבאו מקובץ Excel).</li>
-            <li><strong>חיבור המחשב:</strong> לאחר שהכל מוכן, פתחו את הקישור במחשב (שמחובר לטלוויזיה/מקרן), בחרו <strong>"התחבר לחדר קיים"</strong> והזינו את אותו מספר חדר ← לחצו <strong>"פתח מסך הקרנה 📺"</strong>.</li>
+            <li><strong>חיבור המחשב:</strong> לאחר שהכל מוכן, פתחו את הקישור במחשב (שמחובר למקרן), בחרו <strong>"התחבר לחדר קיים"</strong> והזינו את אותו מספר חדר ← לחצו <strong>"פתח מסך הקרנה 📺"</strong>.</li>
             <li><strong>התחלת המשחק:</strong> חזרו לטלפון, התחברו שוב כשלט מנחה לאותו חדר, והתחילו לשחק!</li>
           </ol>
         </div>

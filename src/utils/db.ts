@@ -34,6 +34,7 @@ export interface GameSettings {
   setupComplete?: boolean; // Whether host has finished setting up the room
   questionTimer?: number | null; // Timer in seconds (null/0 means unlimited)
   wizardStep?: number; // Current wizard step (1-6) if setup not complete
+  questionOrder?: 'sequential' | 'random'; // Order of questions in game
 }
 
 export interface GameState {
@@ -72,7 +73,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   ],
   hostName: '',
   questionTimer: null,
-  wizardStep: 1
+  wizardStep: 1,
+  questionOrder: 'random'
 };
 
 const DEFAULT_GAME_STATE: GameState = {
@@ -310,10 +312,15 @@ export const db = {
   // Reset Game
   resetGame(): GameState {
     const questions = this.getQuestions();
+    const settings = this.getSettings();
     const ids = [...questions].map(q => q.id);
-    for (let i = ids.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [ids[i], ids[j]] = [ids[j], ids[i]];
+    
+    // Shuffle questions only if questionOrder is 'random'
+    if (settings.questionOrder === 'random') {
+      for (let i = ids.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+      }
     }
     
     // Initialize scores for all current contestants

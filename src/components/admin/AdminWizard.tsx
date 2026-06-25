@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAdmin } from './AdminContext';
 import { excelHelper } from '../../utils/excelHelper';
 import { sync } from '../../utils/sync';
@@ -70,11 +70,13 @@ export const AdminWizard: React.FC = () => {
     setActiveTab
   } = useAdmin();
 
+  const [wizardQuestionOrder, setWizardQuestionOrder] = useState<'sequential' | 'random'>(settings.questionOrder || 'random');
+
   const roomCode = sync.getRoomCode() || '';
 
   const handleWizardContestantCountChange = (count: number) => {
     setWizardContestantCount(count);
-    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, count, wizardContestants, wizardQuestionTimer, currentStep);
+    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, count, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
   };
 
   const handleWizardContestantNameChange = (index: number, name: string) => {
@@ -82,7 +84,7 @@ export const AdminWizard: React.FC = () => {
     if (updated[index]) {
       updated[index] = { ...updated[index], name };
       setWizardContestants(updated);
-      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, currentStep);
+      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
     }
   };
 
@@ -137,7 +139,7 @@ export const AdminWizard: React.FC = () => {
         if (updated[index]) {
           updated[index] = { ...updated[index], image: compressed };
           setWizardContestants(updated);
-          saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, currentStep);
+          saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
         }
       } catch (err) {
         console.error(err);
@@ -150,7 +152,7 @@ export const AdminWizard: React.FC = () => {
     if (updated[index]) {
       updated[index] = { ...updated[index], image: null };
       setWizardContestants(updated);
-      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, currentStep);
+      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
     }
   };
 
@@ -175,7 +177,7 @@ export const AdminWizard: React.FC = () => {
       questionTimer: wizardQuestionTimer,
       wizardStep: nextStep
     });
-    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, nextStep);
+    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, nextStep);
   };
 
   const handleNext = () => {
@@ -258,7 +260,7 @@ export const AdminWizard: React.FC = () => {
         questionTimer: wizardQuestionTimer,
         wizardStep: prevStep
       });
-      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, prevStep);
+      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, prevStep);
     }
   };
 
@@ -374,7 +376,7 @@ export const AdminWizard: React.FC = () => {
               החדר נשמר בהצלחה! 🎉
             </h2>
             <p className="text-sm text-slate-400 font-medium">
-              השלמתם את הגדרת המשחק עבור חדר <strong className="text-emerald-400 font-mono">#{roomCode}</strong>.
+              השלמתם את הגדרת המשחק עבור חדר <strong className="text-emerald-400 font-mono">{roomCode}</strong>.
             </p>
           </div>
 
@@ -389,7 +391,7 @@ export const AdminWizard: React.FC = () => {
             {/* Projector Link */}
             <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-2.5">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-slate-300">📺 מסך ההקרנה הראשי (למחשב / טלוויזיה)</span>
+                <span className="text-xs font-bold text-slate-300">📺 מסך ההקרנה הראשי (למחשב / מקרן)</span>
                 <span className="text-[10px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded font-bold">מיועד למסך הגדול</span>
               </div>
               <p className="text-[11px] text-slate-400">הקישור שיוצג על הטלוויזיה ויציג את השאלות והניקוד בזמן אמת.</p>
@@ -477,7 +479,7 @@ export const AdminWizard: React.FC = () => {
           <h1 className="text-xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent flex items-center gap-2">
             <span>{settings.setupComplete ? 'עריכת חדר משחק' : 'הגדרת חדר משחק חדש'}</span>
             <span className="text-xs bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded font-mono">
-              #{roomCode}
+              {roomCode}
             </span>
           </h1>
           <p className="text-[10px] text-slate-400">הגדירו את החדר שלב-אחר-שלב ליצירת חוויית משחק מושלמת</p>
@@ -505,9 +507,9 @@ export const AdminWizard: React.FC = () => {
       {/* Stepper Progress Bar */}
       <div className="w-full max-w-xl mx-auto mb-8 relative">
         <div className="absolute top-4 left-0 right-0 h-[2px] bg-slate-850 -translate-y-1/2 z-0" />
-        <div 
+        <div
           className="absolute top-4 left-0 h-[2px] bg-emerald-500/70 -translate-y-1/2 z-0 transition-all duration-500"
-          style={{ width: `${((currentStep - 1) / 5) * 100}%`, direction: 'ltr' }}
+          style={{ width: `${((currentStep - 1) / (stepTitles.length - 1)) * 100}%`, direction: 'ltr' }}
         />
         <div className="flex justify-between items-center relative z-10">
           {stepTitles.map((title, idx) => {
@@ -534,7 +536,7 @@ export const AdminWizard: React.FC = () => {
                       questionTimer: wizardQuestionTimer,
                       wizardStep: stepNum
                     });
-                    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, stepNum);
+                    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, stepNum);
                   }}
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                     isActive 
@@ -574,7 +576,7 @@ export const AdminWizard: React.FC = () => {
                     value={wizardHostName}
                     onChange={(e) => {
                       setWizardHostName(e.target.value);
-                      saveDraftToLocalStorage(e.target.value, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, currentStep);
+                      saveDraftToLocalStorage(e.target.value, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
                     }}
                     placeholder="הקלד שם מנחה"
                     className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 text-sm font-bold"
@@ -595,7 +597,7 @@ export const AdminWizard: React.FC = () => {
                       type="button"
                       onClick={() => {
                         setWizardTreeLayout('traditional');
-                        saveDraftToLocalStorage(wizardHostName, 'traditional', wizardContestantCount, wizardContestants, wizardQuestionTimer, currentStep);
+                        saveDraftToLocalStorage(wizardHostName, 'traditional', wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
                       }}
                       className={`p-4 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
                         wizardTreeLayout === 'traditional'
@@ -612,7 +614,7 @@ export const AdminWizard: React.FC = () => {
                       type="button"
                       onClick={() => {
                         setWizardTreeLayout('none');
-                        saveDraftToLocalStorage(wizardHostName, 'none', wizardContestantCount, wizardContestants, wizardQuestionTimer, currentStep);
+                        saveDraftToLocalStorage(wizardHostName, 'none', wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
                       }}
                       className={`p-4 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
                         wizardTreeLayout === 'none'
@@ -1047,7 +1049,7 @@ export const AdminWizard: React.FC = () => {
                       const val = e.target.value;
                       const seconds = val === 'unlimited' ? null : parseInt(val);
                       setWizardQuestionTimer(seconds);
-                      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, seconds, currentStep);
+                      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, seconds, wizardQuestionOrder, currentStep);
                     }}
                     className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 text-sm font-black"
                   >
@@ -1061,6 +1063,48 @@ export const AdminWizard: React.FC = () => {
                   </select>
                   <p className="text-[10px] text-slate-500 mt-2 bg-slate-950/30 p-3 rounded-lg leading-relaxed">
                     💡 אם תבחר הגבלת זמן, יופיע פס התקדמות (טיימר) בראש מסך ההקרנה כשהמנחה מפעיל שאלה. כשהזמן ייגמר יושמע צליל התראה מיוחד על מנת לזרז את המתמודדים.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-2">סדר השאלות במשחק:</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWizardQuestionOrder('random');
+                        saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, 'random', currentStep);
+                      }}
+                      className={`p-3 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
+                        wizardQuestionOrder === 'random'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/80 shadow-md shadow-emerald-950/10'
+                          : 'bg-slate-950 border border-slate-850 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-xl">🎲</span>
+                      <span className="font-black">סדר אקראי</span>
+                      <span className="text-[9px] text-slate-500 font-normal">השאלות יופיעו בסדר מעורבב</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWizardQuestionOrder('sequential');
+                        saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, 'sequential', currentStep);
+                      }}
+                      className={`p-3 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
+                        wizardQuestionOrder === 'sequential'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/80 shadow-md shadow-emerald-950/10'
+                          : 'bg-slate-950 border border-slate-850 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-xl">📋</span>
+                      <span className="font-black">סדר הכנסה</span>
+                      <span className="text-[9px] text-slate-500 font-normal">השאלות יופיעו לפי סדר ההכנסה</span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-2 bg-slate-950/30 p-3 rounded-lg leading-relaxed">
+                    💡 בחר סדר אקראי למשחק מהנה יותר, או סדר הכנסה לשליטה מלאה בסדר השאלות.
                   </p>
                 </div>
               </div>
