@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAdmin, CONTESTANT_COLORS } from './AdminContext';
 import { sync } from '../../utils/sync';
 import { FamilyMember } from '../../utils/db';
@@ -33,6 +33,8 @@ export const ControlTab: React.FC = () => {
     showContestantOrderModal,
     setShowContestantOrderModal
   } = useAdmin();
+
+  const [showAllNextSpeakers, setShowAllNextSpeakers] = useState(false);
 
   const shuffledIds = gameState.shuffledQuestionIds || [];
   const isGameLoaded = shuffledIds.length > 0;
@@ -94,8 +96,18 @@ export const ControlTab: React.FC = () => {
 
                   {/* Next Speakers Preview */}
                   {nextSpeakers.length > 0 && (
-                    <div className="text-left">
-                      <span className="text-[10px] text-slate-500 block mb-1">הדוברים הבאים:</span>
+                    <div className="text-left relative">
+                      <div className="flex items-center gap-2 mb-1 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setShowAllNextSpeakers(!showAllNextSpeakers)}
+                          className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold underline flex items-center gap-0.5"
+                          title="הצג את כל רשימת הדוברים בהמשך"
+                        >
+                          <span>פרט 🔍</span>
+                        </button>
+                        <span className="text-[10px] text-slate-500">הדוברים הבאים:</span>
+                      </div>
                       <div className="flex gap-1">
                         {nextSpeakers.map((speaker, idx) => (
                           <div key={speaker.id} className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-300 font-medium">
@@ -103,6 +115,43 @@ export const ControlTab: React.FC = () => {
                           </div>
                         ))}
                       </div>
+
+                      {/* Dropdown list of all upcoming speakers */}
+                      {showAllNextSpeakers && (() => {
+                        const allUpcomingSpeakers = shuffledIds.slice(gameState.currentQuestionIndex + 1).map(qId => {
+                          const q = questions.find(question => question.id === qId);
+                          return q ? members.find(m => m.id === q.speakerId) : null;
+                        }).filter((speaker): speaker is FamilyMember => speaker !== null && speaker !== undefined);
+
+                        return (
+                          <div className="absolute left-0 mt-2 w-56 bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-2xl z-50 text-right">
+                            <div className="flex justify-between items-center mb-2 border-b border-slate-800 pb-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setShowAllNextSpeakers(false)}
+                                className="text-slate-400 hover:text-white text-[10px] font-bold"
+                              >
+                                ❌ סגור
+                              </button>
+                              <span className="text-xs font-black text-emerald-400">תור הדוברים בהמשך</span>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-slate-850">
+                              {allUpcomingSpeakers.map((speaker, idx) => {
+                                const fName = getFatherName(speaker);
+                                return (
+                                  <div key={speaker.id + '-' + idx} className="flex justify-between items-center text-xs p-1 hover:bg-slate-800/40 rounded-lg">
+                                    <span className="text-slate-500 font-mono text-[9px]">#{gameState.currentQuestionIndex + idx + 2}</span>
+                                    <span className="font-bold text-slate-200">
+                                      {speaker.name}
+                                      {fName && <span className="text-[10px] text-slate-400 font-normal mr-1">(בן {fName})</span>}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -205,14 +254,14 @@ export const ControlTab: React.FC = () => {
             <button
               onClick={handleNextQuestion}
               disabled={gameState.currentQuestionIndex >= shuffledIds.length}
-              className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-sm font-black rounded-xl hover:from-emerald-400 hover:to-teal-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-emerald-950/20 transition-all"
+              className="px-8 py-3.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 hover:from-emerald-350 hover:via-teal-350 hover:to-emerald-400 text-slate-950 text-base font-black rounded-2xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all animate-pulse"
             >
               {nextQuestionTimer > 0 ? (
-                <span className="text-lg">{nextQuestionTimer}</span>
+                <span className="text-lg font-mono font-black animate-ping">{nextQuestionTimer}</span>
               ) : (
                 <>
                   <span>שאלה הבאה</span>
-                  <ChevronLeft size={18} />
+                  <ChevronLeft size={20} />
                 </>
               )}
             </button>
@@ -349,7 +398,7 @@ export const ControlTab: React.FC = () => {
                 onClick={handleStartGameAfterContestantOrder}
                 className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-sm rounded-xl hover:from-emerald-400 hover:to-teal-300 transition-all shadow-lg shadow-emerald-950/20"
               >
-                התחל משחך 🎮
+                התחל משחק 🎮
               </button>
             </div>
           </div>

@@ -36,11 +36,13 @@ const AdminViewInner: React.FC = () => {
     adminSubMode,
     setAdminSubMode,
     isLoading,
+    securityError,
     roomError,
     countdown,
     successMsg,
     gameScreenConnected,
-    copyToClipboard
+    copyToClipboard,
+    updateSettings
   } = useAdmin();
 
   // ── Loading screen ──
@@ -49,6 +51,37 @@ const AdminViewInner: React.FC = () => {
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50">
         <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-6" />
         <p className="text-slate-400 text-lg font-semibold">טוען נתוני חדר...</p>
+      </div>
+    );
+  }
+
+  // ── Security Error screen ──
+  if (securityError) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 text-center z-50" dir="rtl">
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center justify-center p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-full animate-bounce">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <h2 className="text-2xl font-black text-rose-400">גישה חסומה (שגיאת אבטחה)</h2>
+            <p className="text-slate-300 text-sm leading-relaxed font-semibold">
+              שם המנחה בקישור חסר או אינו תואם למנחה שהגדיר חדר זה.
+            </p>
+            <p className="text-slate-450 text-xs">
+              אנא התחברו מחדש דרך עמוד הבית עם מספר החדר ושם המנחה הנכונים.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              window.location.href = `${window.location.origin}${window.location.pathname}`;
+            }}
+            className="w-full py-3 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-350 font-bold text-sm rounded-xl transition-all cursor-pointer"
+          >
+            חזרה לדף הבית
+          </button>
+        </div>
       </div>
     );
   }
@@ -136,7 +169,10 @@ const AdminViewInner: React.FC = () => {
 
               {/* Go to edit mode */}
               <button
-                onClick={() => setAdminSubMode('wizard')}
+                onClick={() => {
+                  updateSettings({ ...settings, setupComplete: false });
+                  setAdminSubMode('wizard');
+                }}
                 className="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl transition-colors flex items-center gap-1.5"
               >
                 <span>עבור למצב עריכה 📝</span>
@@ -240,7 +276,10 @@ const AdminViewInner: React.FC = () => {
 
             {/* Edit room button (re-open wizard) */}
             <button
-              onClick={() => setAdminSubMode('wizard')}
+              onClick={() => {
+                updateSettings({ ...settings, setupComplete: false });
+                setAdminSubMode('wizard');
+              }}
               className="px-3 py-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
             >
               <Settings size={13} />

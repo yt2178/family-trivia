@@ -126,6 +126,7 @@ interface AdminContextType {
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   gameScreenConnected: boolean;
   isLoading: boolean;
+  securityError: boolean;
   roomError: string | null;
   countdown: number;
   newMember: MemberFormState;
@@ -290,6 +291,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [warnings, setWarnings] = useState<string[]>([]);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [nextQuestionTimer, setNextQuestionTimer] = useState<number>(0);
+  const [securityError, setSecurityError] = useState<boolean>(false);
   const [showContestantOrderModal, setShowContestantOrderModal] = useState<boolean>(false);
 
   // Local wizard buffer states to prevent saving to Firebase on every keystroke
@@ -385,15 +387,56 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [settings, hasInitializedWizard]);
 
-  // Timer for next question countdown
+  // Timer for next question countdown (auto-advances to next question at 0)
   useEffect(() => {
     if (nextQuestionTimer > 0) {
       const interval = setInterval(() => {
-        setNextQuestionTimer(prev => prev - 1);
+        setNextQuestionTimer(prev => {
+          if (prev <= 1) {
+            handleNextQuestion();
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
       return () => clearInterval(interval);
     }
   }, [nextQuestionTimer]);
+
+  // Sync shuffledQuestionIds with actual questions list (appends added questions, removes deleted ones)
+  useEffect(() => {
+    if (!gameState || !questions) return;
+    const currentShuffled = gameState.shuffledQuestionIds || [];
+    const questionIdsSet = new Set(questions.map(q => q.id));
+    let updatedShuffled = currentShuffled.filter(id => questionIdsSet.has(id));
+    
+    const shuffledSet = new Set(updatedShuffled);
+    const newQuestionIds = questions.filter(q => !shuffledSet.has(q.id)).map(q => q.id);
+    
+    if (newQuestionIds.length > 0) {
+      const newIdsToAppend = [...newQuestionIds];
+      if (settings.questionOrder !== 'sequential') {
+        // Shuffle new items only if not sequential
+        for (let i = newIdsToAppend.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [newIdsToAppend[i], newIdsToAppend[j]] = [newIdsToAppend[j], newIdsToAppend[i]];
+        }
+      }
+      updatedShuffled = [...updatedShuffled, ...newIdsToAppend];
+    }
+    
+    if (JSON.stringify(currentShuffled) !== JSON.stringify(updatedShuffled)) {
+      setGameState(prev => {
+        const updated = {
+          ...prev,
+          shuffledQuestionIds: updatedShuffled
+        };
+        db.saveGameState(updated);
+        sync.sendMessage({ type: 'STATE_CHANGED', state: updated });
+        return updated;
+      });
+    }
+  }, [questions, gameState?.shuffledQuestionIds, settings.questionOrder]);
 
   const saveDraftToLocalStorage = (
     hostName: string,
@@ -508,6 +551,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const fbQuestions = data.db?.questions || [];
             const fbSettings = data.db?.settings || data.settings || {};
             const fbState = data.state || data.db?.state || {};
+
+            const storedHostName = (fbSettings.hostName || '').trim();
+            const urlHostName = (urlParams.get('host') || '').trim();
+            if (storedHostName && urlHostName.toLowerCase() !== storedHostName.toLowerCase()) {
+              setSecurityError(true);
+            }
 
             const healed = healMembersGenerations(fbMembers);
             
@@ -668,6 +717,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const handleNextQuestion = () => {
+    setNextQuestionTimer(0);
     const total = (gameState.shuffledQuestionIds || []).length;
     if (gameState.currentQuestionIndex < total) {
       const nextIndex = gameState.currentQuestionIndex + 1;
@@ -680,6 +730,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const handlePrevQuestion = () => {
+    setNextQuestionTimer(0);
     if (gameState.currentQuestionIndex > 0) {
       const prevIndex = gameState.currentQuestionIndex - 1;
       updateGameState({
@@ -1258,6 +1309,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setGameState,
       gameScreenConnected,
       isLoading,
+      securityError,
       roomError,
       countdown,
       newMember,

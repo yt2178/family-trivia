@@ -272,7 +272,7 @@ function App() {
     setRoomWarningCode(null);
     
     // Redirect directly to host admin console (setup=true tells AdminView to open on members tab)
-    const url = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}&setup=true`;
+    const url = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}&setup=true&host=${encodeURIComponent(cleanName)}`;
     window.location.href = url;
   };
 
@@ -375,7 +375,7 @@ function App() {
     if (!ok) return;
     const cleanCode = inputRoomCode.trim();
     localStorage.setItem('last_connected_room', cleanCode);
-    window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${cleanCode}`;
+    window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${cleanCode}&host=${encodeURIComponent(joinHostName)}`;
   };
 
   const regenerateCode = () => {
@@ -518,7 +518,7 @@ function App() {
                 } catch (e) {
                   console.error("Failed to sync room data to localStorage", e);
                 }
-                window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}&wizard=true`;
+                window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}&wizard=true&host=${encodeURIComponent(joinHostName)}`;
               }}
               className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-400 hover:from-amber-400 hover:to-orange-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 cursor-pointer animate-pulse"
             >
@@ -558,7 +558,7 @@ function App() {
                 } catch (e) {
                   console.error("Failed to sync room data to localStorage", e);
                 }
-                window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}&controller=true`;
+                window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}&controller=true&host=${encodeURIComponent(joinHostName)}`;
               }}
               className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 cursor-pointer"
             >

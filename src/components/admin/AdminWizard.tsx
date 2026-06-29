@@ -397,7 +397,7 @@ export const AdminWizard: React.FC = () => {
                 <span className="text-xs font-bold text-slate-300">📺 מסך ההקרנה הראשי (למחשב / מקרן)</span>
                 <span className="text-[10px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded font-bold">מיועד למסך הגדול</span>
               </div>
-              <p className="text-[11px] text-slate-400">הקישור שיוצג על הטלוויזיה ויציג את השאלות והניקוד בזמן אמת.</p>
+              <p className="text-[11px] text-slate-400">הקישור שיוצג על המקרן ויציג את השאלות והניקוד בזמן אמת.</p>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -495,7 +495,10 @@ export const AdminWizard: React.FC = () => {
           {settings.setupComplete && (
             <button
               type="button"
-              onClick={() => setAdminSubMode('controller')}
+              onClick={() => {
+                updateSettings({ ...settings, setupComplete: true });
+                setAdminSubMode('controller');
+              }}
               className="text-xs text-slate-400 hover:text-slate-200 transition-colors font-bold px-2.5 py-1.5 rounded-lg border border-slate-850 bg-slate-900/30 flex items-center gap-1"
             >
               <span>ביטול וחזרה לשלט ◀️</span>
@@ -515,8 +518,8 @@ export const AdminWizard: React.FC = () => {
       <div className="w-full max-w-xl mx-auto mb-8 relative">
         <div className="absolute top-4 left-0 right-0 h-[2px] bg-slate-850 -translate-y-1/2 z-0" />
         <div
-          className="absolute top-4 left-0 h-[2px] bg-emerald-500/70 -translate-y-1/2 z-0 transition-all duration-500"
-          style={{ width: `${((currentStep - 1) / (stepTitles.length - 1)) * 100}%`, direction: 'ltr' }}
+          className="absolute top-4 right-0 h-[2px] bg-emerald-500/70 -translate-y-1/2 z-0 transition-all duration-500"
+          style={{ width: `${((currentStep - 1) / (stepTitles.length - 1)) * 100}%` }}
         />
         <div className="flex justify-between items-center relative z-10">
           {stepTitles.map((title, idx) => {

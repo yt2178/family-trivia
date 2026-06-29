@@ -167,6 +167,7 @@ export const GameView: React.FC = React.memo(() => {
   const [roomError, setRoomError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
   const [winnerRevealTimer, setWinnerRevealTimer] = useState<number>(0);
+  const [securityError, setSecurityError] = useState<boolean>(false);
   
   const hostLabel = settings.hostName || 'המנחה';
   
@@ -207,10 +208,16 @@ export const GameView: React.FC = React.memo(() => {
         try {
           const data = await sync.fetchCurrentRoomDatabase();
           if (data) {
-            const fbMembers = data.db?.members || [];
+             const fbMembers = data.db?.members || [];
             const fbQuestions = data.db?.questions || [];
             const fbSettings = data.settings || data.db?.settings || {};
             const fbState = data.state || data.db?.state || {};
+
+            const storedHost = (fbSettings.hostName || '').trim();
+            const urlHost = new URLSearchParams(window.location.search).get('host') || '';
+            if (storedHost && urlHost.trim().toLowerCase() !== storedHost.toLowerCase()) {
+              setSecurityError(true);
+            }
 
             db.saveMembers(fbMembers);
             db.saveQuestions(fbQuestions);
@@ -756,6 +763,36 @@ export const GameView: React.FC = React.memo(() => {
     );
   }
 
+  if (securityError) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center justify-center p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-full animate-bounce">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <h2 className="text-2xl font-black text-rose-400">גישה חסומה (שגיאת אבטחה)</h2>
+            <p className="text-slate-305 text-sm leading-relaxed font-semibold">
+              שם המנחה בקישור חסר או אינו תואם למנחה שהגדיר חדר זה.
+            </p>
+            <p className="text-slate-400 text-xs font-medium">
+              מסך ההקרנה דורש זיהוי מנחה תקין לצורכי אבטחת גישה.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              window.location.href = `${window.location.origin}${window.location.pathname}`;
+            }}
+            className="w-full py-3 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-350 font-bold text-sm rounded-xl transition-all cursor-pointer"
+          >
+            חזרה לדף הבית
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (roomError) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-6 text-slate-100 p-6" dir="rtl">
@@ -1185,11 +1222,14 @@ export const GameView: React.FC = React.memo(() => {
               <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl mb-8">
                 {winnerRevealTimer > 0 ? (
                   // Suspense timer countdown
-                  <div>
-                    <h3 className="text-3xl font-black text-slate-300 flex items-center justify-center gap-2 animate-pulse">
-                      {winnerRevealTimer}
+                  <div className="py-6 text-center space-y-4">
+                    <h3 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent flex items-center justify-center gap-2 animate-pulse">
+                      המנצח הוא??!!!! 🥁🤔
                     </h3>
-                    <p className="text-xs text-slate-400 mt-2">הזוכה ייחשף בקרוב...</p>
+                    <div className="text-6xl font-extrabold text-emerald-400 animate-bounce">
+                      {winnerRevealTimer}
+                    </div>
+                    <p className="text-sm text-slate-400">כמה שניות במתח ואז החשיפה...</p>
                   </div>
                 ) : getGameWinner() === 'tie' ? (
                   <div>
