@@ -274,11 +274,11 @@ export const ControlTab: React.FC = () => {
           <h3 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">
             שאלות שנפתרו:
           </h3>
-          {Object.keys(gameState.solvedQuestions).length === 0 ? (
+          {Object.keys(gameState.solvedQuestions || {}).length === 0 ? (
             <div className="text-slate-650 text-xs text-center py-6">טרם נפתרו שאלות.</div>
           ) : (
             <ul className="space-y-2 text-xs">
-              {Object.entries(gameState.solvedQuestions).map(([qId, winner]) => {
+              {Object.entries(gameState.solvedQuestions || {}).map(([qId, winner]) => {
                 const q = questions.find(item => item.id === qId);
                 const sp = q ? members.find(m => m.id === q.speakerId) : null;
                 return (

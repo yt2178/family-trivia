@@ -264,7 +264,6 @@ export const db = {
     safeLocalStorageSet(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   },
 
-  // Game State
   getGameState(): GameState {
     let data: string | null = null;
     try {
@@ -272,36 +271,22 @@ export const db = {
     } catch (e) {
       console.error('Failed to read game state from localStorage', e);
     }
+    const currentSettings = this.getSettings();
     if (!data) {
-      const state = { ...DEFAULT_GAME_STATE };
+      const state = healGameState(null, currentSettings);
       this.saveGameState(state);
       return state;
     }
     try {
       const parsed = JSON.parse(data) as GameState;
-      const currentSettings = this.getSettings();
-      let changed = false;
-
-      if (!parsed.scores || typeof parsed.scores !== 'object') {
-        parsed.scores = {};
-        changed = true;
+      const healed = healGameState(parsed, currentSettings);
+      if (JSON.stringify(parsed) !== JSON.stringify(healed)) {
+        this.saveGameState(healed);
       }
-
-      // Ensure every contestant has a score record
-      currentSettings.contestants.forEach(c => {
-        if (parsed.scores[c.id] === undefined) {
-          parsed.scores[c.id] = 0;
-          changed = true;
-        }
-      });
-
-      if (changed) {
-        this.saveGameState(parsed);
-      }
-      return parsed;
+      return healed;
     } catch (e) {
       console.error('Failed to parse game state, using defaults', e);
-      return DEFAULT_GAME_STATE;
+      return healGameState(null, currentSettings);
     }
   },
 

@@ -304,7 +304,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = React.memo(({
       try {
         const questions = JSON.parse(savedQuestionsStr);
         questions.forEach((q: any) => {
-          const winner = solvedQuestions[q.id];
+          const winner = (solvedQuestions || {})[q.id];
           if (winner) {
             map[q.speakerId] = winner;
           }

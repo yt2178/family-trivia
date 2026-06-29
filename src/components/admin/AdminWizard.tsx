@@ -286,7 +286,10 @@ export const AdminWizard: React.FC = () => {
       wizardStep: undefined 
     });
     const rCode = sync.getRoomCode();
-    if (rCode) localStorage.removeItem(`wizard_draft_${rCode}`);
+    if (rCode) {
+      localStorage.removeItem(`wizard_draft_${rCode}`);
+      window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}?mode=admin&room=${rCode}`);
+    }
     setAdminSubMode('controller');
     setActiveTab('control');
   };
@@ -444,6 +447,10 @@ export const AdminWizard: React.FC = () => {
                 setShowSuccessScreen(false);
                 setAdminSubMode('controller');
                 setActiveTab('control');
+                const rCode = sync.getRoomCode();
+                if (rCode) {
+                  window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}?mode=admin&room=${rCode}`);
+                }
               }}
               className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-95"
             >

@@ -365,9 +365,9 @@ function App() {
     const cleanCode = inputRoomCode.trim();
     localStorage.setItem('last_connected_room', cleanCode);
     
-    // Show selection screen instead of going directly to admin
+    // Go directly to admin sub selection (edit vs controller remote)
     setJoinSelectionRoom(cleanCode);
-    setMode('join-selection');
+    setMode('admin-sub-selection');
   };
 
   const handleOpenProjector = async () => {
@@ -469,7 +469,7 @@ function App() {
             </div>
             <div>
               <h1 className="text-3xl font-black bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 bg-clip-text text-transparent">
-                מצב ניהול
+                חיבור שלט מנחה
               </h1>
               <p className="text-sm text-slate-400 font-semibold mt-1">
                 חדר מספר: <span className="text-emerald-400 font-mono">{joinSelectionRoom}</span>
@@ -480,8 +480,16 @@ function App() {
           <div className="space-y-4">
             <button
               onClick={async () => {
-                // Fetch data and go to admin mode with wizard
+                // Fetch data, mark setupComplete=false, and go to admin mode with wizard
                 try {
+                  // Set setupComplete to false on Firebase
+                  await set(ref(rtdb, `rooms/${joinSelectionRoom}/database/settings/setupComplete`), false);
+                  await set(ref(rtdb, `rooms/${joinSelectionRoom}/database/db/settings/setupComplete`), false);
+                  
+                  // Reset wizardStep to 1
+                  await set(ref(rtdb, `rooms/${joinSelectionRoom}/database/settings/wizardStep`), 1);
+                  await set(ref(rtdb, `rooms/${joinSelectionRoom}/database/db/settings/wizardStep`), 1);
+
                   const roomDbRef = ref(rtdb, `rooms/${joinSelectionRoom}/database`);
                   const snap = await get(roomDbRef);
                   if (snap.exists()) {
@@ -512,10 +520,10 @@ function App() {
                 }
                 window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}&wizard=true`;
               }}
-              className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-400 hover:from-amber-400 hover:to-orange-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3"
+              className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-400 hover:from-amber-400 hover:to-orange-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 cursor-pointer animate-pulse"
             >
               <Pencil size={24} />
-              <span>✏️ עריכת החדר הקיים</span>
+              <span>📝 להמשיך לערוך או לשנות פרטים</span>
             </button>
 
             <button
@@ -552,19 +560,20 @@ function App() {
                 }
                 window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}&controller=true`;
               }}
-              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3"
+              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 cursor-pointer"
             >
               <Play size={24} />
-              <span>🎮 שלט משחק (בלייב)</span>
+              <span>🎮 להשתמש בתור שלט מנחה</span>
             </button>
 
             <button
               onClick={() => {
-                setMode('join-selection');
+                setMode('welcome');
+                setJoinSelectionRoom(null);
               }}
-              className="w-full py-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 font-bold text-sm rounded-xl transition-all"
+              className="w-full py-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 font-bold text-sm rounded-xl transition-all cursor-pointer"
             >
-              חזרה אחורה
+              חזרה לדף הבית
             </button>
           </div>
         </motion.div>
