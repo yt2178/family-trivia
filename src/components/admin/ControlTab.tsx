@@ -16,6 +16,7 @@ import {
 export const ControlTab: React.FC = () => {
   const {
     gameState,
+    updateGameState,
     settings,
     questions,
     members,
@@ -28,7 +29,6 @@ export const ControlTab: React.FC = () => {
     handleRevealAnswer,
     handleAssignPoints,
     handleAbsoluteReset,
-    handleTogglePause,
     nextQuestionTimer,
     showContestantOrderModal,
     setShowContestantOrderModal
@@ -40,7 +40,10 @@ export const ControlTab: React.FC = () => {
   const isGameLoaded = shuffledIds.length > 0;
   const activeQuestionId = shuffledIds[gameState.currentQuestionIndex];
   const activeQuestion = questions.find(q => q.id === activeQuestionId);
-  const activeSpeaker = activeQuestion ? members.find(m => m.id === activeQuestion.speakerId) : null;
+  const activeSpeakerId = activeQuestion?.speakerId === 'general' || !activeQuestion?.speakerId
+    ? gameState.revealedSpeakers?.[activeQuestionId]
+    : activeQuestion?.speakerId;
+  const activeSpeaker = activeSpeakerId ? members.find(m => m.id === activeSpeakerId) : null;
 
   // Function to get father's name
   const getFatherName = (member: FamilyMember | null | undefined): string | null => {
@@ -155,21 +158,33 @@ export const ControlTab: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleRevealAnswer}
-                      disabled={gameState.isRevealed}
-                      className={`px-4 py-2 font-bold text-xs rounded-lg transition-colors ${
-                        gameState.isRevealed
-                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                          : 'bg-amber-500 text-slate-950 hover:bg-amber-400'
-                      }`}
-                      title="חשוף מי אמר את המשפט במסך ההקרנה"
-                    >
-                      {gameState.isRevealed ? 'התשובה גלויה במסך' : 'חשוף תשובה במסך'}
-                    </button>
-                  </div>
                 </div>
+
+                {/* Live Speaker Selection for General Questions */}
+                {(activeQuestion?.speakerId === 'general' || !activeQuestion?.speakerId) && (
+                  <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl mb-6 text-right relative z-20">
+                    <span className="text-xs text-amber-400 block mb-2 font-bold flex items-center gap-1.5">
+                      <span>🎯 שאלה כללית - בחר מי אמר את הציטוט בלייב:</span>
+                    </span>
+                    <select
+                      value={(gameState.revealedSpeakers?.[activeQuestion?.id || ''] as string) || ''}
+                      onChange={e => {
+                        const mId = e.target.value;
+                        const newRevealed = { ...(gameState.revealedSpeakers || {}), [activeQuestionId]: mId };
+                        updateGameState({
+                          ...gameState,
+                          revealedSpeakers: newRevealed
+                        });
+                      }}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 text-xs font-bold"
+                    >
+                      <option value="">-- בחר בן משפחה מהרשימה --</option>
+                      {members.map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Scoring Actions */}
                 <div>
@@ -200,12 +215,16 @@ export const ControlTab: React.FC = () => {
 
                     <button
                       onClick={() => handleAssignPoints('nobody')}
-                      className="p-4 bg-slate-900 border border-slate-800 hover:bg-slate-800/80 transition-colors rounded-2xl flex flex-col items-center gap-2 group text-slate-300"
-                      title="אף אחד לא צדק - חשוף באפור במסך"
+                      className={`p-4 transition-all rounded-2xl flex flex-col items-center gap-2 group border ${
+                        gameState.solvedQuestions[shuffledIds[gameState.currentQuestionIndex]] === 'nobody'
+                          ? 'border-rose-500/40 bg-slate-900 text-rose-450 shadow-lg shadow-rose-950/20'
+                          : 'bg-slate-900 border-slate-800 hover:bg-slate-850 text-slate-350'
+                      }`}
+                      title="אף אחד לא צדק - חשיפה ללא ניקוד"
                     >
-                      <X size={28} className="text-slate-500 group-hover:scale-110 transition-transform" />
-                      <span className="font-bold text-sm">אף אחד</span>
-                      <span className="text-[10px] text-slate-500">חשיפה באפור</span>
+                      <X size={28} className={`group-hover:scale-110 transition-transform ${gameState.solvedQuestions[shuffledIds[gameState.currentQuestionIndex]] === 'nobody' ? 'text-rose-450' : 'text-slate-550'}`} />
+                      <span className="font-bold text-sm">אף אחד / חשוף תשובה</span>
+                      <span className="text-[10px] text-slate-500">חשיפה באפור ללא ניקוד</span>
                     </button>
                   </div>
                 </div>
@@ -298,15 +317,6 @@ export const ControlTab: React.FC = () => {
             >
               <RefreshCw size={12} />
               <span>אפס והתחל משחק מחדש</span>
-            </button>
-          )}
-          {isGameLoaded && (
-            <button
-              onClick={handleTogglePause}
-              className="w-full mt-2 py-2 border border-amber-500/20 hover:bg-amber-950/30 transition-colors text-amber-400/70 hover:text-amber-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
-            >
-              <RefreshCw size={12} />
-              <span>{gameState.isPaused ? 'המשך משחק ▶️' : 'השהה משחק ⏸️'}</span>
             </button>
           )}
           <button

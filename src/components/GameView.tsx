@@ -155,6 +155,9 @@ const healSettings = (s: any): GameSettings => {
   if (parsed.hostName === undefined) {
     parsed.hostName = '';
   }
+  if (parsed.showNameBank === undefined) {
+    parsed.showNameBank = false;
+  }
   return parsed;
 };
 
@@ -1164,12 +1167,53 @@ export const GameView: React.FC = React.memo(() => {
                   members={members}
                   settings={settings}
                   solvedQuestions={gameState.solvedQuestions}
-                  currentSpeakerId={currentQuestion?.speakerId || null}
+                  currentSpeakerId={
+                    currentQuestion?.speakerId === 'general' || !currentQuestion?.speakerId
+                      ? (gameState.revealedSpeakers?.[currentQuestion?.id || ''] || null)
+                      : (currentQuestion?.speakerId || null)
+                  }
                   isAnswerRevealed={gameState.isRevealed}
                   interactive={false}
-                  revealedMembers={gameState.revealedSpeakers}
+                  revealedMembers={gameState.revealedSpeakers as Record<string, boolean>}
                 />
               )}
+            </div>
+          )}
+
+          {/* Name Bank */}
+          {settings.showNameBank && !isGameOver && (
+            <div className="glass-panel p-4 rounded-2xl border border-slate-800/80 shadow-lg text-right">
+              <span className="text-[10px] text-slate-500 block mb-2 font-bold">בנק השמות של המשפחה:</span>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {members.map(m => {
+                  const isCurrentCorrect = currentQuestion && gameState.isRevealed && (
+                    currentQuestion.speakerId === m.id || 
+                    ((currentQuestion.speakerId === 'general' || !currentQuestion.speakerId) && gameState.revealedSpeakers?.[currentQuestion.id] === m.id)
+                  );
+                  
+                  const wasSolvedInPast = Object.entries(gameState.solvedQuestions || {}).some(([qId, winnerId]) => {
+                    const q = questions.find(question => question.id === qId);
+                    if (!q) return false;
+                    const speakerId = q.speakerId === 'general' || !q.speakerId ? gameState.revealedSpeakers?.[qId] : q.speakerId;
+                    return speakerId === m.id;
+                  });
+
+                  const isHighlighted = isCurrentCorrect || wasSolvedInPast;
+
+                  return (
+                    <span
+                      key={m.id}
+                      className={`px-2.5 py-1 text-xs rounded-lg border font-bold transition-all ${
+                        isHighlighted
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.25)]'
+                          : 'bg-slate-900/60 text-slate-500 border-slate-850'
+                      }`}
+                    >
+                      {m.name}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -1196,28 +1240,30 @@ export const GameView: React.FC = React.memo(() => {
             >
               {/* Confetti decoration */}
               <div className="absolute -top-16 -left-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className={`grid gap-4 mb-8 ${(settings.contestants?.length || 0) <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
-                {(settings.contestants || []).map((c, index) => {
-                  const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
-                  const score = gameState.scores[c.id] || 0;
-                  return (
-                    <div key={c.id} className="glass-panel p-6 rounded-3xl border border-slate-800 text-center relative overflow-hidden">
-                      <div className={`absolute -top-12 -right-12 w-24 h-24 bg-${colors.border.split('-')[1]}-500/5 rounded-full blur-2xl`} />
-                      <div className={`w-16 h-16 rounded-2xl border-2 ${colors.border}/30 mx-auto mb-3 overflow-hidden flex items-center justify-center p-0.5`}>
-                        {c.image ? (
-                          <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-xl" />
-                        ) : (
-                          <div className={`w-full h-full flex items-center justify-center ${colors.text}`}>
-                            <Award size={24} />
-                          </div>
-                        )}
+              {winnerRevealTimer === 0 && (
+                <div className={`grid gap-4 mb-8 ${(settings.contestants?.length || 0) <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+                  {(settings.contestants || []).map((c, index) => {
+                    const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
+                    const score = gameState.scores[c.id] || 0;
+                    return (
+                      <div key={c.id} className="glass-panel p-6 rounded-3xl border border-slate-800 text-center relative overflow-hidden">
+                        <div className={`absolute -top-12 -right-12 w-24 h-24 bg-${colors.border.split('-')[1]}-500/5 rounded-full blur-2xl`} />
+                        <div className={`w-16 h-16 rounded-2xl border-2 ${colors.border}/30 mx-auto mb-3 overflow-hidden flex items-center justify-center p-0.5`}>
+                          {c.image ? (
+                            <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-xl" />
+                          ) : (
+                            <div className={`w-full h-full flex items-center justify-center ${colors.text}`}>
+                              <Award size={24} />
+                            </div>
+                          )}
+                        </div>
+                        <h3 className="font-bold text-slate-200 truncate">{c.name}</h3>
+                        <div className={`text-3xl font-black mt-2 ${colors.text}`}>{score} נק׳</div>
                       </div>
-                      <h3 className="font-bold text-slate-200 truncate">{c.name}</h3>
-                      <div className={`text-3xl font-black mt-2 ${colors.text}`}>{score} נק׳</div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl mb-8">
                 {winnerRevealTimer > 0 ? (

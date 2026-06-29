@@ -35,13 +35,14 @@ export interface GameSettings {
   questionTimer?: number | null; // Timer in seconds (null/0 means unlimited)
   wizardStep?: number; // Current wizard step (1-6) if setup not complete
   questionOrder?: 'sequential' | 'random'; // Order of questions in game
+  showNameBank?: boolean;
 }
 
 export interface GameState {
   currentQuestionIndex: number;
   scores: Record<string, number>; // contestantId -> score
   solvedQuestions: Record<string, string>; // questionId -> winning contestantId ('nobody' or contestant.id)
-  revealedSpeakers: Record<string, boolean>; // memberId -> whether revealed
+  revealedSpeakers: Record<string, boolean | string>; // memberId -> whether revealed OR questionId -> revealedSpeakerId
   shuffledQuestionIds: string[];
   isRevealed: boolean;
   isPlaying: boolean;

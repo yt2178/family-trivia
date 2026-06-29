@@ -39,6 +39,8 @@ export const AdminWizard: React.FC = () => {
     setWizardContestantCount,
     wizardQuestionTimer,
     setWizardQuestionTimer,
+    wizardShowNameBank,
+    setWizardShowNameBank,
     wizardContestants,
     setWizardContestants,
     wizardStepLocal,
@@ -175,9 +177,20 @@ export const AdminWizard: React.FC = () => {
       grandpaImage: activeContestants[0]?.image || null,
       grandmaImage: activeContestants[1]?.image || null,
       questionTimer: wizardQuestionTimer,
+      questionOrder: wizardQuestionOrder,
+      showNameBank: wizardShowNameBank,
       wizardStep: nextStep
     });
-    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, nextStep);
+    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, nextStep, wizardShowNameBank);
+  };
+
+  const proceedBack = (prevStep: number) => {
+    setWizardStepLocal(prevStep);
+    updateSettings({
+      ...settings,
+      wizardStep: prevStep
+    });
+    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, prevStep, wizardShowNameBank);
   };
 
   const handleNext = () => {
@@ -244,23 +257,7 @@ export const AdminWizard: React.FC = () => {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      const prevStep = currentStep - 1;
-      setWizardStepLocal(prevStep);
-
-      const activeContestants = wizardContestants.slice(0, wizardContestantCount);
-      updateSettings({
-        ...settings,
-        hostName: wizardHostName,
-        treeLayout: wizardTreeLayout,
-        contestants: activeContestants,
-        grandpaName: activeContestants[0]?.name || 'כחול',
-        grandmaName: activeContestants[1]?.name || 'סגול',
-        grandpaImage: activeContestants[0]?.image || null,
-        grandmaImage: activeContestants[1]?.image || null,
-        questionTimer: wizardQuestionTimer,
-        wizardStep: prevStep
-      });
-      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, prevStep);
+      proceedBack(currentStep - 1);
     }
   };
 
@@ -271,18 +268,15 @@ export const AdminWizard: React.FC = () => {
       );
       if (!confirmSkip) return;
     }
-    const activeContestants = wizardContestants.slice(0, wizardContestantCount);
     updateSettings({ 
       ...settings, 
+      setupComplete: true, 
       hostName: wizardHostName,
       treeLayout: wizardTreeLayout,
-      contestants: activeContestants,
-      grandpaName: activeContestants[0]?.name || 'כחול',
-      grandmaName: activeContestants[1]?.name || 'סגול',
-      grandpaImage: activeContestants[0]?.image || null,
-      grandmaImage: activeContestants[1]?.image || null,
       questionTimer: wizardQuestionTimer,
-      setupComplete: true, 
+      questionOrder: wizardQuestionOrder,
+      showNameBank: wizardShowNameBank,
+      contestants: wizardContestants.slice(0, wizardContestantCount),
       wizardStep: undefined 
     });
     const rCode = sync.getRoomCode();
@@ -296,18 +290,15 @@ export const AdminWizard: React.FC = () => {
 
   const handleFinish = () => {
     try {
-      const activeContestants = wizardContestants.slice(0, wizardContestantCount);
       updateSettings({ 
         ...settings, 
+        setupComplete: true, 
         hostName: wizardHostName,
         treeLayout: wizardTreeLayout,
-        contestants: activeContestants,
-        grandpaName: activeContestants[0]?.name || 'כחול',
-        grandmaName: activeContestants[1]?.name || 'סגול',
-        grandpaImage: activeContestants[0]?.image || null,
-        grandmaImage: activeContestants[1]?.image || null,
         questionTimer: wizardQuestionTimer,
-        setupComplete: true, 
+        questionOrder: wizardQuestionOrder,
+        showNameBank: wizardShowNameBank,
+        contestants: wizardContestants.slice(0, wizardContestantCount),
         wizardStep: undefined 
       });
       const rCode = sync.getRoomCode();
@@ -544,9 +535,11 @@ export const AdminWizard: React.FC = () => {
                       grandpaImage: activeContestants[0]?.image || null,
                       grandmaImage: activeContestants[1]?.image || null,
                       questionTimer: wizardQuestionTimer,
+                      questionOrder: wizardQuestionOrder,
+                      showNameBank: wizardShowNameBank,
                       wizardStep: stepNum
                     });
-                    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, stepNum);
+                    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, stepNum, wizardShowNameBank);
                   }}
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                     isActive 
@@ -1116,6 +1109,29 @@ export const AdminWizard: React.FC = () => {
                   <p className="text-[10px] text-slate-500 mt-2 bg-slate-950/30 p-3 rounded-lg leading-relaxed">
                     💡 בחר סדר אקראי למשחק מהנה יותר, או סדר הכנסה לשליטה מלאה בסדר השאלות.
                   </p>
+                </div>
+
+                <div className="border-t border-slate-850/60 pt-4 mt-4">
+                  <label className="text-xs font-bold text-slate-300 block mb-2">בנק שמות בתחתית מסך ההקרנה:</label>
+                  <div className="flex items-center justify-between bg-slate-900 border border-slate-850 p-4 rounded-xl">
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-slate-200 block">הצגת בנק שמות קטן למטה 📋</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">יציג את כל השמות של בני המשפחה בקטן בתחתית מסך ההקרנה, ויסמן לבד את השמות שנבחרו/נחשפו</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={wizardShowNameBank}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setWizardShowNameBank(checked);
+                          saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep, checked);
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-slate-700 after:border-slate-350 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 peer-checked:after:bg-slate-950" />
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

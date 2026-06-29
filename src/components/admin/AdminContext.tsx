@@ -4,7 +4,7 @@ import { sync } from '../../utils/sync';
 import { excelHelper } from '../../utils/excelHelper';
 import { audioHelper } from '../../utils/audioHelper';
 import { rtdb } from '../../utils/firebase';
-import { ref, onValue, off, set, remove, get } from 'firebase/database';
+import { ref, onValue, off, set, remove, get, onDisconnect } from 'firebase/database';
 
 export const CONTESTANT_COLORS = [
   {
@@ -88,6 +88,9 @@ export const healSettings = (s: any): GameSettings => {
   if (parsed.hostName === undefined) {
     parsed.hostName = '';
   }
+  if (parsed.showNameBank === undefined) {
+    parsed.showNameBank = false;
+  }
   return parsed;
 };
 
@@ -153,6 +156,8 @@ interface AdminContextType {
   setWizardContestantCount: React.Dispatch<React.SetStateAction<number>>;
   wizardQuestionTimer: number | null;
   setWizardQuestionTimer: React.Dispatch<React.SetStateAction<number | null>>;
+  wizardShowNameBank: boolean;
+  setWizardShowNameBank: React.Dispatch<React.SetStateAction<boolean>>;
   wizardContestants: Array<{ id: string; name: string; image: string | null }>;
   setWizardContestants: React.Dispatch<React.SetStateAction<Array<{ id: string; name: string; image: string | null }>>>;
   wizardStepLocal: number | null;
@@ -202,7 +207,8 @@ interface AdminContextType {
     contestants: Array<{ id: string; name: string; image: string | null }>,
     questionTimer: number | null,
     questionOrder: 'sequential' | 'random',
-    step: number
+    step: number,
+    showNameBankVal?: boolean
   ) => void;
 }
 
@@ -299,6 +305,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [wizardTreeLayout, setWizardTreeLayout] = useState<'botanical' | 'traditional' | 'none'>('traditional');
   const [wizardContestantCount, setWizardContestantCount] = useState(2);
   const [wizardQuestionTimer, setWizardQuestionTimer] = useState<number | null>(null);
+  const [wizardShowNameBank, setWizardShowNameBank] = useState<boolean>(false);
   const [wizardContestants, setWizardContestants] = useState<Array<{ id: string; name: string; image: string | null }>>([]);
   const [wizardStepLocal, setWizardStepLocal] = useState<number | null>(null);
   const [hasInitializedWizard, setHasInitializedWizard] = useState(false);
@@ -332,6 +339,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardTreeLayout(draft.treeLayout || settings.treeLayout || 'traditional');
         setWizardContestantCount(draft.contestantCount || 2);
         setWizardQuestionTimer(draft.questionTimer !== undefined ? draft.questionTimer : (settings.questionTimer || null));
+        setWizardShowNameBank(draft.showNameBank !== undefined ? draft.showNameBank : (settings.showNameBank || false));
         setWizardStepLocal(draft.wizardStep || settings.wizardStep || 1);
         
         const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
@@ -351,6 +359,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardTreeLayout(settings.treeLayout || 'traditional');
         setWizardContestantCount(settings.contestants?.length || 2);
         setWizardQuestionTimer(settings.questionTimer !== undefined ? settings.questionTimer : null);
+        setWizardShowNameBank(settings.showNameBank || false);
         setWizardStepLocal(settings.wizardStep || 1);
         
         const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
@@ -445,7 +454,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     contestants: Array<{ id: string; name: string; image: string | null }>,
     questionTimer: number | null,
     questionOrder: 'sequential' | 'random',
-    step: number
+    step: number,
+    showNameBankVal?: boolean
   ) => {
     const rCode = sync.getRoomCode();
     if (!rCode) return;
@@ -457,10 +467,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         contestants: contestants.slice(0, contestantCount),
         questionTimer,
         questionOrder,
+        showNameBank: showNameBankVal !== undefined ? showNameBankVal : wizardShowNameBank,
         wizardStep: step
       }));
-    } catch (e) {
-      console.error("Failed to save wizard draft to localStorage", e);
+    } catch (e: any) {
+      console.error("Failed to save wizard draft", e);
     }
   };
 
@@ -558,6 +569,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               setSecurityError(true);
             }
 
+            // Set onDisconnect to pause the game automatically when host leaves/disconnects
+            const isPausedRef = ref(rtdb, `rooms/${roomCode}/database/state/isPaused`);
+            onDisconnect(isPausedRef).set(true);
+
             const healed = healMembersGenerations(fbMembers);
             
             db.saveMembers(healed);
@@ -568,7 +583,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             db.saveSettings(mergedSettings);
             
             const currentGameState = db.getGameState();
-            const mergedState = healGameState({ ...currentGameState, ...fbState }, mergedSettings);
+            const mergedState = healGameState({ ...currentGameState, ...fbState, isPaused: false }, mergedSettings);
             db.saveGameState(mergedState);
 
             setMembers(healed);
@@ -762,29 +777,59 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let isUndo = false;
 
     if (winner === 'nobody') {
-      currentWinners.forEach(wId => {
-        newScores[wId] = Math.max(0, (newScores[wId] || 0) - 1);
-      });
-      delete newSolved[currentQId];
-      showSuccess('בוטל הניקוד לכל המתמודדים בשאלה זו.');
-    } else {
-      if (currentWinners.includes(winner)) {
-        const updatedWinners = currentWinners.filter(wId => wId !== winner);
-        newScores[winner] = Math.max(0, (newScores[winner] || 0) - 1);
-        isUndo = true;
-        
-        if (updatedWinners.length > 0) {
-          newSolved[currentQId] = updatedWinners.join(',');
-        } else {
-          delete newSolved[currentQId];
-        }
-        showSuccess(`בוטל הניקוד עבור ${settings.contestants?.find(c => c.id === winner)?.name || 'מתמודד זה'}.`);
+      if (currentSolvedValue === 'nobody') {
+        // Toggle off
+        delete newSolved[currentQId];
+        const updatedState = {
+          ...gameState,
+          solvedQuestions: newSolved,
+          isRevealed: false,
+        };
+        updateGameState(updatedState);
+        playAdminSound('undo');
+        showSuccess('בוטלה חשיפת השאלה.');
       } else {
-        const updatedWinners = [...currentWinners, winner];
-        newScores[winner] = (newScores[winner] || 0) + 1;
-        newSolved[currentQId] = updatedWinners.join(',');
-        showSuccess(`התווספה נקודה עבור ${settings.contestants?.find(c => c.id === winner)?.name || 'מתמודד זה'}!`);
+        // Toggle on: deduct points from any previous winners of this question, set to nobody
+        currentWinners.forEach(wId => {
+          newScores[wId] = Math.max(0, (newScores[wId] || 0) - 1);
+        });
+        newSolved[currentQId] = 'nobody';
+        const updatedState = {
+          ...gameState,
+          scores: newScores,
+          solvedQuestions: newSolved,
+          isRevealed: true,
+        };
+        updateGameState(updatedState);
+        playAdminSound('success');
+        showSuccess('התשובה נחשפה (אף אחד לא קיבל ניקוד).');
+        setNextQuestionTimer(10);
       }
+      return;
+    }
+
+    // Normal contestant winner logic
+    // If it was previously marked as nobody, remove the nobody mark first
+    if (currentSolvedValue === 'nobody') {
+      delete newSolved[currentQId];
+    }
+
+    if (currentWinners.includes(winner)) {
+      const updatedWinners = currentWinners.filter(wId => wId !== winner);
+      newScores[winner] = Math.max(0, (newScores[winner] || 0) - 1);
+      isUndo = true;
+      
+      if (updatedWinners.length > 0) {
+        newSolved[currentQId] = updatedWinners.join(',');
+      } else {
+        delete newSolved[currentQId];
+      }
+      showSuccess(`בוטל הניקוד עבור ${settings.contestants?.find(c => c.id === winner)?.name || 'מתמודד זה'}.`);
+    } else {
+      const updatedWinners = [...currentWinners, winner];
+      newScores[winner] = (newScores[winner] || 0) + 1;
+      newSolved[currentQId] = updatedWinners.join(',');
+      showSuccess(`התווספה נקודה עבור ${settings.contestants?.find(c => c.id === winner)?.name || 'מתמודד זה'}!`);
     }
 
     const updatedState = {
@@ -1335,6 +1380,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setWizardContestantCount,
       wizardQuestionTimer,
       setWizardQuestionTimer,
+      wizardShowNameBank,
+      setWizardShowNameBank,
       wizardContestants,
       setWizardContestants,
       wizardStepLocal,
