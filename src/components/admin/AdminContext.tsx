@@ -5,6 +5,7 @@ import { excelHelper } from '../../utils/excelHelper';
 import { audioHelper } from '../../utils/audioHelper';
 import { rtdb } from '../../utils/firebase';
 import { ref, onValue, off, set, remove, get, onDisconnect } from 'firebase/database';
+import { fileToBase64, compressImage } from '../../utils/imageHelper';
 
 export const CONTESTANT_COLORS = [
   {
@@ -20,57 +21,37 @@ export const CONTESTANT_COLORS = [
     border: 'border-fuchsia-500'
   },
   {
-    bg: 'bg-amber-950/40 border-amber-500/40 hover:bg-amber-900/40 text-amber-100',
-    text: 'text-amber-400',
-    glow: 'כתום Glow',
-    border: 'border-amber-500'
-  },
-  {
     bg: 'bg-emerald-950/40 border-emerald-500/40 hover:bg-emerald-900/40 text-emerald-100',
     text: 'text-emerald-400',
     glow: 'ירוק Glow',
     border: 'border-emerald-500'
+  },
+  {
+    bg: 'bg-amber-950/40 border-amber-500/40 hover:bg-amber-900/40 text-amber-100',
+    text: 'text-amber-500',
+    glow: 'כתום Glow',
+    border: 'border-amber-500'
   }
 ];
 
-export const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
-  });
-};
-
-export const compressImage = (base64Str: string, maxWidth = 160, maxHeight = 160): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height) {
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', 0.7));
-    };
-  });
-};
+export const CONTESTANT_THEMES = [
+  {
+    bg: 'bg-sky-500/10 text-sky-400',
+    border: 'border-sky-500/30'
+  },
+  {
+    bg: 'bg-fuchsia-500/10 text-fuchsia-400',
+    border: 'border-fuchsia-500/30'
+  },
+  {
+    bg: 'bg-emerald-500/10 text-emerald-400',
+    border: 'border-emerald-500/30'
+  },
+  {
+    bg: 'bg-amber-500/10 text-amber-500',
+    border: 'border-amber-500/30'
+  }
+];
 
 export const healSettings = (s: any): GameSettings => {
   const defaultSettings = db.getSettings();
