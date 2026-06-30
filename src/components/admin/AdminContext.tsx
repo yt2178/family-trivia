@@ -106,6 +106,7 @@ interface MemberFormState {
 }
 
 interface QuestionFormState {
+  id?: string;
   text: string;
   speakerId: string;
 }
@@ -1008,14 +1009,23 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     
     const speakerId = newQuestion.speakerId || 'general';
-    const id = 'q_' + Math.random().toString(36).substr(2, 9);
-    const questionToAdd: TriviaQuestion = {
-      id,
-      text: newQuestion.text.trim(),
-      speakerId
-    };
+    const isEdit = !!newQuestion.id;
+    
+    let updated: TriviaQuestion[];
+    if (isEdit) {
+      updated = questions.map(q => q.id === newQuestion.id ? { ...q, text: newQuestion.text.trim(), speakerId } : q);
+      showSuccess('השאלה עודכנה בהצלחה!');
+    } else {
+      const id = 'q_' + Math.random().toString(36).substr(2, 9);
+      const questionToAdd: TriviaQuestion = {
+        id,
+        text: newQuestion.text.trim(),
+        speakerId
+      };
+      updated = [...questions, questionToAdd];
+      showSuccess('השאלה נוספה בהצלחה!');
+    }
 
-    const updated = [...questions, questionToAdd];
     setQuestions(updated);
     db.saveQuestions(updated);
     sync.sendMessage({ type: 'DATABASE_SYNC', members, questions: updated, settings });
@@ -1024,7 +1034,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       text: '',
       speakerId: ''
     });
-    showSuccess('השאלה נוספה בהצלחה!');
   };
 
   const handleDeleteQuestion = (id: string) => {
