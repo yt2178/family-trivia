@@ -248,9 +248,9 @@ export const ControlTab: React.FC = () => {
             <button
               onClick={handlePrevQuestion}
               disabled={gameState.currentQuestionIndex === 0}
-              className="px-3 py-1.5 bg-slate-900 border border-slate-800 text-xs text-slate-400 font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              className="px-6 py-3.5 bg-slate-900 border border-slate-800 hover:bg-slate-850 hover:border-slate-700 text-slate-350 text-base font-black rounded-2xl active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
             >
-              <ChevronRight size={14} />
+              <ChevronRight size={20} />
               <span>שאלה קודמת</span>
             </button>
             
