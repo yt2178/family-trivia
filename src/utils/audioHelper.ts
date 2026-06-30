@@ -152,59 +152,97 @@ export class AudioHelper {
     this.isBgPlaying = true;
     this.bgGain = ctx.createGain();
     this.bgGain.connect(ctx.destination);
-    this.bgGain.gain.setValueAtTime(0.015, ctx.currentTime); // Soft and ambient volume
+    this.bgGain.gain.setValueAtTime(0.025, ctx.currentTime); // Soft atmospheric volume
 
-    // Ambient progression: Am - F - C - G
-    const progressions = [
-      [220.00, 261.63, 329.63], // A3, C4, E4 (Am)
-      [174.61, 220.00, 261.63], // F3, A3, C4 (F)
-      [261.63, 329.63, 392.00], // C4, E4, G4 (C)
-      [196.00, 246.94, 293.66]  // G3, B3, D4 (G)
-    ];
-
-    let currentChord = 0;
     let step = 0;
+    
+    // Tense, dark minor chords (D minor / Bb/D dramatic shifts)
+    const chords = [
+      [146.83, 174.61, 220.00], // D3, F3, A3 (Dm - Suspense root)
+      [146.83, 174.61, 233.08], // D3, F3, Bb3 (Bb/D - Rising tension)
+      [138.59, 164.81, 207.65], // C#3, E3, G#3 (C#m - Dissonant shift)
+      [130.81, 155.56, 196.00]  // Cm - Heavy dramatic resolution
+    ];
+    let currentChordIndex = 0;
 
     const playStep = () => {
       if (!this.isBgPlaying || !this.ctx) return;
       
-      const chord = progressions[currentChord];
-      const noteFreq = chord[step % chord.length];
-      
-      const osc = this.ctx.createOscillator();
-      const gainNode = this.ctx.createGain();
-      
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(noteFreq, this.ctx.currentTime);
-      
-      osc.connect(gainNode);
-      if (this.bgGain) {
-        gainNode.connect(this.bgGain);
+      const currentTime = this.ctx.currentTime;
+
+      // 1. Clock Tick (Triangle, very short high-pitch transient)
+      if (step % 2 === 0) {
+        const tickOsc = this.ctx.createOscillator();
+        const tickGain = this.ctx.createGain();
+        tickOsc.type = 'triangle';
+        tickOsc.frequency.setValueAtTime(1000, currentTime);
+        tickOsc.connect(tickGain);
+        if (this.bgGain) tickGain.connect(this.bgGain);
+        
+        tickGain.gain.setValueAtTime(0.04, currentTime);
+        tickGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.03);
+        
+        tickOsc.start(currentTime);
+        tickOsc.stop(currentTime + 0.04);
       }
-      
-      // Gentle attack and decay
-      gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.12, this.ctx.currentTime + 0.15);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.2);
-      
-      osc.start();
-      
-      setTimeout(() => {
-        try {
-          osc.stop();
-          osc.disconnect();
-          gainNode.disconnect();
-        } catch (e) {}
-      }, 1300);
+
+      // 2. Deep Heartbeat Thump (Double low-pitch thump: lub-dub)
+      if (step % 4 === 0) {
+        const thump = (delay: number) => {
+          if (!this.ctx) return;
+          const t = this.ctx.currentTime + delay;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(58, t); // Very low G1/A1 pitch
+          osc.frequency.exponentialRampToValueAtTime(35, t + 0.12);
+          
+          osc.connect(gain);
+          if (this.bgGain) gain.connect(this.bgGain);
+          
+          gain.gain.setValueAtTime(0.4, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+          
+          osc.start(t);
+          osc.stop(t + 0.18);
+        };
+        
+        thump(0);
+        thump(0.12); // Double thump offset
+      }
+
+      // 3. Cinematic Swelling Minor Pads (Triggered every 8 steps)
+      if (step % 8 === 0) {
+        const chord = chords[currentChordIndex];
+        chord.forEach((freq, idx) => {
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          
+          osc.type = 'triangle';
+          // Detune slightly for tension chorus effect
+          osc.frequency.setValueAtTime(freq + (idx === 1 ? 0.6 : -0.6), currentTime);
+          
+          osc.connect(gain);
+          if (this.bgGain) gain.connect(this.bgGain);
+          
+          gain.gain.setValueAtTime(0, currentTime);
+          gain.gain.linearRampToValueAtTime(0.14, currentTime + 0.8);
+          gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 2.3);
+          
+          osc.start(currentTime);
+          osc.stop(currentTime + 2.4);
+        });
+
+        currentChordIndex = (currentChordIndex + 1) % chords.length;
+      }
 
       step++;
-      if (step % 4 === 0) {
-        currentChord = (currentChord + 1) % progressions.length;
-      }
     };
 
-    // Play every 400ms
-    this.bgInterval = window.setInterval(playStep, 400);
+    // Play suspense step every 300ms
+    this.bgInterval = window.setInterval(playStep, 300);
   }
 
   stopBackgroundMusic() {

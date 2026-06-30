@@ -841,7 +841,7 @@ export const GameView: React.FC = React.memo(() => {
               המשחק מושהה
             </h1>
             <p className="text-xl text-slate-300 mt-4">
-              {hostLabel} יחזור בקרוב...
+              <strong className="font-black text-amber-400">{hostLabel}</strong> יחזור בקרוב...
             </p>
             <p className="text-sm text-slate-400">
               המשחק ימשיך מאיפה שהוא עצר
@@ -936,7 +936,7 @@ export const GameView: React.FC = React.memo(() => {
                     <span>⏸️ המשחק מושהה זמנית</span>
                   </h2>
                   <p className="text-slate-300 text-base max-w-md mx-auto">
-                    {hostLabel} עורך כעת את פרטי המשחק. המשחק יימשך ברגע שהוא יסיים את העריכה.
+                    <strong className="font-black text-amber-400">{hostLabel}</strong> עורך כעת את פרטי המשחק. המשחק יימשך ברגע שהוא יסיים את העריכה.
                   </p>
                   <p className="text-emerald-400 text-sm font-black mt-2 animate-bounce">
                     המסך ייפתח אוטומטית ברגע שהוא ייסיים! 🚀
@@ -946,10 +946,10 @@ export const GameView: React.FC = React.memo(() => {
                 // Initial setup phase
                 <>
                   <h2 className="text-3xl font-extrabold text-amber-400 animate-pulse flex items-center justify-center gap-2">
-                    <span>⏳ {hostLabel} עדיין עורך את פרטי המשחק...</span>
+                    <span>⏳ <strong className="font-black text-amber-400">{hostLabel}</strong> עדיין עורך את פרטי המשחק...</span>
                   </h2>
                   <p className="text-slate-300 text-base max-w-md mx-auto">
-                    {hostLabel} עורך כעת את <strong className="text-teal-400">שלב {settings.wizardStep || 1}: {
+                    <strong className="font-black text-amber-400">{hostLabel}</strong> עורך כעת את <strong className="text-teal-400">שלב {settings.wizardStep || 1}: {
                       settings.wizardStep === 1 ? 'פרטי חדר' :
                       settings.wizardStep === 2 ? 'בחירת מתמודדים' :
                       settings.wizardStep === 3 ? 'הוספת שחקנים' :
@@ -970,7 +970,7 @@ export const GameView: React.FC = React.memo(() => {
                 האם כולם מוכנים?
               </h2>
               <p className="text-slate-400 text-sm max-w-md mx-auto">
-                {hostLabel} יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
+                <strong className="font-black text-amber-400">{hostLabel}</strong> יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
               </p>
             </div>
           )}
@@ -1032,7 +1032,7 @@ export const GameView: React.FC = React.memo(() => {
               </div>
               <h2 className="text-2xl font-black text-amber-400">המשחק מושהה זמנית</h2>
               <p className="text-slate-300 text-sm leading-relaxed font-semibold">
-                {settings.hostName || 'המנחה'} עורך כעת את פרטי המשחק. המשחק יימשך ברגע שהוא יסיים את העריכה.
+                <strong className="font-black text-amber-400">{hostLabel}</strong> עורך כעת את פרטי המשחק. המשחק יימשך ברגע שהוא יסיים את העריכה.
               </p>
               <p className="text-emerald-400 text-xs font-black animate-bounce mt-2">
                 המסך ימשיך אוטומטית ברגע שהעריכה תושלם! 🚀
@@ -1140,7 +1140,7 @@ export const GameView: React.FC = React.memo(() => {
                 מי אמר את זה?
               </h2>
               <p className="text-slate-400 text-sm max-w-md text-center">
-                המשפחה מנסה לנחש! {hostLabel} יחשוף את התשובה והדובר יתגלה...
+                המשפחה מנסה לנחש! <strong className="font-black text-amber-400">{hostLabel}</strong> יחשוף את התשובה והדובר יתגלה...
               </p>
             </div>
           ) : (
@@ -1318,7 +1318,7 @@ export const GameView: React.FC = React.memo(() => {
               </div>
 
               <div className="text-xs text-slate-500">
-                {hostLabel} יכול להתחיל מחדש את המשחק ממסך הניהול
+                <strong className="font-black text-amber-400">{hostLabel}</strong> יכול להתחיל מחדש את המשחק ממסך הניהול
               </div>
             </motion.div>
           </motion.div>
