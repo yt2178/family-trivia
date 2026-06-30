@@ -357,7 +357,7 @@ export const AdminWizard: React.FC = () => {
   }
 
   if (showSuccessScreen) {
-    const projectorUrl = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+    const projectorUrl = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}&host=${encodeURIComponent(wizardHostName)}`;
     const controllerUrl = `${window.location.origin}${window.location.pathname}?mode=admin&room=${roomCode}&host=${encodeURIComponent(wizardHostName)}`;
 
     return (

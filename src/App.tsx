@@ -116,7 +116,7 @@ function App() {
 
     const unsubscribe = onValue(controllerStatusRef, (snapshot) => {
       if (snapshot.exists() && snapshot.val() === true) {
-        const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+        const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}&host=${encodeURIComponent(hostName)}`;
         window.location.href = url;
       }
     });
@@ -132,7 +132,7 @@ function App() {
 
     const unsubscribe = sync.subscribe((msg) => {
       if (msg.type === 'CONTROLLER_CONNECTED' && msg.roomCode === roomCode) {
-        const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+        const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}&host=${encodeURIComponent(hostName)}`;
         window.location.href = url;
       }
     });
@@ -145,7 +145,7 @@ function App() {
   const launchCloudGame = () => {
     if (!roomCode) return;
     localStorage.setItem('last_connected_room', roomCode);
-    const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+    const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}&host=${encodeURIComponent(hostName)}`;
     window.open(url, '_blank', 'width=1200,height=800');
   };
 

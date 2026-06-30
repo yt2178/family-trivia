@@ -157,7 +157,7 @@ const AdminViewInner: React.FC = () => {
               <button
                 onClick={() => {
                   const roomCode = new URLSearchParams(window.location.search).get('room') || '';
-                  const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+                  const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}&host=${encodeURIComponent(settings.hostName || '')}`;
                   window.open(url, '_blank');
                 }}
                 className="px-3 py-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-[10px] font-bold rounded-xl transition-colors flex items-center gap-1.5"
@@ -253,7 +253,7 @@ const AdminViewInner: React.FC = () => {
             <button
               onClick={() => {
                 const roomCode = new URLSearchParams(window.location.search).get('room') || '';
-                const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
+                const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}&host=${encodeURIComponent(settings.hostName || '')}`;
                 window.open(url, '_blank');
               }}
               className="px-3 py-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-[10px] font-bold rounded-xl transition-colors flex items-center gap-1.5"
