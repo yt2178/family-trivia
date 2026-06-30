@@ -312,8 +312,8 @@ function App() {
     setRoomCode(cleanCode);
     setRoomWarningCode(null);
     
-    // Redirect directly to host admin console (setup=true tells AdminView to open on members tab)
-    const url = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}&setup=true&host=${encodeURIComponent(cleanName)}`;
+    // Redirect directly to host admin console
+    const url = `${window.location.origin}${window.location.pathname}?mode=admin&room=${cleanCode}&wizard=true&host=${encodeURIComponent(cleanName)}`;
     window.location.href = url;
   };
 
