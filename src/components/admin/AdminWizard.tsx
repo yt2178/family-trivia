@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAdmin } from './AdminContext';
 import { excelHelper } from '../../utils/excelHelper';
 import { sync } from '../../utils/sync';
+import { fileToBase64, compressImage } from '../../utils/imageHelper';
 import {
   Settings,
   Play,
@@ -87,47 +88,6 @@ export const AdminWizard: React.FC = () => {
       setWizardContestants(updated);
       saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
     }
-  };
-
-  // Convert File to base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  // Compress image to save LocalStorage quota
-  const compressImage = (base64Str: string, maxWidth = 160, maxHeight = 160): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
-      };
-    });
   };
 
   const handleWizardContestantImageChange = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {

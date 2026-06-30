@@ -1114,9 +1114,20 @@ export const GameView: React.FC = React.memo(() => {
                 className="glass-panel p-6 rounded-3xl border border-slate-800 shadow-2xl flex flex-col justify-center items-center relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl" />
-                <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
-                  ציטוט משפחתי
-                </span>
+                <div className="flex items-center gap-2 mb-2 select-none">
+                  <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                    ציטוט משפחתי
+                  </span>
+                  {(currentQuestion.speakerId === 'general' || !currentQuestion.speakerId) ? (
+                    <span className="text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/5">
+                      שאלה כללית
+                    </span>
+                  ) : (
+                    <span className="text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/5">
+                      ציטוט משויך
+                    </span>
+                  )}
+                </div>
                 
                 {/* Large statement */}
                 <h3 className="text-2xl md:text-3xl font-extrabold text-center px-4 leading-relaxed text-slate-100 italic">
