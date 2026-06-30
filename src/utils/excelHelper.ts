@@ -1,29 +1,7 @@
 import * as XLSX from 'xlsx';
 import { FamilyMember, TriviaQuestion } from './db';
 
-// Helper to map Hebrew generation name to system generation
-const mapHebrewToGeneration = (heb: string): FamilyMember['generation'] => {
-  const clean = heb.trim();
-  if (clean.includes('סבא') || clean.includes('סבתא') || clean.includes('סבים')) {
-    return 'grandparent';
-  }
-  if (clean.includes('ילד') || clean.includes('ילדה') || clean.includes('הורה')) {
-    return 'parent';
-  }
-  if (clean.includes('נכד') || clean.includes('נכדה')) {
-    return 'grandchild';
-  }
-  if (clean.includes('נין') || clean.includes('נינה')) {
-    return 'great-grandchild';
-  }
-  // Default fallback
-  return 'grandchild';
-};
-
 const NAME_KEYS = ['שם', 'שם פרטי', 'שם משתמש', 'name', 'first name', 'firstname'];
-const FAMILY_NAME_KEYS = ['שם משפחה', 'משפחה', 'family name', 'familyname', 'lastname', 'last name'];
-const GENERATION_KEYS = ['דור', 'generation', 'gen', 'דרגה'];
-const PARENT_KEYS = ['שם הורה', 'הורה', 'הורים', 'parent', 'parent name', 'parentname', 'father', 'mother', 'אבא', 'אמא'];
 const GENDER_KEYS = ['מין', 'gender', 'sex', 'מגדר'];
 
 const QUESTION_TEXT_KEYS = ['משפט', 'ציטוט', 'שאלה', 'text', 'question', 'quote', 'sentence'];
@@ -111,12 +89,7 @@ export const excelHelper = {
               id,
               name: cleanName,
               image: null,
-              gender,
-              generation: 'grandchild',
-              parentId: null,
-              parentIds: [],
-              spouseId: null,
-              familyName: ''
+              gender
             };
 
             importedMembers.push(newMember);
@@ -205,18 +178,13 @@ export const excelHelper = {
                 const placeholderMember: FamilyMember = {
                   id: newId,
                   name: cleanSpeaker,
-                  generation: 'grandchild',
-                  parentId: null,
-                  parentIds: [],
                   image: null,
-                  gender: 'male',
-                  familyName: '',
-                  spouseId: null
+                  gender: 'male'
                 };
                 tempMembers.push(placeholderMember);
                 memberMap[cleanSpeaker.toLowerCase()] = newId;
                 speakerId = newId;
-                warnings.push(`שורה ${index + 2}: בן המשפחה "${cleanSpeaker}" לא נמצא בעץ. נוצר משתתף זמני עבורו.`);
+                warnings.push(`שורה ${index + 2}: השחקן/משתתף "${cleanSpeaker}" לא נמצא ברשימה. נוצר משתתף זמני עבורו.`);
               }
             }
 

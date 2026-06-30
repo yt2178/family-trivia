@@ -1,14 +1,10 @@
 export interface FamilyMember {
   id: string;
   name: string;
-  generation?: 'grandparent' | 'parent' | 'child' | 'grandchild' | 'great-grandchild';
-  parentId?: string | null;
-  parentIds?: string[]; // Array of parent IDs (for dual parent selection)
   image: string | null; // Base64 data or URL
   gender?: 'male' | 'female';
-  spouseId?: string | null; // ID of spouse if married
-  familyName?: string; // Family name for grouping
 }
+
 
 export interface TriviaQuestion {
   id: string;
@@ -28,7 +24,6 @@ export interface GameSettings {
   grandmaName: string;
   grandmaImage: string | null;
   theme: 'forest' | 'gold' | 'neon' | 'classic';
-  treeLayout: 'none';
   contestants: Contestant[]; // Dynamic list of contestants (up to 5)
   hostName?: string; // Optional host name
   setupComplete?: boolean; // Whether host has finished setting up the room
@@ -67,7 +62,6 @@ const DEFAULT_SETTINGS: GameSettings = {
   grandmaName: '',
   grandmaImage: null,
   theme: 'classic',
-  treeLayout: 'none',
   contestants: [
     { id: 'contestant_1', name: 'כחול', image: null },
     { id: 'contestant_2', name: 'סגול', image: null }
@@ -240,11 +234,7 @@ export const db = {
         ];
         changed = true;
       }
-      
-      if (parsed.treeLayout !== 'none') {
-        parsed.treeLayout = 'none';
-        changed = true;
-      }
+
 
       if (parsed.hostName === undefined) {
         parsed.hostName = '';

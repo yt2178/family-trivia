@@ -148,9 +148,6 @@ const healSettings = (s: any): GameSettings => {
       { id: 'contestant_2', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
     ];
   }
-  if (parsed.treeLayout !== 'none') {
-    parsed.treeLayout = 'none';
-  }
   if (parsed.hostName === undefined) {
     parsed.hostName = '';
   }

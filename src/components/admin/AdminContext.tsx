@@ -82,9 +82,6 @@ export const healSettings = (s: any): GameSettings => {
       { id: 'contestant_2', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
     ];
   }
-  if (parsed.treeLayout !== 'none') {
-    parsed.treeLayout = 'none';
-  }
   if (parsed.hostName === undefined) {
     parsed.hostName = '';
   }
@@ -96,13 +93,8 @@ export const healSettings = (s: any): GameSettings => {
 
 interface MemberFormState {
   name: string;
-  generation: FamilyMember['generation'];
-  parentId: string;
-  parentIds: string[];
   image: string | null;
   gender: 'male' | 'female';
-  familyName: string;
-  spouseId: string;
 }
 
 interface QuestionFormState {
@@ -151,8 +143,6 @@ interface AdminContextType {
   // Wizard buffers
   wizardHostName: string;
   setWizardHostName: React.Dispatch<React.SetStateAction<string>>;
-  wizardTreeLayout: 'none';
-  setWizardTreeLayout: React.Dispatch<React.SetStateAction<'none'>>;
   wizardContestantCount: number;
   setWizardContestantCount: React.Dispatch<React.SetStateAction<number>>;
   wizardQuestionTimer: number | null;
@@ -199,11 +189,8 @@ interface AdminContextType {
   handleTogglePause: () => void;
   showSuccess: (msg: string) => void;
   copyToClipboard: (text: string, label: string) => void;
-  validateRelations: (name: string, parentId: string | null, spouseId: string | null, currentId: string | null) => string | null;
-  renderParentOptions: (generation: FamilyMember['generation']) => React.ReactNode[];
   saveDraftToLocalStorage: (
     hostName: string,
-    treeLayout: 'none',
     contestantCount: number,
     contestants: Array<{ id: string; name: string; image: string | null }>,
     questionTimer: number | null,
@@ -278,13 +265,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Input Forms States
   const [newMember, setNewMember] = useState<MemberFormState>({
     name: '',
-    generation: 'grandchild',
-    parentId: '',
-    parentIds: [],
     image: null,
     gender: 'male',
-    familyName: '',
-    spouseId: '',
   });
 
   const [newQuestion, setNewQuestion] = useState<QuestionFormState>({
@@ -304,7 +286,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Local wizard buffer states to prevent saving to Firebase on every keystroke
   const [wizardHostName, setWizardHostName] = useState('');
-  const [wizardTreeLayout, setWizardTreeLayout] = useState<'none'>('none');
   const [wizardContestantCount, setWizardContestantCount] = useState(2);
   const [wizardQuestionTimer, setWizardQuestionTimer] = useState<number | null>(null);
   const [wizardShowNameBank, setWizardShowNameBank] = useState<boolean>(false);
@@ -338,7 +319,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (draft) {
         setWizardHostName(draft.hostName || '');
-        setWizardTreeLayout('none');
         setWizardContestantCount(draft.contestantCount || 2);
         setWizardQuestionTimer(draft.questionTimer !== undefined ? draft.questionTimer : (settings.questionTimer || null));
         setWizardShowNameBank(draft.showNameBank !== undefined ? draft.showNameBank : (settings.showNameBank || false));
@@ -358,7 +338,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardContestants(arr);
       } else {
         setWizardHostName(settings.hostName || '');
-        setWizardTreeLayout('none');
         setWizardContestantCount(settings.contestants?.length || 2);
         setWizardQuestionTimer(settings.questionTimer !== undefined ? settings.questionTimer : null);
         setWizardShowNameBank(settings.showNameBank || false);
@@ -462,7 +441,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const saveDraftToLocalStorage = (
     hostName: string,
-    treeLayoutVal: 'none',
     contestantCount: number,
     contestants: Array<{ id: string; name: string; image: string | null }>,
     questionTimer: number | null,
@@ -475,7 +453,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       localStorage.setItem(`wizard_draft_${rCode}`, JSON.stringify({
         hostName,
-        treeLayout: 'none',
         contestantCount,
         contestants: contestants.slice(0, contestantCount),
         questionTimer,
@@ -486,14 +463,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (e: any) {
       console.error("Failed to save wizard draft", e);
     }
-  };
-
-  const renderParentOptions = (generation: FamilyMember['generation']) => {
-    return [];
-  };
-
-  const healMembersGenerations = (membersList: FamilyMember[]): FamilyMember[] => {
-    return membersList;
   };
 
   const playAdminSound = (type: 'success' | 'undo' | 'reveal') => {
@@ -533,7 +502,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const isPausedRef = ref(rtdb, `rooms/${roomCode}/database/state/isPaused`);
             onDisconnect(isPausedRef).set(true);
 
-            const healed = healMembersGenerations(fbMembers);
+            const healed = fbMembers;
             
             db.saveMembers(healed);
             db.saveQuestions(fbQuestions);
@@ -553,7 +522,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
             // Sync wizard states from Firebase loaded settings to prevent defaulting to 2 contestants
             setWizardHostName(mergedSettings.hostName || '');
-            setWizardTreeLayout('none');
             setWizardContestantCount(mergedSettings.contestants?.length || 2);
             setWizardQuestionTimer(mergedSettings.questionTimer !== undefined ? mergedSettings.questionTimer : null);
             setWizardShowNameBank(mergedSettings.showNameBank || false);
@@ -591,10 +559,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const loadedQuestions = db.getQuestions();
       const loadedSettings = db.getSettings();
 
-      const healedMembers = healMembersGenerations(loadedMembers);
-      if (JSON.stringify(loadedMembers) !== JSON.stringify(healedMembers)) {
-        db.saveMembers(healedMembers);
-      }
+      const healedMembers = loadedMembers;
 
       setMembers(healedMembers);
       setQuestions(loadedQuestions);
@@ -626,7 +591,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           settings: db.getSettings()
         });
       } else if (msg.type === 'DATABASE_SYNC') {
-        const healed = healMembersGenerations(msg.members);
+        const healed = msg.members;
         const healedSettings = healSettings(msg.settings);
         setMembers(healed);
         setQuestions(msg.questions);
@@ -825,42 +790,21 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNextQuestionTimer(10);
   };
 
-  const validateRelations = (
-    name: string,
-    parentId: string | null,
-    spouseId: string | null,
-    currentId: string | null
-  ): string | null => {
-    const cleanName = name.trim();
-    if (!cleanName) return 'נא להזין שם.';
-    return null;
-  };
-
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newMember.name.trim()) {
-      alert('נא להזין שם לבן המשפחה');
+    const cleanName = newMember.name.trim();
+    if (!cleanName) {
+      alert('נא להזין שם משתתף');
       return;
     }
     
-    const error = validateRelations(
-      newMember.name,
-      newMember.parentId || null,
-      newMember.spouseId || null,
-      null
-    );
-    if (error) {
-      alert(error);
-      return;
-    }
-    
-    if (newMember.name.trim().length < 2) {
+    if (cleanName.length < 2) {
       alert('השם חייב להכיל לפחות 2 תווים');
       return;
     }
     
-    if (newMember.name.trim().length > 50) {
+    if (cleanName.length > 50) {
       alert('השם ארוך מדי (מקסימום 50 תווים)');
       return;
     }
@@ -869,14 +813,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const memberToAdd: FamilyMember = {
       id,
-      name: newMember.name.trim(),
-      generation: 'grandchild',
-      parentId: null,
-      parentIds: [],
+      name: cleanName,
       image: newMember.image,
       gender: newMember.gender,
-      familyName: '',
-      spouseId: null
     };
 
     let updated = [...members, memberToAdd];
@@ -887,16 +826,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     setNewMember({
       name: '',
-      parentId: '',
-      parentIds: [],
       gender: 'male',
       image: null,
-      generation: 'grandchild',
-      familyName: '',
-      spouseId: '',
     });
 
-    showSuccess('בן המשפחה הועלה ונוסף בהצלחה!');
+    showSuccess('המשתתף נוסף בהצלחה!');
   };
 
   const handleDeleteMember = (id: string) => {
@@ -911,13 +845,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setEditingMemberId(m.id);
     setNewMember({
       name: m.name,
-      parentId: m.parentId || '',
-      parentIds: m.parentIds || [],
       gender: m.gender || 'male',
       image: m.image || null,
-      generation: m.generation,
-      familyName: m.familyName || '',
-      spouseId: m.spouseId || '',
     });
   };
 
@@ -925,14 +854,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     e.preventDefault();
     if (!editingMemberId || !newMember.name) return;
 
-    const error = validateRelations(
-      newMember.name,
-      null,
-      null,
-      editingMemberId
-    );
-    if (error) {
-      alert(error);
+    const cleanName = newMember.name.trim();
+    if (!cleanName) {
+      alert('נא להזין שם');
       return;
     }
 
@@ -940,7 +864,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (m.id === editingMemberId) {
         return {
           ...m,
-          name: newMember.name.trim(),
+          name: cleanName,
           gender: newMember.gender,
           image: newMember.image,
         };
@@ -955,29 +879,19 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setNewMember({
       name: '',
-      parentId: '',
-      parentIds: [],
       gender: 'male',
       image: null,
-      generation: 'grandchild',
-      familyName: '',
-      spouseId: '',
     });
 
-    showSuccess('פרטי בן המשפחה עודכנו בהצלחה!');
+    showSuccess('פרטי המשתתף עודכנו בהצלחה!');
   };
 
   const handleCancelEdit = () => {
     setEditingMemberId(null);
     setNewMember({
       name: '',
-      parentId: '',
-      parentIds: [],
       gender: 'male',
       image: null,
-      generation: 'grandchild',
-      familyName: '',
-      spouseId: '',
     });
   };
 
@@ -1215,8 +1129,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       wizardHostName,
       setWizardHostName,
-      wizardTreeLayout,
-      setWizardTreeLayout,
       wizardContestantCount,
       setWizardContestantCount,
       wizardQuestionTimer,
@@ -1262,8 +1174,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       handleTogglePause,
       showSuccess,
       copyToClipboard,
-      validateRelations,
-      renderParentOptions,
       saveDraftToLocalStorage
     }}>
       {children}

@@ -33,8 +33,6 @@ export const AdminWizard: React.FC = () => {
     setEditingMemberId,
     wizardHostName,
     setWizardHostName,
-    wizardTreeLayout,
-    setWizardTreeLayout,
     wizardContestantCount,
     setWizardContestantCount,
     wizardQuestionTimer,
@@ -79,7 +77,7 @@ export const AdminWizard: React.FC = () => {
 
   const handleWizardContestantCountChange = (count: number) => {
     setWizardContestantCount(count);
-    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, count, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
+    saveDraftToLocalStorage(wizardHostName, count, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
   };
 
   const handleWizardContestantNameChange = (index: number, name: string) => {
@@ -87,7 +85,7 @@ export const AdminWizard: React.FC = () => {
     if (updated[index]) {
       updated[index] = { ...updated[index], name };
       setWizardContestants(updated);
-      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
+      saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
     }
   };
 
@@ -142,7 +140,7 @@ export const AdminWizard: React.FC = () => {
         if (updated[index]) {
           updated[index] = { ...updated[index], image: compressed };
           setWizardContestants(updated);
-          saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
+          saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
         }
       } catch (err) {
         console.error(err);
@@ -155,7 +153,7 @@ export const AdminWizard: React.FC = () => {
     if (updated[index]) {
       updated[index] = { ...updated[index], image: null };
       setWizardContestants(updated);
-      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
+      saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
     }
   };
 
@@ -171,7 +169,6 @@ export const AdminWizard: React.FC = () => {
     updateSettings({
       ...settings,
       hostName: wizardHostName,
-      treeLayout: wizardTreeLayout,
       contestants: activeContestants,
       grandpaName: activeContestants[0]?.name || 'כחול',
       grandmaName: activeContestants[1]?.name || 'סגול',
@@ -182,7 +179,7 @@ export const AdminWizard: React.FC = () => {
       showNameBank: wizardShowNameBank,
       wizardStep: nextStep
     });
-    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, nextStep, wizardShowNameBank);
+    saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, nextStep, wizardShowNameBank);
   };
 
   const proceedBack = (prevStep: number) => {
@@ -191,7 +188,7 @@ export const AdminWizard: React.FC = () => {
       ...settings,
       wizardStep: prevStep
     });
-    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, prevStep, wizardShowNameBank);
+    saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, prevStep, wizardShowNameBank);
   };
 
   const handleNext = () => {
@@ -277,7 +274,6 @@ export const AdminWizard: React.FC = () => {
       ...settings, 
       setupComplete: true, 
       hostName: wizardHostName,
-      treeLayout: wizardTreeLayout,
       questionTimer: wizardQuestionTimer,
       questionOrder: wizardQuestionOrder,
       showNameBank: wizardShowNameBank,
@@ -299,7 +295,6 @@ export const AdminWizard: React.FC = () => {
         ...settings, 
         setupComplete: true, 
         hostName: wizardHostName,
-        treeLayout: wizardTreeLayout,
         questionTimer: wizardQuestionTimer,
         questionOrder: wizardQuestionOrder,
         showNameBank: wizardShowNameBank,
@@ -550,7 +545,6 @@ export const AdminWizard: React.FC = () => {
                     updateSettings({
                       ...settings,
                       hostName: wizardHostName,
-                      treeLayout: wizardTreeLayout,
                       contestants: activeContestants,
                       grandpaName: activeContestants[0]?.name || 'כחול',
                       grandmaName: activeContestants[1]?.name || 'סגול',
@@ -561,7 +555,7 @@ export const AdminWizard: React.FC = () => {
                       showNameBank: wizardShowNameBank,
                       wizardStep: stepNum
                     });
-                    saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, stepNum, wizardShowNameBank);
+                    saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, stepNum, wizardShowNameBank);
                   }}
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                     isActive 
@@ -596,13 +590,13 @@ export const AdminWizard: React.FC = () => {
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">שם מנחה המשחק:</label>
                   <input
-                    type="text"
-                    required
-                    value={wizardHostName}
-                    onChange={(e) => {
-                      setWizardHostName(e.target.value);
-                      saveDraftToLocalStorage(e.target.value, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
-                    }}
+                     type="text"
+                     required
+                     value={wizardHostName}
+                     onChange={(e) => {
+                       setWizardHostName(e.target.value);
+                       saveDraftToLocalStorage(e.target.value, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
+                     }}
                     placeholder="הקלד שם מנחה"
                     className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 text-sm font-bold"
                   />
@@ -917,11 +911,7 @@ export const AdminWizard: React.FC = () => {
                     onChange={e => setNewQuestion({ ...newQuestion, speakerId: e.target.value })}
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-350 text-xs focus:outline-none focus:border-emerald-500 font-bold"
                   >
-                    {wizardTreeLayout === 'none' ? (
-                      <option value="">-- ללא שיוך (שאלה כללית לכולם) --</option>
-                    ) : (
-                      <option value="general">❓ שאלה כללית (ללא שיוך לבן משפחה)</option>
-                    )}
+                    <option value="">-- ללא שיוך (שאלה כללית לכולם) --</option>
                     {members.map(m => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
@@ -989,7 +979,7 @@ export const AdminWizard: React.FC = () => {
                       const val = e.target.value;
                       const seconds = val === 'unlimited' ? null : parseInt(val);
                       setWizardQuestionTimer(seconds);
-                      saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, seconds, wizardQuestionOrder, currentStep);
+                      saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, seconds, wizardQuestionOrder, currentStep);
                     }}
                     className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 text-sm font-black"
                   >
@@ -1013,7 +1003,7 @@ export const AdminWizard: React.FC = () => {
                       type="button"
                       onClick={() => {
                         setWizardQuestionOrder('random');
-                        saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, 'random', currentStep);
+                        saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, 'random', currentStep);
                       }}
                       className={`p-3 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
                         wizardQuestionOrder === 'random'
@@ -1030,7 +1020,7 @@ export const AdminWizard: React.FC = () => {
                       type="button"
                       onClick={() => {
                         setWizardQuestionOrder('sequential');
-                        saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, 'sequential', currentStep);
+                        saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, 'sequential', currentStep);
                       }}
                       className={`p-3 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
                         wizardQuestionOrder === 'sequential'
@@ -1062,7 +1052,7 @@ export const AdminWizard: React.FC = () => {
                         onChange={e => {
                           const checked = e.target.checked;
                           setWizardShowNameBank(checked);
-                          saveDraftToLocalStorage(wizardHostName, wizardTreeLayout, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep, checked);
+                          saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep, checked);
                         }}
                         className="sr-only peer"
                       />

@@ -223,7 +223,6 @@ function App() {
               grandmaName: 'סגול',
               grandmaImage: null,
               theme: 'classic',
-              treeLayout: 'none',
               contestants: [
                 { id: 'contestant_1', name: 'כחול', image: null },
                 { id: 'contestant_2', name: 'סגול', image: null }
@@ -240,7 +239,6 @@ function App() {
             grandmaName: 'סגול',
             grandmaImage: null,
             theme: 'classic',
-            treeLayout: 'none',
             contestants: [
               { id: 'contestant_1', name: 'כחול', image: null },
               { id: 'contestant_2', name: 'סגול', image: null }
@@ -272,7 +270,6 @@ function App() {
           grandmaName: 'סגול',
           grandmaImage: null,
           theme: 'classic',
-          treeLayout: 'none',
           contestants: [
             { id: 'contestant_1', name: 'כחול', image: null },
             { id: 'contestant_2', name: 'סגול', image: null }
