@@ -777,34 +777,20 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let isUndo = false;
 
     if (winner === 'nobody') {
-      if (currentSolvedValue === 'nobody') {
-        // Toggle off
-        delete newSolved[currentQId];
-        const updatedState = {
-          ...gameState,
-          solvedQuestions: newSolved,
-          isRevealed: false,
-        };
-        updateGameState(updatedState);
-        playAdminSound('undo');
-        showSuccess('בוטלה חשיפת השאלה.');
-      } else {
-        // Toggle on: deduct points from any previous winners of this question, set to nobody
-        currentWinners.forEach(wId => {
-          newScores[wId] = Math.max(0, (newScores[wId] || 0) - 1);
-        });
-        newSolved[currentQId] = 'nobody';
-        const updatedState = {
-          ...gameState,
-          scores: newScores,
-          solvedQuestions: newSolved,
-          isRevealed: true,
-        };
-        updateGameState(updatedState);
-        playAdminSound('success');
-        showSuccess('התשובה נחשפה (אף אחד לא קיבל ניקוד).');
-        setNextQuestionTimer(10);
-      }
+      currentWinners.forEach(wId => {
+        newScores[wId] = Math.max(0, (newScores[wId] || 0) - 1);
+      });
+      newSolved[currentQId] = 'nobody';
+      const updatedState = {
+        ...gameState,
+        scores: newScores,
+        solvedQuestions: newSolved,
+        isRevealed: true,
+      };
+      updateGameState(updatedState);
+      playAdminSound('success');
+      showSuccess('התשובה נחשפה (אף אחד לא קיבל ניקוד).');
+      setNextQuestionTimer(10);
       return;
     }
 
