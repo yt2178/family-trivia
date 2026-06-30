@@ -841,7 +841,7 @@ export const GameView: React.FC = React.memo(() => {
               המשחק מושהה
             </h1>
             <p className="text-xl text-slate-300 mt-4">
-              המנחה יחזור בקרוב...
+              {hostLabel} יחזור בקרוב...
             </p>
             <p className="text-sm text-slate-400">
               המשחק ימשיך מאיפה שהוא עצר
@@ -936,7 +936,7 @@ export const GameView: React.FC = React.memo(() => {
                     <span>⏸️ המשחק מושהה זמנית</span>
                   </h2>
                   <p className="text-slate-300 text-base max-w-md mx-auto">
-                    {settings.hostName || 'המנחה'} עורך כעת את פרטי המשחק. המשחק יימשך ברגע שהוא יסיים את העריכה.
+                    {hostLabel} עורך כעת את פרטי המשחק. המשחק יימשך ברגע שהוא יסיים את העריכה.
                   </p>
                   <p className="text-emerald-400 text-sm font-black mt-2 animate-bounce">
                     המסך ייפתח אוטומטית ברגע שהוא ייסיים! 🚀
@@ -946,10 +946,10 @@ export const GameView: React.FC = React.memo(() => {
                 // Initial setup phase
                 <>
                   <h2 className="text-3xl font-extrabold text-amber-400 animate-pulse flex items-center justify-center gap-2">
-                    <span>⏳ {settings.hostName || 'המנחה'} עדיין עורך את פרטי המשחק...</span>
+                    <span>⏳ {hostLabel} עדיין עורך את פרטי המשחק...</span>
                   </h2>
                   <p className="text-slate-300 text-base max-w-md mx-auto">
-                    {settings.hostName || 'המנחה'} עורך כעת את <strong className="text-teal-400">שלב {settings.wizardStep || 1}: {
+                    {hostLabel} עורך כעת את <strong className="text-teal-400">שלב {settings.wizardStep || 1}: {
                       settings.wizardStep === 1 ? 'פרטי חדר' :
                       settings.wizardStep === 2 ? 'בחירת מתמודדים' :
                       settings.wizardStep === 3 ? 'הוספת שחקנים' :
@@ -963,12 +963,6 @@ export const GameView: React.FC = React.memo(() => {
                   </p>
                 </>
               )}
-              {sync.getRoomCode() && (
-                <div className="inline-block mt-4 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl">
-                  <span className="text-slate-400 text-xs ml-2">קוד חדר להתחברות:</span>
-                  <strong className="text-emerald-400 font-mono text-lg font-black tracking-widest">{sync.getRoomCode()}</strong>
-                </div>
-              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -978,12 +972,28 @@ export const GameView: React.FC = React.memo(() => {
               <p className="text-slate-400 text-sm max-w-md mx-auto">
                 {hostLabel} יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
               </p>
-              {sync.getRoomCode() && (
-                <div className="inline-block mt-4 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl">
-                  <span className="text-slate-400 text-xs ml-2">קוד חדר להתחברות:</span>
-                  <strong className="text-emerald-400 font-mono text-lg font-black tracking-widest">{sync.getRoomCode()}</strong>
+            </div>
+          )}
+
+          {/* Room Code & QR Code display */}
+          {sync.getRoomCode() && (
+            <div className="flex flex-col items-center gap-4 mt-6">
+              <div className="inline-block bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl">
+                <span className="text-slate-400 text-xs ml-2">קוד חדר להתחברות:</span>
+                <strong className="text-emerald-400 font-mono text-lg font-black tracking-widest">{sync.getRoomCode()}</strong>
+              </div>
+              
+              {/* QR Code to connect remote */}
+              <div className="bg-white p-3 rounded-2xl shadow-xl border-4 border-slate-900 inline-block animate-fade-in hover:scale-[1.02] transition-transform">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(`${window.location.origin}${window.location.pathname}?mode=admin&room=${sync.getRoomCode()}&host=${encodeURIComponent(settings.hostName || '')}`)}`}
+                  alt="שלט מנחה QR"
+                  className="w-[140px] h-[140px]"
+                />
+                <div className="text-[10px] text-slate-800 font-black mt-1.5 text-center">
+                  📱 סרוק להתחברות כשלט מנחה
                 </div>
-              )}
+              </div>
             </div>
           )}
         </motion.div>

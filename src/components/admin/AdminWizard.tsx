@@ -412,26 +412,41 @@ export const AdminWizard: React.FC = () => {
             </div>
 
             {/* Controller Link */}
-            <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-2.5">
+            <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl flex flex-col gap-3">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-300">🎮 שלט מנחה המשחק (לטלפון הנייד)</span>
                 <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold">מיועד לטלפון</span>
               </div>
               <p className="text-[11px] text-slate-400">השלט הפרטי שלך להפעלת המשחק, חשיפת התשובות ועדכון הניקוד.</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={controllerUrl}
-                  className="flex-1 bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-[10px] font-mono text-left text-slate-400 select-all focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(controllerUrl, 'שלט המנחה')}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-all active:scale-95"
-                >
-                  העתק קישור 📋
-                </button>
+              
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                {/* QR Code */}
+                <div className="bg-white p-2.5 rounded-xl border border-slate-800 flex-shrink-0 shadow-lg hover:scale-[1.02] transition-transform">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(controllerUrl)}`}
+                    alt="סרוק שלט מנחה"
+                    className="w-[120px] h-[120px]"
+                  />
+                </div>
+                
+                <div className="flex-grow w-full space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={controllerUrl}
+                      className="flex-1 bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-[10px] font-mono text-left text-slate-400 select-all focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(controllerUrl, 'שלט המנחה')}
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-all active:scale-95 flex-shrink-0"
+                    >
+                      העתק קישור 📋
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500 font-bold">* סרוק את קוד ה-QR כדי להפעיל מיידית את השלט מהטלפון הנייד שלך!</p>
+                </div>
               </div>
             </div>
           </div>
