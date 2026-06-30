@@ -169,6 +169,7 @@ export const GameView: React.FC = React.memo(() => {
   const [roomError, setRoomError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
   const [winnerRevealTimer, setWinnerRevealTimer] = useState<number>(0);
+  const [hasTriggeredWinnerReveal, setHasTriggeredWinnerReveal] = useState<boolean>(false);
   const [securityError, setSecurityError] = useState<boolean>(false);
   
   const hostLabel = settings.hostName || 'המנחה';
@@ -187,20 +188,31 @@ export const GameView: React.FC = React.memo(() => {
     }
   }, [roomError, countdown]);
 
-  // Suspense timer for winner reveal
+  // Suspense timer for winner reveal - Trigger Check
   useEffect(() => {
     const totalQ = (gameState.shuffledQuestionIds || []).length;
     const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
     
-    if (isGameOver && winnerRevealTimer === 0) {
-      setWinnerRevealTimer(5); // 5 second suspense timer
+    if (isGameOver) {
+      if (!hasTriggeredWinnerReveal && winnerRevealTimer === 0) {
+        setWinnerRevealTimer(5); // 5 second suspense timer
+        setHasTriggeredWinnerReveal(true);
+      }
+    } else {
+      if (hasTriggeredWinnerReveal) {
+        setHasTriggeredWinnerReveal(false);
+        setWinnerRevealTimer(0);
+      }
     }
-    
+  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, hasTriggeredWinnerReveal]);
+
+  // Suspense timer for winner reveal - Tick Down
+  useEffect(() => {
     if (winnerRevealTimer > 0) {
       const timer = setTimeout(() => setWinnerRevealTimer(prev => prev - 1), 1000);
       return () => clearTimeout(timer);
     }
-  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, winnerRevealTimer]);
+  }, [winnerRevealTimer]);
 
   // Load initial data
   useEffect(() => {
@@ -1010,17 +1022,6 @@ export const GameView: React.FC = React.memo(() => {
       {/* Canvas for Confetti */}
       <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
 
-      {/* Background Music Toggle Button */}
-      {!isAudioSuspended && (
-        <button
-          onClick={() => setIsBgMusicMuted(prev => !prev)}
-          className="fixed top-6 left-6 z-50 p-3 bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-emerald-400 rounded-full border border-slate-800/80 hover:border-emerald-500/30 transition-all duration-300 shadow-lg flex items-center justify-center backdrop-blur-sm"
-          title={isBgMusicMuted ? "הפעל מוזיקת רקע" : "השתק מוזיקת רקע"}
-        >
-          {isBgMusicMuted ? <VolumeX size={20} /> : <Volume2 size={20} className="animate-pulse" />}
-        </button>
-      )}
-
       {/* Floating Paused Overlay */}
       {settings.setupComplete === false && (
         <div className="fixed inset-0 z-[90] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-fade-in">
@@ -1077,10 +1078,21 @@ export const GameView: React.FC = React.memo(() => {
         </div>
 
         {totalQuestions > 0 && !isGameOver && (
-          <div className="glass-panel px-4 py-2 rounded-xl text-sm border border-slate-800">
-            <span className="text-slate-400">שאלה:</span>{' '}
-            <strong className="text-emerald-400 font-bold">{gameState.currentQuestionIndex + 1}</strong>
-            <span className="text-slate-500"> / {totalQuestions}</span>
+          <div className="flex items-center gap-3">
+            {!isAudioSuspended && (
+              <button
+                onClick={() => setIsBgMusicMuted(prev => !prev)}
+                className="p-2 bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-emerald-400 rounded-xl border border-slate-800/80 hover:border-emerald-500/30 transition-all duration-300 shadow-md flex items-center justify-center backdrop-blur-sm cursor-pointer"
+                title={isBgMusicMuted ? "הפעל מוזיקת רקע" : "השתק מוזיקת רקע"}
+              >
+                {isBgMusicMuted ? <VolumeX size={16} /> : <Volume2 size={16} className="animate-pulse" />}
+              </button>
+            )}
+            <div className="glass-panel px-4 py-2 rounded-xl text-sm border border-slate-800">
+              <span className="text-slate-400">שאלה:</span>{' '}
+              <strong className="text-emerald-400 font-bold">{gameState.currentQuestionIndex + 1}</strong>
+              <span className="text-slate-500"> / {totalQuestions}</span>
+            </div>
           </div>
         )}
       </header>
@@ -1126,7 +1138,14 @@ export const GameView: React.FC = React.memo(() => {
           </AnimatePresence>
 
           {/* Dynamic Family Tree, Speaker Reveal or Question Placeholder */}
-          {!gameState.isRevealed && currentQuestion && !isGameOver ? (
+          {isGameOver ? (
+            <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl bg-slate-950/40 p-8">
+              <div className="text-center space-y-4">
+                <h3 className="text-4xl font-extrabold text-amber-400">המשחק הסתיים! 🏆</h3>
+                <p className="text-slate-400 text-sm">מיד נדע מי ניצח במשפחה...</p>
+              </div>
+            </div>
+          ) : !gameState.isRevealed && currentQuestion ? (
             <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center relative overflow-hidden">
               <motion.div
                 initial={{ scale: 0.8, rotate: -10 }}

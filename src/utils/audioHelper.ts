@@ -152,7 +152,7 @@ export class AudioHelper {
     this.isBgPlaying = true;
     this.bgGain = ctx.createGain();
     this.bgGain.connect(ctx.destination);
-    this.bgGain.gain.setValueAtTime(0.025, ctx.currentTime); // Soft atmospheric volume
+    this.bgGain.gain.setValueAtTime(0.08, ctx.currentTime); // Louder background volume
 
     let step = 0;
     
@@ -201,7 +201,7 @@ export class AudioHelper {
           osc.connect(gain);
           if (this.bgGain) gain.connect(this.bgGain);
           
-          gain.gain.setValueAtTime(0.4, t);
+          gain.gain.setValueAtTime(0.65, t); // Louder thumps
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
           
           osc.start(t);
@@ -228,7 +228,7 @@ export class AudioHelper {
           if (this.bgGain) gain.connect(this.bgGain);
           
           gain.gain.setValueAtTime(0, currentTime);
-          gain.gain.linearRampToValueAtTime(0.14, currentTime + 0.8);
+          gain.gain.linearRampToValueAtTime(0.22, currentTime + 0.8); // Louder chord swells
           gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 2.3);
           
           osc.start(currentTime);

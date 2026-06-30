@@ -549,6 +549,29 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setQuestions(fbQuestions);
             setSettings(mergedSettings);
             setGameState(mergedState);
+
+            // Sync wizard states from Firebase loaded settings to prevent defaulting to 2 contestants
+            setWizardHostName(mergedSettings.hostName || '');
+            setWizardTreeLayout('none');
+            setWizardContestantCount(mergedSettings.contestants?.length || 2);
+            setWizardQuestionTimer(mergedSettings.questionTimer !== undefined ? mergedSettings.questionTimer : null);
+            setWizardShowNameBank(mergedSettings.showNameBank || false);
+            setWizardStepLocal(mergedSettings.wizardStep || 1);
+            
+            const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
+            const defaultIds = ['contestant_1', 'contestant_2', 'contestant_3', 'contestant_4'];
+            const arr = [];
+            for (let i = 0; i < 4; i++) {
+              const existing = mergedSettings.contestants?.[i];
+              arr.push({
+                id: existing?.id || defaultIds[i],
+                name: existing?.name || defaultNames[i],
+                image: existing?.image || null
+              });
+            }
+            setWizardContestants(arr);
+            setHasInitializedWizard(true);
+
             setIsLoading(false);
             return;
           } else {
