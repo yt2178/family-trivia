@@ -51,6 +51,7 @@ const getRoomCode = (): string | null => {
 
 const ROOM_CODE = getRoomCode();
 let lastFirebaseTimestamp = 0;
+let roomExistsCached: boolean | null = null;
 
 // Duplicate message tracking
 const processedMsgIds = new Set<string>();
@@ -108,9 +109,11 @@ if (ROOM_CODE) {
     const data = snapshot.val();
     if (data && data.sender !== CLIENT_ID && data.timestamp > lastFirebaseTimestamp) {
       lastFirebaseTimestamp = data.timestamp;
+      roomExistsCached = true; // Since we received a message from it, it exists!
       handleReceivedMessage(data);
     }
-  });}
+  });
+}
 
 function sanitizeForFirebase(obj: any): any {
   if (obj === null || obj === undefined) return null;
@@ -147,6 +150,7 @@ export const sync = {
       const dbRef = ref(rtdb);
       const snapshot = await get(child(dbRef, `rooms/${ROOM_CODE}/database`));
       if (snapshot.exists()) {
+        roomExistsCached = true;
         return snapshot.val();
       }
     } catch (e) {
@@ -157,10 +161,13 @@ export const sync = {
 
   async roomExists(): Promise<boolean> {
     if (!ROOM_CODE) return false;
+    if (roomExistsCached !== null) return roomExistsCached;
     try {
       const dbRef = ref(rtdb);
       const snapshot = await get(child(dbRef, `rooms/${ROOM_CODE}/database`));
-      return snapshot.exists();
+      const exists = snapshot.exists();
+      roomExistsCached = exists;
+      return exists;
     } catch (e) {
       console.error("Error checking room existence:", e);
       return false;
@@ -198,13 +205,7 @@ export const sync = {
 
     // B. Send via Firebase Cloud if room exists
     if (ROOM_CODE) {
-      // Check if room exists before writing to Firebase to avoid creating data for non-existent rooms
-      this.roomExists().then(exists => {
-        if (!exists) {
-          console.warn(`[Sync] Room ${ROOM_CODE} does not exist, skipping Firebase write`);
-          return;
-        }
-
+      const writeFirebase = () => {
         const roomRef = ref(rtdb, `rooms/${ROOM_CODE}/lastMessage`);
         set(roomRef, sanitizeForFirebase(envelope)).catch(err => {
           console.error('Failed to send message via Firebase:', err);
@@ -228,9 +229,24 @@ export const sync = {
           const settingsPersistRef = ref(rtdb, `rooms/${ROOM_CODE}/database/settings`);
           set(settingsPersistRef, sanitizeForFirebase(message.settings)).catch(err => console.error('Failed to persist settings:', err));
         }
-      }).catch(err => {
-        console.error('Error checking room existence before Firebase write:', err);
-      });
+      };
+
+      if (message.type === 'DATABASE_SYNC') {
+        roomExistsCached = true;
+        writeFirebase();
+      } else if (roomExistsCached === true) {
+        writeFirebase();
+      } else {
+        this.roomExists().then(exists => {
+          if (!exists) {
+            console.warn(`[Sync] Room ${ROOM_CODE} does not exist, skipping Firebase write`);
+            return;
+          }
+          writeFirebase();
+        }).catch(err => {
+          console.error('Error checking room existence before Firebase write:', err);
+        });
+      }
     }
   },
 

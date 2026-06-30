@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AdminView from './components/AdminView';
 import { GameView } from './components/GameView';
 import { Sparkles, Tv, Settings as SettingsIcon, Play, HelpCircle, Smartphone, QrCode, ArrowRight, RefreshCw, Plus, Pencil, X } from 'lucide-react';
@@ -13,10 +13,10 @@ function ConnectionStatusBadge() {
   return (
     <div className={`fixed bottom-4 right-4 z-[9999] flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg border backdrop-blur-sm transition-all duration-300 ${
       connected 
-        ? 'bg-emerald-950/80 border-emerald-500/30 text-emerald-400' 
-        : 'bg-rose-950/80 border-rose-500/30 text-rose-400 animate-pulse'
-    }`} dir="rtl">
-      <span className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+        : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+    }`}>
+      <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
       <span>{connected ? 'שרת מחובר 🟢' : 'אין חיבור לשרת 🔴'}</span>
     </div>
   );
@@ -36,6 +36,28 @@ function App() {
   const [isCheckingRoom, setIsCheckingRoom] = useState<boolean>(false);
   const [roomWarningCode, setRoomWarningCode] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Refs for event listeners to avoid stale closure issues
+  const modeRef = useRef(mode);
+  const roomCodeRef = useRef(roomCode);
+  const hostNameRef = useRef(hostName);
+
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+  useEffect(() => { roomCodeRef.current = roomCode; }, [roomCode]);
+  useEffect(() => { hostNameRef.current = hostName; }, [hostName]);
+
+  // Prevent accidental close/refresh in admin mode
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (modeRef.current === 'admin') {
+        e.preventDefault();
+        e.returnValue = 'האם אתה בטוח שברצונך לצאת משלט המשחק? שים לב כי פעולה זו תנתק את השלט מהמקרן.';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   useEffect(() => {
     setCreateError(null);
@@ -71,6 +93,16 @@ function App() {
       const r = params.get('room');
       const h = params.get('host') || '';
       
+      // Accidental back button check
+      if (modeRef.current === 'admin' && m !== 'admin') {
+        const confirmExit = window.confirm('האם אתה בטוח שברצונך לצאת משלט המשחק? שים לב כי פעולה זו תנתק את השלט מהמקרן.');
+        if (!confirmExit) {
+          const prevUrl = `${window.location.origin}${window.location.pathname}?mode=admin&room=${roomCodeRef.current}&host=${encodeURIComponent(hostNameRef.current)}${window.location.search.includes('wizard=true') ? '&wizard=true' : ''}${window.location.search.includes('controller=true') ? '&controller=true' : ''}`;
+          window.history.pushState(null, '', prevUrl);
+          return;
+        }
+      }
+
       if (r) {
         const clean = r.trim().toUpperCase();
         if (clean !== '' && clean !== 'UNDEFINED' && clean !== 'NULL') {

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { db, FamilyMember, GameSettings, GameState, TriviaQuestion, Contestant, healGameState } from '../../utils/db';
 import { sync } from '../../utils/sync';
 import { excelHelper } from '../../utils/excelHelper';
@@ -299,6 +299,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [nextQuestionTimer, setNextQuestionTimer] = useState<number>(0);
   const [showContestantOrderModal, setShowContestantOrderModal] = useState<boolean>(false);
+  const lastScoreClickTimeRef = useRef<number>(0);
 
   // Local wizard buffer states to prevent saving to Firebase on every keystroke
   const [wizardHostName, setWizardHostName] = useState('');
@@ -711,6 +712,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const handleAssignPoints = (winner: string) => {
+    const now = Date.now();
+    if (now - lastScoreClickTimeRef.current < 250) {
+      return;
+    }
+    lastScoreClickTimeRef.current = now;
+
     const currentQId = (gameState.shuffledQuestionIds || [])[gameState.currentQuestionIndex];
     if (!currentQId) return;
 

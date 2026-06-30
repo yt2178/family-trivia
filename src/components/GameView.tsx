@@ -1001,7 +1001,21 @@ export const GameView: React.FC = React.memo(() => {
       <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
 
       {/* Background Music Toggle Button */}
-      {!isAudioSuspended && (
+      {isAudioSuspended ? (
+        <button
+          onClick={async () => {
+            const success = await audioHelper.resume();
+            if (success) {
+              setIsAudioSuspended(false);
+            }
+          }}
+          className="fixed top-6 left-6 z-50 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-full border border-amber-600 transition-all duration-300 shadow-lg flex items-center justify-center gap-1.5 animate-bounce"
+          title="לחץ להפעלת סאונד"
+        >
+          <Volume2 size={16} />
+          <span>הפעל סאונד 🔊</span>
+        </button>
+      ) : (
         <button
           onClick={() => setIsBgMusicMuted(prev => !prev)}
           className="fixed top-6 left-6 z-50 p-3 bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-emerald-400 rounded-full border border-slate-800/80 hover:border-emerald-500/30 transition-all duration-300 shadow-lg flex items-center justify-center backdrop-blur-sm"
