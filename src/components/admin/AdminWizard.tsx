@@ -64,6 +64,7 @@ export const AdminWizard: React.FC = () => {
     handleImportMembersExcel,
     handleImportQuestionsExcel,
     handleAbsoluteReset,
+    handleStartGame,
     setMembers,
     setQuestions,
     showSuccess,
@@ -446,6 +447,8 @@ export const AdminWizard: React.FC = () => {
                 if (rCode) {
                   window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}?mode=admin&room=${rCode}&host=${encodeURIComponent(wizardHostName)}`);
                 }
+                // Automatically initialize and launch game state
+                handleStartGame();
               }}
               className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-95"
             >
@@ -810,7 +813,7 @@ export const AdminWizard: React.FC = () => {
 
               <div>
                 <h4 className="text-[10px] font-black text-slate-400 mb-1.5">שחקנים שהוספו ({members.length}):</h4>
-                <div className="max-h-[110px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
+                <div className="max-h-[220px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
                   {members.length === 0 ? (
                     <p className="text-[10px] text-slate-650 text-center py-4">טרם הוספו שחקנים. הוסף שחקן למעלה או העלה קובץ Excel.</p>
                   ) : (

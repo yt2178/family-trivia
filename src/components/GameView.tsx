@@ -169,7 +169,6 @@ export const GameView: React.FC = React.memo(() => {
   const [roomError, setRoomError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
   const [winnerRevealTimer, setWinnerRevealTimer] = useState<number>(0);
-  const [securityError, setSecurityError] = useState<boolean>(false);
   
   const hostLabel = settings.hostName || 'המנחה';
   
@@ -214,12 +213,6 @@ export const GameView: React.FC = React.memo(() => {
             const fbQuestions = data.db?.questions || [];
             const fbSettings = data.settings || data.db?.settings || {};
             const fbState = data.state || data.db?.state || {};
-
-            const storedHost = (fbSettings.hostName || '').trim();
-            const urlHost = new URLSearchParams(window.location.search).get('host') || '';
-            if (storedHost && urlHost.trim().toLowerCase() !== storedHost.toLowerCase()) {
-              setSecurityError(true);
-            }
 
             db.saveMembers(fbMembers);
             db.saveQuestions(fbQuestions);
@@ -765,36 +758,6 @@ export const GameView: React.FC = React.memo(() => {
     );
   }
 
-  if (securityError) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 shadow-2xl relative overflow-hidden">
-          <div className="absolute -top-24 -left-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="text-center space-y-3">
-            <div className="inline-flex items-center justify-center p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-full animate-bounce">
-              <span className="text-3xl">⚠️</span>
-            </div>
-            <h2 className="text-2xl font-black text-rose-400">גישה חסומה (שגיאת אבטחה)</h2>
-            <p className="text-slate-305 text-sm leading-relaxed font-semibold">
-              שם המנחה בקישור חסר או אינו תואם למנחה שהגדיר חדר זה.
-            </p>
-            <p className="text-slate-400 text-xs font-medium">
-              מסך ההקרנה דורש זיהוי מנחה תקין לצורכי אבטחת גישה.
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              window.location.href = `${window.location.origin}${window.location.pathname}`;
-            }}
-            className="w-full py-3 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-350 font-bold text-sm rounded-xl transition-all cursor-pointer"
-          >
-            חזרה לדף הבית
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (roomError) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-6 text-slate-100 p-6" dir="rtl">
@@ -812,10 +775,10 @@ export const GameView: React.FC = React.memo(() => {
     );
   }
 
-  const isGameStarted = settings?.setupComplete && totalQuestions > 0;
+  const isInitialSetup = (settings?.setupComplete === false || totalQuestions === 0) && gameState.currentQuestionIndex === 0;
 
   // Pause screen when host is away
-  if (gameState.isPaused && isGameStarted) {
+  if (gameState.isPaused && !isInitialSetup) {
     return (
       <div className={`relative w-full min-h-screen bg-gradient-to-b ${getThemeBackground()} text-slate-100 flex flex-col items-center justify-center p-6 overflow-hidden`}>
         {/* Decorative blur elements */}
@@ -852,7 +815,7 @@ export const GameView: React.FC = React.memo(() => {
     );
   }
 
-  if (!isGameStarted) {
+  if (isInitialSetup) {
     return (
       <div className={`relative w-full min-h-screen bg-gradient-to-b ${getThemeBackground()} text-slate-100 flex flex-col items-center justify-center p-6 overflow-hidden`}>
         {/* Canvas for Confetti */}
@@ -1001,21 +964,7 @@ export const GameView: React.FC = React.memo(() => {
       <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
 
       {/* Background Music Toggle Button */}
-      {isAudioSuspended ? (
-        <button
-          onClick={async () => {
-            const success = await audioHelper.resume();
-            if (success) {
-              setIsAudioSuspended(false);
-            }
-          }}
-          className="fixed top-6 left-6 z-50 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-full border border-amber-600 transition-all duration-300 shadow-lg flex items-center justify-center gap-1.5 animate-bounce"
-          title="לחץ להפעלת סאונד"
-        >
-          <Volume2 size={16} />
-          <span>הפעל סאונד 🔊</span>
-        </button>
-      ) : (
+      {!isAudioSuspended && (
         <button
           onClick={() => setIsBgMusicMuted(prev => !prev)}
           className="fixed top-6 left-6 z-50 p-3 bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-emerald-400 rounded-full border border-slate-800/80 hover:border-emerald-500/30 transition-all duration-300 shadow-lg flex items-center justify-center backdrop-blur-sm"
@@ -1023,6 +972,27 @@ export const GameView: React.FC = React.memo(() => {
         >
           {isBgMusicMuted ? <VolumeX size={20} /> : <Volume2 size={20} className="animate-pulse" />}
         </button>
+      )}
+
+      {/* Floating Paused Overlay */}
+      {settings.setupComplete === false && (
+        <div className="fixed inset-0 z-[90] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+          <div className="max-w-md w-full glass-panel p-8 rounded-3xl border border-amber-500/20 shadow-2xl relative overflow-hidden space-y-6">
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+            <div className="text-center space-y-3">
+              <div className="inline-flex items-center justify-center p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-3xl animate-bounce">
+                <span className="text-4xl">⏸️</span>
+              </div>
+              <h2 className="text-2xl font-black text-amber-400">המשחק מושהה זמנית</h2>
+              <p className="text-slate-300 text-sm leading-relaxed font-semibold">
+                {settings.hostName || 'המנחה'} עורך כעת את פרטי המשחק. המשחק יימשך ברגע שהוא יסיים את העריכה.
+              </p>
+              <p className="text-emerald-400 text-xs font-black animate-bounce mt-2">
+                המסך ימשיך אוטומטית ברגע שהעריכה תושלם! 🚀
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Header */}
@@ -1129,7 +1099,11 @@ export const GameView: React.FC = React.memo(() => {
           ) : (
             <div className="flex-grow min-h-[500px] flex flex-col">
               {(() => {
-                const speaker = members.find(m => m.id === currentQuestion?.speakerId);
+                const resolvedSpeakerId = (currentQuestion?.speakerId === 'general' || !currentQuestion?.speakerId)
+                  ? (gameState.revealedSpeakers?.[currentQuestion?.id || ''] as string)
+                  : currentQuestion?.speakerId;
+                const speaker = members.find(m => m.id === resolvedSpeakerId);
+                const speakerName = speaker ? speaker.name : 'פלוני אלמוני';
                 return (
                   <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40 p-8">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
@@ -1149,7 +1123,7 @@ export const GameView: React.FC = React.memo(() => {
                         <div className="absolute -inset-2 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full blur opacity-70 animate-pulse" />
                         <div className="relative w-44 h-44 rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden shadow-2xl flex items-center justify-center">
                           {speaker?.image ? (
-                            <img src={speaker.image} alt={speaker.name} className="w-full h-full object-cover" />
+                            <img src={speaker.image} alt={speakerName} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-8xl select-none">
                               {speaker ? (speaker.gender === 'female' ? '👩' : '👨') : '❓'}
@@ -1160,12 +1134,12 @@ export const GameView: React.FC = React.memo(() => {
 
                       <div className="space-y-1">
                         <h2 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-md">
-                          {speaker?.name || 'שאלה כללית'}
+                          {speakerName}
                         </h2>
                       </div>
 
                       <p className="text-slate-400 text-sm max-w-sm italic">
-                        {speaker ? '״אמר/ה את הציטוט בהתרגשות רבה!״' : 'שאלה כללית ללא שיוך לבן משפחה מסוים'}
+                        ״אמר/ה את הציטוט בהתרגשות רבה!״
                       </p>
                     </motion.div>
                   </div>
