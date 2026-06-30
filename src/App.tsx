@@ -676,19 +676,19 @@ function App() {
 
         {/* Tab Selector */}
         {!showForm && (
-          <div className="flex bg-slate-900/60 p-1.5 rounded-2xl max-w-md mx-auto border border-slate-800">
+          <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto w-full px-4">
             <button
               onClick={() => { setActiveTab('create'); setShowForm(true); }}
-              className="flex-1 py-2 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-emerald-500 text-slate-950 shadow-md shadow-emerald-950/20 hover:bg-emerald-400"
+              className="flex-1 py-4.5 px-6 text-base md:text-lg font-black rounded-2xl transition-all flex items-center justify-center gap-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-950/20 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <Plus size={16} />
+              <Plus size={20} />
               <span>➕ צור חדר חדש</span>
             </button>
             <button
               onClick={() => { setActiveTab('join'); setShowForm(true); }}
-              className="flex-1 py-2 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-sky-500 text-slate-950 shadow-md shadow-sky-950/20 hover:bg-sky-400"
+              className="flex-1 py-4.5 px-6 text-base md:text-lg font-black rounded-2xl transition-all flex items-center justify-center gap-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-lg shadow-sky-950/20 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <Play size={16} />
+              <Play size={20} />
               <span>🔌 התחבר לחדר קיים</span>
             </button>
           </div>
