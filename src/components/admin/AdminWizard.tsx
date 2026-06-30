@@ -282,7 +282,7 @@ export const AdminWizard: React.FC = () => {
     const rCode = sync.getRoomCode();
     if (rCode) {
       localStorage.removeItem(`wizard_draft_${rCode}`);
-      window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}?mode=admin&room=${rCode}`);
+      window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}?mode=admin&room=${rCode}&host=${encodeURIComponent(wizardHostName)}`);
     }
     setAdminSubMode('controller');
     setActiveTab('control');
@@ -354,7 +354,7 @@ export const AdminWizard: React.FC = () => {
 
   if (showSuccessScreen) {
     const projectorUrl = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}`;
-    const controllerUrl = `${window.location.origin}${window.location.pathname}?mode=admin&room=${roomCode}`;
+    const controllerUrl = `${window.location.origin}${window.location.pathname}?mode=admin&room=${roomCode}&host=${encodeURIComponent(wizardHostName)}`;
 
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col justify-center items-center text-right" dir="rtl">
@@ -440,7 +440,7 @@ export const AdminWizard: React.FC = () => {
                 setActiveTab('control');
                 const rCode = sync.getRoomCode();
                 if (rCode) {
-                  window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}?mode=admin&room=${rCode}`);
+                  window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}?mode=admin&room=${rCode}&host=${encodeURIComponent(wizardHostName)}`);
                 }
               }}
               className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-95"
@@ -566,8 +566,8 @@ export const AdminWizard: React.FC = () => {
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="text-right">
-                <h3 className="text-lg font-black text-slate-100">שלב 1: אישור פרטי המנחה וסוג הלוח</h3>
-                <p className="text-xs text-slate-400 mt-1">אמת את שם המנחה ובחר את סוג הלוח להקרנה</p>
+                <h3 className="text-lg font-black text-slate-100">שלב 1: אישור פרטי המנחה</h3>
+                <p className="text-xs text-slate-400 mt-1">אמת את שם המנחה כדי להתחיל בהגדרות המשחק</p>
               </div>
 
               <div className="space-y-4">
@@ -1064,12 +1064,7 @@ export const AdminWizard: React.FC = () => {
                   <strong className="text-sm text-emerald-400 font-mono font-black">{roomCode}</strong>
                 </div>
 
-                <div className="flex justify-between items-center border-b border-slate-900 pb-2">
-                  <span className="text-xs text-slate-400">סוג לוח:</span>
-                  <span className="text-xs text-slate-200 font-bold">
-                    📋 רשימה פשוטה
-                  </span>
-                </div>
+
 
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-850">

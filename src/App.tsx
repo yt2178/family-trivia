@@ -599,7 +599,7 @@ function App() {
     );
   }
 
-  const adminMobileUrl = `${window.location.origin}${window.location.pathname}?mode=admin&room=${roomCode}`;
+  const adminMobileUrl = `${window.location.origin}${window.location.pathname}?mode=admin&room=${roomCode}&host=${encodeURIComponent(hostName)}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(adminMobileUrl)}`;
 
   return (

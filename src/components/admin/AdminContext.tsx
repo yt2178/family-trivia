@@ -229,6 +229,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
   const [roomError, setRoomError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
+  const [securityError, setSecurityError] = useState<boolean>(false);
 
   // Countdown for room error redirect
   useEffect(() => {
@@ -243,7 +244,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Register controller connection and listen to game screen connection status in Firebase
   useEffect(() => {
     const roomCode = sync.getRoomCode();
-    if (roomCode) {
+    if (roomCode && !isLoading && !securityError) {
       const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
       const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
       
@@ -271,7 +272,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         off(statusRef);
       };
     }
-  }, []);
+  }, [isLoading, securityError]);
 
   // Input Forms States
   const [newMember, setNewMember] = useState<MemberFormState>({
@@ -297,7 +298,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [warnings, setWarnings] = useState<string[]>([]);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [nextQuestionTimer, setNextQuestionTimer] = useState<number>(0);
-  const [securityError, setSecurityError] = useState<boolean>(false);
   const [showContestantOrderModal, setShowContestantOrderModal] = useState<boolean>(false);
 
   // Local wizard buffer states to prevent saving to Firebase on every keystroke

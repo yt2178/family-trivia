@@ -241,31 +241,38 @@ export const excelHelper = {
   downloadTemplate(): void {
     const workbook = XLSX.utils.book_new();
 
-    // Sheet 1: Speakers list Template
+    // Set right-to-left view
+    workbook.Workbook = {
+      Views: [
+        { RTL: true }
+      ]
+    };
+
+    // Speakers list Template
     const membersData = [
-      { 'שם': 'דוד', 'מין': 'זכר' },
-      { 'שם': 'שרה', 'מין': 'נקבה' },
-      { 'שם': 'משה', 'מין': 'זכר' },
-      { 'שם': 'יפה', 'מין': 'נקבה' }
+      { 'שם': 'שלום', 'מין': 'זכר' },
+      { 'שם': 'שלומית', 'מין': 'נקבה' },
+      { 'שם': 'אריאל', 'מין': 'זכר' },
+      { 'שם': 'אריאלה', 'מין': 'נקבה' }
     ];
     const membersSheet = XLSX.utils.json_to_sheet(membersData);
-    XLSX.utils.book_append_sheet(workbook, membersSheet, 'רשימת משתתפים');
-
-    // Sheet 2: Questions Template
-    const questionsData = [
-      { 'משפט': 'אני הכי אוהב שוקולד בעולם!', 'מי אמר': 'דוד' },
-      { 'משפט': 'מחר אנחנו נוסעים לטיול שנתי.', 'מי אמר': 'שרה' }
-    ];
-    const questionsSheet = XLSX.utils.json_to_sheet(questionsData);
-    XLSX.utils.book_append_sheet(workbook, questionsSheet, 'שאלות המשחק');
+    XLSX.utils.book_append_sheet(workbook, membersSheet, 'שמות משתתפים');
 
     // Save/Download workbook
-    XLSX.writeFile(workbook, 'תבנית_משחק_מי_אמר_מה.xlsx');
+    XLSX.writeFile(workbook, 'משחק משפחתי שמות משתתפים.xlsx');
   },
 
   // Download dedicated Questions Template
   downloadQuestionsTemplate(): void {
     const workbook = XLSX.utils.book_new();
+
+    // Set right-to-left view
+    workbook.Workbook = {
+      Views: [
+        { RTL: true }
+      ]
+    };
+
     const questionsData = [
       { 'משפט': 'אני לא סובל בצל באוכל!', 'מי אמר': 'יוסי' },
       { 'משפט': 'בואו נשחק כדורגל בחצר', 'מי אמר': '' },
@@ -273,6 +280,6 @@ export const excelHelper = {
     ];
     const questionsSheet = XLSX.utils.json_to_sheet(questionsData);
     XLSX.utils.book_append_sheet(workbook, questionsSheet, 'שאלות וציטוטים');
-    XLSX.writeFile(workbook, 'תבנית_שאלות_וציטוטים.xlsx');
+    XLSX.writeFile(workbook, 'משחק משפחתי שאלות וציטוטים.xlsx');
   }
 };
