@@ -448,6 +448,17 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [questions, gameState?.shuffledQuestionIds, settings.questionOrder]);
 
+  // Automatically show the participant order modal when entering controller mode at the beginning of the game
+  useEffect(() => {
+    if (
+      adminSubMode === 'controller' &&
+      settings?.questionOrder === 'sequential' &&
+      gameState?.currentQuestionIndex === 0
+    ) {
+      setShowContestantOrderModal(true);
+    }
+  }, [adminSubMode, settings?.questionOrder, gameState?.currentQuestionIndex]);
+
   const saveDraftToLocalStorage = (
     hostName: string,
     treeLayoutVal: 'none',
