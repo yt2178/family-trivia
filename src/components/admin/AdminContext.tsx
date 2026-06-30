@@ -82,8 +82,8 @@ export const healSettings = (s: any): GameSettings => {
       { id: 'contestant_2', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
     ];
   }
-  if (!parsed.treeLayout) {
-    parsed.treeLayout = 'traditional';
+  if (parsed.treeLayout !== 'none') {
+    parsed.treeLayout = 'none';
   }
   if (parsed.hostName === undefined) {
     parsed.hostName = '';
@@ -150,8 +150,8 @@ interface AdminContextType {
   // Wizard buffers
   wizardHostName: string;
   setWizardHostName: React.Dispatch<React.SetStateAction<string>>;
-  wizardTreeLayout: 'botanical' | 'traditional' | 'none';
-  setWizardTreeLayout: React.Dispatch<React.SetStateAction<'botanical' | 'traditional' | 'none'>>;
+  wizardTreeLayout: 'none';
+  setWizardTreeLayout: React.Dispatch<React.SetStateAction<'none'>>;
   wizardContestantCount: number;
   setWizardContestantCount: React.Dispatch<React.SetStateAction<number>>;
   wizardQuestionTimer: number | null;
@@ -190,7 +190,7 @@ interface AdminContextType {
   handleMemberImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleAddQuestion: (e: React.FormEvent) => void;
   handleDeleteQuestion: (id: string) => void;
-  handleExcelTemplateDownload: (mode: 'tree' | 'list') => void;
+  handleExcelTemplateDownload: () => void;
   handleImportMembersExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleImportQuestionsExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleAbsoluteReset: () => Promise<void>;
@@ -202,7 +202,7 @@ interface AdminContextType {
   renderParentOptions: (generation: FamilyMember['generation']) => React.ReactNode[];
   saveDraftToLocalStorage: (
     hostName: string,
-    treeLayout: 'botanical' | 'traditional' | 'none',
+    treeLayout: 'none',
     contestantCount: number,
     contestants: Array<{ id: string; name: string; image: string | null }>,
     questionTimer: number | null,
@@ -302,7 +302,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Local wizard buffer states to prevent saving to Firebase on every keystroke
   const [wizardHostName, setWizardHostName] = useState('');
-  const [wizardTreeLayout, setWizardTreeLayout] = useState<'botanical' | 'traditional' | 'none'>('traditional');
+  const [wizardTreeLayout, setWizardTreeLayout] = useState<'none'>('none');
   const [wizardContestantCount, setWizardContestantCount] = useState(2);
   const [wizardQuestionTimer, setWizardQuestionTimer] = useState<number | null>(null);
   const [wizardShowNameBank, setWizardShowNameBank] = useState<boolean>(false);
@@ -336,7 +336,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (draft) {
         setWizardHostName(draft.hostName || '');
-        setWizardTreeLayout(draft.treeLayout || settings.treeLayout || 'traditional');
+        setWizardTreeLayout('none');
         setWizardContestantCount(draft.contestantCount || 2);
         setWizardQuestionTimer(draft.questionTimer !== undefined ? draft.questionTimer : (settings.questionTimer || null));
         setWizardShowNameBank(draft.showNameBank !== undefined ? draft.showNameBank : (settings.showNameBank || false));
@@ -356,7 +356,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardContestants(arr);
       } else {
         setWizardHostName(settings.hostName || '');
-        setWizardTreeLayout(settings.treeLayout || 'traditional');
+        setWizardTreeLayout('none');
         setWizardContestantCount(settings.contestants?.length || 2);
         setWizardQuestionTimer(settings.questionTimer !== undefined ? settings.questionTimer : null);
         setWizardShowNameBank(settings.showNameBank || false);
@@ -449,7 +449,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const saveDraftToLocalStorage = (
     hostName: string,
-    treeLayout: 'botanical' | 'traditional' | 'none',
+    treeLayoutVal: 'none',
     contestantCount: number,
     contestants: Array<{ id: string; name: string; image: string | null }>,
     questionTimer: number | null,
@@ -462,7 +462,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       localStorage.setItem(`wizard_draft_${rCode}`, JSON.stringify({
         hostName,
-        treeLayout,
+        treeLayout: 'none',
         contestantCount,
         contestants: contestants.slice(0, contestantCount),
         questionTimer,
@@ -476,64 +476,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const renderParentOptions = (generation: FamilyMember['generation']) => {
-    const groupMembers = members.filter(m => m.generation === generation && m.id !== editingMemberId);
-    const renderedIds = new Set<string>();
-    const options: React.ReactNode[] = [];
-
-    groupMembers.forEach(m => {
-      if (renderedIds.has(m.id)) return;
-
-      if (m.spouseId) {
-        const spouse = members.find(s => s.id === m.spouseId);
-        if (spouse && spouse.generation === generation && spouse.id !== editingMemberId) {
-          options.push(
-            <option key={`${m.id}-${spouse.id}`} value={m.id}>
-              {m.name} ו{spouse.name}
-            </option>
-          );
-          renderedIds.add(m.id);
-          renderedIds.add(spouse.id);
-          return;
-        }
-      }
-
-      options.push(
-        <option key={m.id} value={m.id}>
-          {m.name}
-        </option>
-      );
-      renderedIds.add(m.id);
-    });
-
-    return options;
+    return [];
   };
 
   const healMembersGenerations = (membersList: FamilyMember[]): FamilyMember[] => {
-    const healed = membersList.map(m => {
-      if (m.spouseId) {
-        const spouse = membersList.find(s => s.id === m.spouseId);
-        if (spouse && m.generation !== spouse.generation) {
-          if (spouse.parentId && !m.parentId) {
-            return { ...m, generation: spouse.generation };
-          } else if (m.parentId && !spouse.parentId) {
-            return m;
-          } else {
-            return { ...m, generation: spouse.generation };
-          }
-        }
-      }
-      return m;
-    });
-
-    return healed.map(m => {
-      if (m.spouseId) {
-        const spouse = healed.find(s => s.id === m.spouseId);
-        if (spouse && m.generation !== spouse.generation) {
-          return { ...m, generation: spouse.generation };
-        }
-      }
-      return m;
-    });
+    return membersList;
   };
 
   const playAdminSound = (type: 'success' | 'undo' | 'reveal') => {
@@ -844,43 +791,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   ): string | null => {
     const cleanName = name.trim();
     if (!cleanName) return 'נא להזין שם.';
-
-    if (spouseId) {
-      if (currentId && spouseId === currentId) {
-        return 'אדם אינו יכול להיות בן הזוג של עצמו.';
-      }
-      
-      const spouse = members.find(m => m.id === spouseId);
-      if (spouse) {
-        if (spouse.spouseId && spouse.spouseId !== currentId) {
-          return `בן/בת הזוג שנבחרו (${spouse.name}) כבר נשואים ל-${members.find(m => m.id === spouse.spouseId)?.name || 'אדם אחר'}.`;
-        }
-        if (parentId && parentId === spouseId) {
-          return 'אדם אינו יכול להתחתן עם ההורה שלו.';
-        }
-      }
-    }
-
-    if (parentId) {
-      if (currentId && parentId === currentId) {
-        return 'אדם אינו יכול להיות ההורה של עצמו.';
-      }
-
-      if (currentId) {
-        let currParentId = parentId;
-        const visited = new Set<string>();
-        while (currParentId) {
-          if (currParentId === currentId) {
-            return 'שגיאה: הגדרה זו יוצרת לולאת היררכיה אינסופית בעץ המשפחה.';
-          }
-          if (visited.has(currParentId)) break;
-          visited.add(currParentId);
-          const p = members.find(m => m.id === currParentId);
-          currParentId = p?.parentId || '';
-        }
-      }
-    }
-
     return null;
   };
 
@@ -913,63 +823,21 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
-    let generation = newMember.generation;
-    if (settings.treeLayout === 'traditional') {
-      if (newMember.parentId) {
-        const parent = members.find(m => m.id === newMember.parentId);
-        if (parent) {
-          if (parent.generation === 'grandparent') generation = 'parent';
-          else if (parent.generation === 'parent') generation = 'child';
-          else if (parent.generation === 'child') generation = 'grandchild';
-          else generation = 'great-grandchild';
-        }
-      } else if (newMember.spouseId) {
-        const spouse = members.find(m => m.id === newMember.spouseId);
-        if (spouse) {
-          generation = spouse.generation;
-        }
-      } else {
-        generation = 'grandparent';
-      }
-    }
-
-    let familyName = newMember.familyName.trim();
-    if (!familyName && newMember.parentId) {
-      const parent = members.find(p => p.id === newMember.parentId);
-      if (parent && parent.familyName) {
-        familyName = parent.familyName;
-      }
-    }
-
     const id = 'm_' + Math.random().toString(36).substr(2, 9);
-    const spouseId = newMember.spouseId || null;
 
     const memberToAdd: FamilyMember = {
       id,
       name: newMember.name.trim(),
-      generation,
-      parentId: newMember.parentId || null,
+      generation: 'grandchild',
+      parentId: null,
       parentIds: [],
       image: newMember.image,
       gender: newMember.gender,
-      familyName,
-      spouseId
+      familyName: '',
+      spouseId: null
     };
 
     let updated = [...members, memberToAdd];
-
-    if (spouseId) {
-      updated = updated.map(m => {
-        if (m.id === spouseId) {
-          return { ...m, spouseId: id, generation };
-        }
-        return m;
-      });
-      const spouseNode = members.find(m => m.id === spouseId);
-      if (spouseNode && spouseNode.parentId) {
-        memberToAdd.parentId = spouseNode.parentId;
-      }
-    }
 
     setMembers(updated);
     db.saveMembers(updated);
@@ -991,22 +859,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const handleDeleteMember = (id: string) => {
     const updated = members.filter(m => m.id !== id);
-    const cleaned = updated.map(m => {
-      let changed = false;
-      const updatedMember = { ...m };
-      if (updatedMember.parentId === id) {
-        updatedMember.parentId = null;
-        changed = true;
-      }
-      if (updatedMember.spouseId === id) {
-        updatedMember.spouseId = null;
-        changed = true;
-      }
-      return changed ? updatedMember : m;
-    });
-    setMembers(cleaned);
-    db.saveMembers(cleaned);
-    sync.sendMessage({ type: 'DATABASE_SYNC', members: cleaned, questions, settings });
+    setMembers(updated);
+    db.saveMembers(updated);
+    sync.sendMessage({ type: 'DATABASE_SYNC', members: updated, questions, settings });
     showSuccess('בן המשפחה נמחק.');
   };
 
@@ -1030,8 +885,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const error = validateRelations(
       newMember.name,
-      newMember.parentId || null,
-      newMember.spouseId || null,
+      null,
+      null,
       editingMemberId
     );
     if (error) {
@@ -1039,77 +894,17 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
-    let generation = newMember.generation;
-    if (settings.treeLayout === 'traditional') {
-      if (newMember.parentId) {
-        const parent = members.find(p => p.id === newMember.parentId);
-        if (parent) {
-          if (parent.generation === 'grandparent') generation = 'parent';
-          else if (parent.generation === 'parent') generation = 'child';
-          else if (parent.generation === 'child') generation = 'grandchild';
-          else generation = 'great-grandchild';
-        }
-      } else if (newMember.spouseId) {
-        const spouse = members.find(p => p.id === newMember.spouseId);
-        if (spouse) {
-          generation = spouse.generation;
-        }
-      } else {
-        generation = 'grandparent';
-      }
-    }
-
-    let familyName = newMember.familyName.trim();
-    if (!familyName && newMember.parentId) {
-      const parent = members.find(p => p.id === newMember.parentId);
-      if (parent && parent.familyName) {
-        familyName = parent.familyName;
-      }
-    }
-
-    const spouseId = newMember.spouseId || null;
-
-    let updated = members.map(m => {
+    const updated = members.map(m => {
       if (m.id === editingMemberId) {
         return {
           ...m,
           name: newMember.name.trim(),
           gender: newMember.gender,
-          parentId: newMember.parentId || null,
-          generation,
-          familyName,
           image: newMember.image,
-          spouseId,
         };
       }
       return m;
     });
-
-    const oldMember = members.find(m => m.id === editingMemberId);
-    if (oldMember && oldMember.spouseId && oldMember.spouseId !== spouseId) {
-      updated = updated.map(m => {
-        if (m.id === oldMember.spouseId) {
-          return { ...m, spouseId: null };
-        }
-        return m;
-      });
-    }
-
-    if (spouseId) {
-      updated = updated.map(m => {
-        if (m.id === spouseId) {
-          return { ...m, spouseId: editingMemberId, generation };
-        }
-        return m;
-      });
-      const spouseNode = members.find(m => m.id === spouseId);
-      if (spouseNode && spouseNode.parentId) {
-        const primary = updated.find(m => m.id === editingMemberId);
-        if (primary) {
-          primary.parentId = spouseNode.parentId;
-        }
-      }
-    }
 
     setMembers(updated);
     db.saveMembers(updated);
@@ -1199,8 +994,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showSuccess('השאלה נמחקה.');
   };
 
-  const handleExcelTemplateDownload = (mode: 'tree' | 'list') => {
-    excelHelper.downloadTemplate(mode);
+  const handleExcelTemplateDownload = () => {
+    excelHelper.downloadTemplate();
   };
 
   const handleImportMembersExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {

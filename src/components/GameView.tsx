@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db, FamilyMember, GameSettings, GameState, healGameState } from '../utils/db';
 import { sync } from '../utils/sync';
 import { audioHelper } from '../utils/audioHelper';
-import { FamilyTree } from './FamilyTree';
 import { Trophy, Volume2, Award, Sparkles, RefreshCw, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { rtdb } from '../utils/firebase';
@@ -149,8 +148,8 @@ const healSettings = (s: any): GameSettings => {
       { id: 'contestant_2', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
     ];
   }
-  if (!parsed.treeLayout) {
-    parsed.treeLayout = 'traditional';
+  if (parsed.treeLayout !== 'none') {
+    parsed.treeLayout = 'none';
   }
   if (parsed.hostName === undefined) {
     parsed.hostName = '';
@@ -953,7 +952,7 @@ export const GameView: React.FC = React.memo(() => {
                     {settings.hostName || 'המנחה'} עורך כעת את <strong className="text-teal-400">שלב {settings.wizardStep || 1}: {
                       settings.wizardStep === 1 ? 'פרטי חדר' :
                       settings.wizardStep === 2 ? 'בחירת מתמודדים' :
-                      settings.wizardStep === 3 ? (settings.treeLayout === 'traditional' ? 'הוספת שחקנים ועץ משפחתי' : 'הוספת שחקנים') :
+                      settings.wizardStep === 3 ? 'הוספת שחקנים' :
                       settings.wizardStep === 4 ? 'הוספת שאלות וציטוטים' :
                       settings.wizardStep === 5 ? 'הגדרת טיימר' :
                       settings.wizardStep === 6 ? 'סיכום ואישור' : 'עריכת פרטי המשחק'
@@ -992,9 +991,9 @@ export const GameView: React.FC = React.memo(() => {
     );
   }
 
-  const totalDescendants = members.filter(m => m.generation !== 'grandparent').length;
-  const childrenAndGrandchildren = members.filter(m => m.generation === 'parent' || m.generation === 'child' || m.generation === 'grandchild').length;
-  const greatGrandchildren = members.filter(m => m.generation === 'great-grandchild').length;
+  const totalPlayers = members.length;
+  const males = members.filter(m => m.gender === 'male').length;
+  const females = members.filter(m => m.gender === 'female').length;
 
   return (
     <div className={`relative w-full min-h-screen bg-gradient-to-b ${getThemeBackground()} text-slate-100 flex flex-col p-6 overflow-hidden`}>
@@ -1034,11 +1033,11 @@ export const GameView: React.FC = React.memo(() => {
                 <>
                   <span className="text-slate-600 text-[10px]">•</span>
                   <div className="flex gap-2 text-[10px] text-slate-400 font-medium bg-slate-900/40 border border-slate-800/40 px-2 py-0.5 rounded-md">
-                    <span>סה״כ צאצאים בעץ: <strong className="text-emerald-400">{totalDescendants}</strong></span>
+                    <span>סה״כ משתתפים: <strong className="text-emerald-400">{totalPlayers}</strong></span>
                     <span>|</span>
-                    <span>ילדים ונכדים: <strong className="text-emerald-400">{childrenAndGrandchildren}</strong></span>
+                    <span>זכרים: <strong className="text-emerald-400">{males}</strong></span>
                     <span>|</span>
-                    <span>נינים: <strong className="text-emerald-400">{greatGrandchildren}</strong></span>
+                    <span>נקבות: <strong className="text-emerald-400">{females}</strong></span>
                   </div>
                 </>
               )}
@@ -1115,68 +1114,49 @@ export const GameView: React.FC = React.memo(() => {
             </div>
           ) : (
             <div className="flex-grow min-h-[500px] flex flex-col">
-              {settings.treeLayout === 'none' ? (
-                (() => {
-                  const speaker = members.find(m => m.id === currentQuestion?.speakerId);
-                  return (
-                    <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40 p-8">
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
+              {(() => {
+                const speaker = members.find(m => m.id === currentQuestion?.speakerId);
+                return (
+                  <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40 p-8">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
 
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                        className="flex flex-col items-center text-center relative z-10 space-y-6"
-                      >
-                        <span className="text-emerald-400 text-sm font-bold uppercase tracking-widest px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                          הדובר נחשף! 🎉
-                        </span>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 100, damping: 15 }}
+                      className="flex flex-col items-center text-center relative z-10 space-y-6"
+                    >
+                      <span className="text-emerald-400 text-sm font-bold uppercase tracking-widest px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                        הדובר נחשף! 🎉
+                      </span>
 
-                        <div className="relative">
-                          <div className="absolute -inset-2 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full blur opacity-70 animate-pulse" />
-                          <div className="relative w-44 h-44 rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden shadow-2xl flex items-center justify-center">
-                            {speaker?.image ? (
-                              <img src={speaker.image} alt={speaker.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-8xl select-none">
-                                {speaker ? (speaker.gender === 'female' ? '👵' : '👴') : '❓'}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <h2 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-md">
-                            {speaker?.name || 'שאלה כללית'}
-                          </h2>
-                          {speaker?.familyName && (
-                            <p className="text-xl text-slate-400 font-medium">{speaker.familyName}</p>
+                      <div className="relative">
+                        <div className="absolute -inset-2 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full blur opacity-70 animate-pulse" />
+                        <div className="relative w-44 h-44 rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden shadow-2xl flex items-center justify-center">
+                          {speaker?.image ? (
+                            <img src={speaker.image} alt={speaker.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-8xl select-none">
+                              {speaker ? (speaker.gender === 'female' ? '👩' : '👨') : '❓'}
+                            </div>
                           )}
                         </div>
+                      </div>
 
-                        <p className="text-slate-400 text-sm max-w-sm italic">
-                          {speaker ? '״אמר/ה את הציטוט בהתרגשות רבה!״' : 'שאלה כללית ללא שיוך לבן משפחה מסוים'}
-                        </p>
-                      </motion.div>
-                    </div>
-                  );
-                })()
-              ) : (
-                <FamilyTree
-                  members={members}
-                  settings={settings}
-                  solvedQuestions={gameState.solvedQuestions}
-                  currentSpeakerId={
-                    currentQuestion?.speakerId === 'general' || !currentQuestion?.speakerId
-                      ? (gameState.revealedSpeakers?.[currentQuestion?.id || ''] || null)
-                      : (currentQuestion?.speakerId || null)
-                  }
-                  isAnswerRevealed={gameState.isRevealed}
-                  interactive={false}
-                  revealedMembers={gameState.revealedSpeakers as Record<string, boolean>}
-                />
-              )}
+                      <div className="space-y-1">
+                        <h2 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-md">
+                          {speaker?.name || 'שאלה כללית'}
+                        </h2>
+                      </div>
+
+                      <p className="text-slate-400 text-sm max-w-sm italic">
+                        {speaker ? '״אמר/ה את הציטוט בהתרגשות רבה!״' : 'שאלה כללית ללא שיוך לבן משפחה מסוים'}
+                      </p>
+                    </motion.div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

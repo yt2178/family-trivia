@@ -35,7 +35,6 @@ function App() {
   const [hostName, setHostName] = useState<string>(() => localStorage.getItem('host_name') || '');
   const [isCheckingRoom, setIsCheckingRoom] = useState<boolean>(false);
   const [roomWarningCode, setRoomWarningCode] = useState<string | null>(null);
-  const [treeLayoutChoice, setTreeLayoutChoice] = useState<'traditional' | 'none'>('none');
   const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -182,7 +181,7 @@ function App() {
               grandmaName: 'סגול',
               grandmaImage: null,
               theme: 'classic',
-              treeLayout: treeLayoutChoice,
+              treeLayout: 'none',
               contestants: [
                 { id: 'contestant_1', name: 'כחול', image: null },
                 { id: 'contestant_2', name: 'סגול', image: null }
@@ -199,7 +198,7 @@ function App() {
             grandmaName: 'סגול',
             grandmaImage: null,
             theme: 'classic',
-            treeLayout: treeLayoutChoice,
+            treeLayout: 'none',
             contestants: [
               { id: 'contestant_1', name: 'כחול', image: null },
               { id: 'contestant_2', name: 'סגול', image: null }
@@ -231,7 +230,7 @@ function App() {
           grandmaName: 'סגול',
           grandmaImage: null,
           theme: 'classic',
-          treeLayout: treeLayoutChoice,
+          treeLayout: 'none',
           contestants: [
             { id: 'contestant_1', name: 'כחול', image: null },
             { id: 'contestant_2', name: 'סגול', image: null }
@@ -729,38 +728,7 @@ function App() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-2">3. מבנה המשחק (סוג הלוח):</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setTreeLayoutChoice('traditional')}
-                      className={`py-3 px-4 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1 ${
-                        treeLayoutChoice === 'traditional'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500 shadow-md shadow-emerald-550/20'
-                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <span className="text-lg">🌳</span>
-                      <span className="font-bold">עץ יוחסין</span>
-                      <span className="text-[9px] text-slate-500 font-normal">מחבר בני משפחה לדורות והורים</span>
-                    </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setTreeLayoutChoice('none')}
-                      className={`py-3 px-4 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1 ${
-                        treeLayoutChoice === 'none'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500 shadow-md shadow-emerald-550/20'
-                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <span className="text-lg">📋</span>
-                      <span className="font-bold">ללא עץ יוחסין (רשימה)</span>
-                      <span className="text-[9px] text-slate-500 font-normal">מצב פשוט ללא הגדרת הורים ובני זוג</span>
-                    </button>
-                  </div>
-                </div>
               </div>
 
               {createError && (

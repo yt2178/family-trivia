@@ -593,44 +593,6 @@ export const AdminWizard: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-2">סוג לוח המשחק:</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWizardTreeLayout('traditional');
-                        saveDraftToLocalStorage(wizardHostName, 'traditional', wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
-                      }}
-                      className={`p-4 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
-                        wizardTreeLayout === 'traditional'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/80 shadow-md shadow-emerald-950/10'
-                          : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <span className="text-2xl">🌳</span>
-                      <span className="font-black">עץ יוחסין משפחתי</span>
-                      <span className="text-[9px] text-slate-500 font-normal">חיבור הורים, בני זוג ודורות</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWizardTreeLayout('none');
-                        saveDraftToLocalStorage(wizardHostName, 'none', wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
-                      }}
-                      className={`p-4 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 ${
-                        wizardTreeLayout === 'none'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/80 shadow-md shadow-emerald-950/10'
-                          : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <span className="text-2xl">📋</span>
-                      <span className="font-black">ללא עץ יוחסין (רשימה)</span>
-                      <span className="text-[9px] text-slate-500 font-normal">מצב פשוט ללא קשרים משפחתיים</span>
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
           )}
@@ -729,10 +691,10 @@ export const AdminWizard: React.FC = () => {
             <div className="space-y-4">
               <div className="text-right">
                 <h3 className="text-lg font-black text-slate-100">
-                  {wizardTreeLayout === 'traditional' ? 'שלב 3: הוספת שחקנים (בני משפחה)' : 'שלב 3: הוספת שחקנים'}
+                  שלב 3: הוספת שחקנים
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {wizardTreeLayout === 'traditional' ? 'הזן את שמות בני המשפחה או העלה מקובץ Excel' : 'הזן את שמות השחקנים או העלה מקובץ Excel'}
+                  הזן את שמות השחקנים או העלה מקובץ Excel
                 </p>
               </div>
               
@@ -740,7 +702,7 @@ export const AdminWizard: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => excelHelper.downloadTemplate(wizardTreeLayout === 'traditional' ? 'tree' : 'list')}
+                  onClick={() => excelHelper.downloadTemplate()}
                   className="flex-1 px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1"
                   title="הורד קובץ שחקנים למילוי"
                 >
@@ -810,51 +772,7 @@ export const AdminWizard: React.FC = () => {
                   </div>
                 </div>
 
-                {wizardTreeLayout === 'traditional' ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">הורה משויך בעץ המשפחה:</label>
-                      <select
-                        value={newMember.parentId}
-                        onChange={e => setNewMember({ ...newMember, parentId: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-350 text-xs focus:outline-none focus:border-emerald-500 font-bold"
-                      >
-                        <option value="">-- ללא הורה (ראש משפחה) --</option>
-                        {members.map(m => (
-                          <option key={m.id} value={m.id}>{m.name} ({m.generation === 'grandparent' ? 'סבא/ת' : m.generation === 'parent' ? 'הורה' : m.generation === 'child' ? 'נכד' : 'נין'})</option>
-                        ))}
-                      </select>
-                    </div>
 
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">בן/בת זוג:</label>
-                      <select
-                        value={newMember.spouseId}
-                        onChange={e => setNewMember({ ...newMember, spouseId: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-350 text-xs focus:outline-none focus:border-emerald-500 font-bold"
-                      >
-                        <option value="">-- ללא בן/בת זוג --</option>
-                        {members.filter(m => m.id !== editingMemberId).map(m => (
-                          <option key={m.id} value={m.id}>{m.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                ) : wizardTreeLayout === 'botanical' ? (
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-0.5">דור (שיוך דורות):</label>
-                    <select
-                      value={newMember.generation}
-                      onChange={e => setNewMember({ ...newMember, generation: e.target.value as any })}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-350 text-xs focus:outline-none focus:border-emerald-500 font-bold"
-                    >
-                      <option value="grandparent">דור 1 - סבא/סבתא (מבוגרים)</option>
-                      <option value="parent">דור 2 - הורים</option>
-                      <option value="child">דור 3 - ילדים / נכדים</option>
-                      <option value="grandchild">דור 4 - נינים</option>
-                    </select>
-                  </div>
-                ) : null}
 
                 <div className="flex justify-end pt-1 gap-2">
                   {editingMemberId && (
@@ -872,7 +790,7 @@ export const AdminWizard: React.FC = () => {
                     className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-lg transition-colors flex items-center gap-1"
                   >
                     <Plus size={14} />
-                    <span>{editingMemberId ? 'שמור שינויים' : (wizardTreeLayout === 'traditional' ? 'הוסף שחקן משפחה' : 'הוסף שחקן')}</span>
+                    <span>{editingMemberId ? 'שמור שינויים' : 'הוסף שחקן'}</span>
                   </button>
                 </div>
               </form>
@@ -884,25 +802,13 @@ export const AdminWizard: React.FC = () => {
                     <p className="text-[10px] text-slate-650 text-center py-4">טרם הוספו שחקנים. הוסף שחקן למעלה או העלה קובץ Excel.</p>
                   ) : (
                     members.map(m => {
-                      const parent = members.find(p => p.id === m.parentId);
-                      const spouse = members.find(s => s.id === m.spouseId);
                       const isBeingEdited = editingMemberId === m.id;
                       return (
                         <div key={m.id} className={`flex justify-between items-center border p-2 rounded-xl text-xs ${isBeingEdited ? 'bg-amber-950/30 border-amber-500/30' : 'bg-slate-950/70 border-slate-850'}`}>
                           <div className="flex items-center gap-2">
                             <span className="text-base">{m.gender === 'female' ? '👩' : '👨'}</span>
                             <span className="font-bold text-slate-200">{m.name}</span>
-                            {wizardTreeLayout === 'traditional' && (
-                              <span className="text-[9px] bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-medium">
-                                {m.generation === 'grandparent' ? 'דור 1' : m.generation === 'parent' ? 'דור 2' : m.generation === 'child' ? 'דור 3' : 'דור 4'}
-                              </span>
-                            )}
-                            {wizardTreeLayout === 'traditional' && (
-                              <span className="text-[8px] text-slate-500">
-                                {parent && ` | הורה: ${parent.name}`}
-                                {spouse && ` | זוג: ${spouse.name}`}
-                              </span>
-                            )}
+
                           </div>
                           <div className="flex items-center gap-1">
                             <button
@@ -1161,7 +1067,7 @@ export const AdminWizard: React.FC = () => {
                 <div className="flex justify-between items-center border-b border-slate-900 pb-2">
                   <span className="text-xs text-slate-400">סוג לוח:</span>
                   <span className="text-xs text-slate-200 font-bold">
-                    {wizardTreeLayout === 'traditional' ? '🌳 עץ יוחסין משפחתי' : '📋 רשימה פשוטה'}
+                    📋 רשימה פשוטה
                   </span>
                 </div>
 
@@ -1260,25 +1166,14 @@ export const AdminWizard: React.FC = () => {
 
               {wizardConfirmModal.showExcelDownload === 'players' && (
                 <div className="flex flex-col gap-2 pt-1 pb-2">
-                  {wizardTreeLayout === 'none' ? (
-                    <button
-                      type="button"
-                      onClick={() => excelHelper.downloadTemplate('list')}
-                      className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Download size={12} />
-                      <span>הורד אבטיפוס Excel (רשימה) למילוי 📥</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => excelHelper.downloadTemplate('tree')}
-                      className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Download size={12} />
-                      <span>הורד אבטיפוס Excel (עץ משפחתי) למילוי 📥</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => excelHelper.downloadTemplate()}
+                    className="w-full py-2 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-amber-500/20 text-amber-400 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Download size={12} />
+                    <span>הורד אבטיפוס Excel למילוי 📥</span>
+                  </button>
 
                   <label className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center active:scale-95 shadow-md shadow-emerald-950/20">
                     <Upload size={12} />

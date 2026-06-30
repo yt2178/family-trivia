@@ -45,15 +45,6 @@ export const ControlTab: React.FC = () => {
     : activeQuestion?.speakerId;
   const activeSpeaker = activeSpeakerId ? members.find(m => m.id === activeSpeakerId) : null;
 
-  // Function to get father's name
-  const getFatherName = (member: FamilyMember | null | undefined): string | null => {
-    if (!member || !member.parentId) return null;
-    const father = members.find(m => m.id === member.parentId);
-    return father?.name || null;
-  };
-
-  const fatherName = getFatherName(activeSpeaker);
-
   // Get next speakers for preview
   const nextSpeakers = shuffledIds.slice(gameState.currentQuestionIndex + 1, gameState.currentQuestionIndex + 4).map(qId => {
     const q = questions.find(question => question.id === qId);
@@ -93,7 +84,6 @@ export const ControlTab: React.FC = () => {
                     <span className="text-xs text-slate-400 block">האדם שאמר את המשפט (התשובה הנכונה):</span>
                     <strong className="text-base text-amber-400 font-bold">
                       {activeSpeaker ? activeSpeaker.name : 'לא משויך'}
-                      {fatherName && <span className="text-sm text-slate-400 font-normal mr-2">בן {fatherName}</span>}
                     </strong>
                   </div>
 
@@ -140,13 +130,11 @@ export const ControlTab: React.FC = () => {
                             </div>
                             <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-slate-850">
                               {allUpcomingSpeakers.map((speaker, idx) => {
-                                const fName = getFatherName(speaker);
                                 return (
                                   <div key={speaker.id + '-' + idx} className="flex justify-between items-center text-xs p-1 hover:bg-slate-800/40 rounded-lg">
                                     <span className="text-slate-500 font-mono text-[9px]">#{gameState.currentQuestionIndex + idx + 2}</span>
                                     <span className="font-bold text-slate-200">
                                       {speaker.name}
-                                      {fName && <span className="text-[10px] text-slate-400 font-normal mr-1">(בן {fName})</span>}
                                     </span>
                                   </div>
                                 );

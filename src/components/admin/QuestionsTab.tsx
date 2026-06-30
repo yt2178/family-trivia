@@ -41,14 +41,10 @@ export const QuestionsTab: React.FC = () => {
               onChange={e => setNewQuestion({ ...newQuestion, speakerId: e.target.value })}
               className="w-full bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
             >
-              {settings.treeLayout === 'none' ? (
-                <option value="">-- ללא שיוך (שאלה כללית לכולם) --</option>
-              ) : (
-                <option value="general">❓ שאלה כללית (תוצג לכולם)</option>
-              )}
+              <option value="">-- ללא שיוך (שאלה כללית לכולם) --</option>
               {members.map(m => (
                 <option key={m.id} value={m.id}>
-                  {m.name} ({m.generation === 'grandparent' ? 'סבא/ת' : m.generation === 'parent' ? 'ילד/ה' : m.generation === 'child' ? 'נכד/ה' : 'נין/ה'})
+                  {m.name}
                 </option>
               ))}
             </select>

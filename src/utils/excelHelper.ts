@@ -58,13 +58,7 @@ const normalizeGender = (genderStr: string): 'male' | 'female' => {
   return 'male'; // Default
 };
 
-const generationOrder: Record<FamilyMember['generation'], number> = {
-  'grandparent': 0,
-  'parent': 1,
-  'child': 2,
-  'grandchild': 2,
-  'great-grandchild': 3
-};
+
 
 export interface ImportResult {
   success: boolean;
@@ -88,12 +82,6 @@ export const excelHelper = {
 
           const warnings: string[] = [];
           const importedMembers: FamilyMember[] = [];
-          const nameToIdMap: Record<string, string> = {};
-
-          // Populate existing members map
-          existingMembers.forEach(m => {
-            nameToIdMap[m.name.trim().toLowerCase()] = m.id;
-          });
 
           // Check for mandatory fields / columns
           if (rows.length > 0) {
@@ -105,70 +93,33 @@ export const excelHelper = {
             }
           }
 
-          // Pass 1: Create members and assign IDs
+          // Create members and assign IDs
           rows.forEach((row, index) => {
             const name = getValueByKeys(row, NAME_KEYS);
-            const genHeb = getValueByKeys(row, GENERATION_KEYS);
             const genderHeb = getValueByKeys(row, GENDER_KEYS);
-            const familyName = getValueByKeys(row, FAMILY_NAME_KEYS);
 
             if (!name) {
-              warnings.push(`שורה ${index + 2}: חסר שם לבן המשפחה, שורה זו דולגה.`);
+              warnings.push(`שורה ${index + 2}: חסר שם לשחקן, שורה זו דולגה.`);
               return;
             }
 
             const cleanName = name.trim();
             const id = 'imported_' + Math.random().toString(36).substr(2, 9);
-            const generation = genHeb ? mapHebrewToGeneration(genHeb) : 'grandchild';
             const gender = normalizeGender(genderHeb);
 
             const newMember: FamilyMember = {
               id,
               name: cleanName,
-              generation,
-              parentId: null,
-              parentIds: [],
               image: null,
               gender,
-              familyName: familyName.trim()
+              generation: 'grandchild',
+              parentId: null,
+              parentIds: [],
+              spouseId: null,
+              familyName: ''
             };
 
             importedMembers.push(newMember);
-            nameToIdMap[cleanName.toLowerCase()] = id;
-          });
-
-          // Pass 2: Resolve parent links
-          rows.forEach((row) => {
-            const name = getValueByKeys(row, NAME_KEYS);
-            const parentName = getValueByKeys(row, PARENT_KEYS);
-
-            if (!name) return;
-
-            const cleanName = name.trim();
-            const member = importedMembers.find(m => m.name.toLowerCase() === cleanName.toLowerCase());
-
-            if (member && parentName) {
-              const cleanParentName = parentName.trim();
-              const parentId = nameToIdMap[cleanParentName.toLowerCase()];
-
-              if (parentId) {
-                // Prevent self-parenting
-                if (parentId === member.id) {
-                  warnings.push(`עבור ${cleanName}: אדם אינו יכול להיות הורה של עצמו!`);
-                } else {
-                  member.parentId = parentId;
-                }
-              } else {
-                warnings.push(`עבור ${cleanName}: לא נמצא הורה בשם "${cleanParentName}" בעץ המשפחה.`);
-              }
-            }
-          });
-
-          // Sort hierarchically: grandparent -> parent -> grandchild -> great-grandchild
-          importedMembers.sort((a, b) => {
-            const wA = generationOrder[a.generation] ?? 2;
-            const wB = generationOrder[b.generation] ?? 2;
-            return wA - wB;
           });
 
           // Combine with existing members (prevent duplicate names)
@@ -176,15 +127,11 @@ export const excelHelper = {
           importedMembers.forEach(newMember => {
             const duplicateIndex = finalMembers.findIndex(m => m.name.trim().toLowerCase() === newMember.name.toLowerCase());
             if (duplicateIndex !== -1) {
-              // Update existing member's properties
               finalMembers[duplicateIndex] = {
                 ...finalMembers[duplicateIndex],
-                generation: newMember.generation,
                 gender: newMember.gender,
-                parentId: newMember.parentId || finalMembers[duplicateIndex].parentId,
-                familyName: newMember.familyName || finalMembers[duplicateIndex].familyName
               };
-              warnings.push(`עודכנו פרטים עבור בן משפחה קיים: "${newMember.name}"`);
+              warnings.push(`עודכנו פרטים עבור שחקן קיים: "${newMember.name}"`);
             } else {
               finalMembers.push(newMember);
             }
@@ -263,7 +210,8 @@ export const excelHelper = {
                   parentIds: [],
                   image: null,
                   gender: 'male',
-                  familyName: ''
+                  familyName: '',
+                  spouseId: null
                 };
                 tempMembers.push(placeholderMember);
                 memberMap[cleanSpeaker.toLowerCase()] = newId;
@@ -290,56 +238,29 @@ export const excelHelper = {
   },
 
   // Download Excel Template
-  downloadTemplate(mode: 'tree' | 'list' = 'tree'): void {
+  downloadTemplate(): void {
     const workbook = XLSX.utils.book_new();
 
-    if (mode === 'tree') {
-      // Sheet 1: Family Members Template
-      const membersData = [
-        { 'שם': 'יעקב', 'שם משפחה': 'כהן', 'דור': 'סבא/סבתא', 'שם הורה': '', 'מין': 'זכר' },
-        { 'שם': 'שרה', 'שם משפחה': 'כהן', 'דור': 'סבא/סבתא', 'שם הורה': '', 'מין': 'נקבה' },
-        { 'שם': 'דוד', 'שם משפחה': 'כהן', 'דור': 'ילד/ה', 'שם הורה': 'יעקב', 'מין': 'זכר' },
-        { 'שם': 'רחל', 'שם משפחה': 'לוי', 'דור': 'ילד/ה', 'שם הורה': 'שרה', 'מין': 'נקבה' },
-        { 'שם': 'יוסי', 'שם משפחה': 'כהן', 'דור': 'נכד/ה', 'שם הורה': 'דוד', 'מין': 'זכר' },
-        { 'שם': 'שירה', 'שם משפחה': 'כהן', 'דור': 'נכד/ה', 'שם הורה': 'דוד', 'מין': 'נקבה' },
-        { 'שם': 'נועם', 'שם משפחה': 'כהן', 'דור': 'נין/ה', 'שם הורה': 'יוסי', 'מין': 'זכר' }
-      ];
-      const membersSheet = XLSX.utils.json_to_sheet(membersData);
-      XLSX.utils.book_append_sheet(workbook, membersSheet, 'בני משפחה');
+    // Sheet 1: Speakers list Template
+    const membersData = [
+      { 'שם': 'דוד', 'מין': 'זכר' },
+      { 'שם': 'שרה', 'מין': 'נקבה' },
+      { 'שם': 'משה', 'מין': 'זכר' },
+      { 'שם': 'יפה', 'מין': 'נקבה' }
+    ];
+    const membersSheet = XLSX.utils.json_to_sheet(membersData);
+    XLSX.utils.book_append_sheet(workbook, membersSheet, 'רשימת משתתפים');
 
-      // Sheet 2: Questions Template
-      const questionsData = [
-        { 'משפט': 'סבא תמיד קונה לי ממתקים כשאמא לא רואה!', 'מי אמר': 'יוסי' },
-        { 'משפט': 'אני הכי אוהבת את ארוחות השבת של סבתא שרה', 'מי אמר': 'רחל' },
-        { 'משפט': 'אני רוצה ללמוד לנגן בגיטרה כמו דוד דוד', 'מי אמר': 'נועם' }
-      ];
-      const questionsSheet = XLSX.utils.json_to_sheet(questionsData);
-      XLSX.utils.book_append_sheet(workbook, questionsSheet, 'שאלות המשחק');
+    // Sheet 2: Questions Template
+    const questionsData = [
+      { 'משפט': 'אני הכי אוהב שוקולד בעולם!', 'מי אמר': 'דוד' },
+      { 'משפט': 'מחר אנחנו נוסעים לטיול שנתי.', 'מי אמר': 'שרה' }
+    ];
+    const questionsSheet = XLSX.utils.json_to_sheet(questionsData);
+    XLSX.utils.book_append_sheet(workbook, questionsSheet, 'שאלות המשחק');
 
-      // Save/Download workbook
-      XLSX.writeFile(workbook, 'תבנית_משחק_עץ_משפחה.xlsx');
-    } else {
-      // Sheet 1: Speakers list Template
-      const membersData = [
-        { 'שם': 'דוד', 'שם משפחה': 'כהן', 'מין': 'זכר' },
-        { 'שם': 'שרה', 'שם משפחה': 'כהן', 'מין': 'נקבה' },
-        { 'שם': 'משה', 'שם משפחה': 'לוי', 'מין': 'זכר' },
-        { 'שם': 'יפה', 'שם משפחה': 'לוי', 'מין': 'נקבה' }
-      ];
-      const membersSheet = XLSX.utils.json_to_sheet(membersData);
-      XLSX.utils.book_append_sheet(workbook, membersSheet, 'רשימת משתתפים');
-
-      // Sheet 2: Questions Template
-      const questionsData = [
-        { 'משפט': 'אני הכי אוהב שוקולד בעולם!', 'מי אמר': 'דוד' },
-        { 'משפט': 'מחר אנחנו נוסעים לטיול שנתי.', 'מי אמר': 'שרה' }
-      ];
-      const questionsSheet = XLSX.utils.json_to_sheet(questionsData);
-      XLSX.utils.book_append_sheet(workbook, questionsSheet, 'שאלות המשחק');
-
-      // Save/Download workbook
-      XLSX.writeFile(workbook, 'תבנית_משחק_ללא_עץ.xlsx');
-    }
+    // Save/Download workbook
+    XLSX.writeFile(workbook, 'תבנית_משחק_מי_אמר_מה.xlsx');
   },
 
   // Download dedicated Questions Template

@@ -20,22 +20,15 @@ export const ImportExportTab: React.FC = () => {
         <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
             <h4 className="text-sm font-bold text-slate-200">1. הורד תבנית Excel למילוי</h4>
-            <p className="text-[10px] text-slate-400 mt-1">בחר את התבנית בהתאם למצב התצוגה של המשחק. מצב רשימה לא ידרוש מילוי הורים ובני זוג.</p>
+            <p className="text-[10px] text-slate-400 mt-1">מלא את קובץ ה-Excel עם רשימת המשתתפים ושאלות המשחק ולאחר מכן העלה אותם למערכת.</p>
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => handleExcelTemplateDownload('list')}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[10px] rounded-xl flex items-center gap-1.5 transition-colors border border-slate-700"
+              onClick={() => handleExcelTemplateDownload()}
+              className="px-4 py-2 bg-emerald-500 text-slate-950 font-bold text-[10px] rounded-xl flex items-center gap-1.5 hover:bg-emerald-400 transition-colors"
             >
               <Download size={12} />
-              <span>תבנית רשימה (ללא עץ)</span>
-            </button>
-            <button
-              onClick={() => handleExcelTemplateDownload('tree')}
-              className="px-3 py-2 bg-emerald-500 text-slate-950 font-bold text-[10px] rounded-xl flex items-center gap-1.5 hover:bg-emerald-400 transition-colors"
-            >
-              <Download size={12} />
-              <span>תבנית עץ יוחסין</span>
+              <span>הורד תבנית Excel 📥</span>
             </button>
           </div>
         </div>
@@ -44,8 +37,8 @@ export const ImportExportTab: React.FC = () => {
           {/* Import Members */}
           <div className="p-4 border border-slate-800 rounded-2xl bg-slate-900/40 text-center">
             <span className="text-2xl block mb-2">👥</span>
-            <h4 className="text-xs font-bold text-slate-200 mb-1">ייבוא עץ משפחה / רשימת שחקנים</h4>
-            <p className="text-[9px] text-slate-500 mb-4">העלה קובץ עם עמודות שם, דור, שם הורה, ומין</p>
+            <h4 className="text-xs font-bold text-slate-200 mb-1">ייבוא רשימת שחקנים</h4>
+            <p className="text-[9px] text-slate-500 mb-4">העלה קובץ עם עמודות שם ומין</p>
             
             <input
               type="file"

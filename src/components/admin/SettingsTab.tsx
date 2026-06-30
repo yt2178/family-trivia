@@ -26,37 +26,7 @@ export const SettingsTab: React.FC = () => {
           />
         </div>
 
-        <div>
-          <label className="text-xs text-slate-400 block mb-2 font-semibold">סוג תצוגת לוח המשחק</label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => updateSettings({ ...settings, treeLayout: 'traditional' })}
-              className={`py-2.5 px-4 text-xs font-bold rounded-xl border transition-all flex justify-center items-center gap-2 ${
-                settings.treeLayout === 'traditional'
-                  ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-md shadow-emerald-500/20'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>🌳 עץ יוחסין</span>
-            </button>
 
-            <button
-              type="button"
-              onClick={() => updateSettings({ ...settings, treeLayout: 'none' })}
-              className={`py-2.5 px-4 text-xs font-bold rounded-xl border transition-all flex justify-center items-center gap-2 ${
-                settings.treeLayout === 'none'
-                  ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-md shadow-emerald-500/20'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>📋 ללא עץ יוחסין (רשימה)</span>
-            </button>
-          </div>
-          <p className="text-[10px] text-slate-500 mt-2">
-            * מצב ללא עץ מסתיר את שדות ההורים ובני הזוג בניהול ומציג כרטיסיית חשיפת דובר יוקרתית במסך המשחק.
-          </p>
-        </div>
 
         <div className="border-t border-slate-800 pt-6">
           <div className="flex justify-between items-center mb-4">
