@@ -211,8 +211,12 @@ export const AdminWizard: React.FC = () => {
         (c, idx) => c.name === defaultNames[idx]
       );
       if (isDefault) {
+        const slicedDefaults = defaultNames.slice(0, wizardContestantCount);
+        const joinedDefaults = slicedDefaults.length === 2 
+          ? 'כחול וסגול' 
+          : slicedDefaults.join(', ').replace(/, ([^,]*)$/, ' ו-$1');
         setWizardConfirmModal({
-          message: "לא בוצע שינוי בשמות המתמודדים. נאשר אותם לפי ברירת המחדל (כחול וסגול). תמיד ניתן יהיה לערוך זאת שוב בהמשך.\n\nהאם להמשיך?",
+          message: `לא בוצע שינוי בשמות המתמודדים. נאשר אותם לפי ברירת המחדל (${joinedDefaults}). תמיד ניתן יהיה לערוך זאת שוב בהמשך.\n\nהאם להמשיך?`,
           onConfirm: () => {
             setWizardConfirmModal(null);
             proceedToStep(nextStep);
@@ -677,11 +681,20 @@ export const AdminWizard: React.FC = () => {
                     );
                   })}
                 </div>
-                {wizardContestants.slice(0, wizardContestantCount).every((c, idx) => c.name === ['כחול', 'סגול', 'ירוק', 'כתום'][idx]) && (
-                  <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-right text-[11px] text-amber-300 font-medium">
-                    💡 לא בוצע שינוי בשמות המתמודדים - נאשר אותם לפי ברירת המחדל (כחול וסגול). תמיד ניתן יהיה לערוך זאת שוב בהמשך.
-                  </div>
-                )}
+                {(() => {
+                  const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
+                  const slicedDefaults = defaultNames.slice(0, wizardContestantCount);
+                  const isDefault = wizardContestants.slice(0, wizardContestantCount).every((c, idx) => c.name === defaultNames[idx]);
+                  if (!isDefault) return null;
+                  const joinedDefaults = slicedDefaults.length === 2 
+                    ? 'כחול וסגול' 
+                    : slicedDefaults.join(', ').replace(/, ([^,]*)$/, ' ו-$1');
+                  return (
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-right text-[11px] text-amber-300 font-medium">
+                      💡 לא בוצע שינוי בשמות המתמודדים - נאשר אותם לפי ברירת המחדל ({joinedDefaults}). תמיד ניתן יהיה לערוך זאת שוב בהמשך.
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}

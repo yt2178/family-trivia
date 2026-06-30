@@ -69,6 +69,8 @@ function App() {
       const params = new URLSearchParams(window.location.search);
       const m = params.get('mode');
       const r = params.get('room');
+      const h = params.get('host') || '';
+      
       if (r) {
         const clean = r.trim().toUpperCase();
         if (clean !== '' && clean !== 'UNDEFINED' && clean !== 'NULL') {
@@ -76,7 +78,15 @@ function App() {
         }
       }
       if (m === 'admin') {
-        setMode('admin');
+        const hasWizardParam = params.get('wizard') === 'true';
+        const hasControllerParam = params.get('controller') === 'true';
+        if (r && !hasWizardParam && !hasControllerParam) {
+          setJoinSelectionRoom(r.trim().toUpperCase());
+          setJoinHostName(h);
+          setMode('admin-sub-selection');
+        } else {
+          setMode('admin');
+        }
       } else if (m === 'game') {
         setMode('game');
       } else {

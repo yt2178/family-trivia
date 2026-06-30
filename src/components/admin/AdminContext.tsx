@@ -1051,6 +1051,16 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Delete Firebase room data
       if (roomCode) {
         const roomRef = ref(rtdb, `rooms/${roomCode}`);
+        const isPausedRef = ref(rtdb, `rooms/${roomCode}/database/state/isPaused`);
+        const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
+        
+        try {
+          await onDisconnect(isPausedRef).cancel();
+        } catch (_) {}
+        try {
+          await onDisconnect(controllerStatusRef).cancel();
+        } catch (_) {}
+        
         await remove(roomRef);
       }
     } catch (e) {
