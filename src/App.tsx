@@ -14,9 +14,9 @@ function ConnectionStatusBadge() {
     <div className={`fixed bottom-4 right-4 z-[9999] flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg border backdrop-blur-sm transition-all duration-300 ${
       connected 
         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-        : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+        : 'bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse'
     }`}>
-      <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
+      <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400 animate-pulse'}`} />
       <span>{connected ? 'שרת מחובר 🟢' : 'אין חיבור לשרת 🔴'}</span>
     </div>
   );
