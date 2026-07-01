@@ -1327,8 +1327,8 @@ export const GameView: React.FC = React.memo(() => {
                     <p className="text-xs text-slate-400 mt-2">שניכם אלופים ושניכם מכירים את המשפחה מעולה</p>
                   </div>
                 ) : (() => {
-                  const winnerContestant = settings.contestants.find(c => c.id === getGameWinner());
-                  const winnerIndex = settings.contestants.findIndex(c => c.id === getGameWinner());
+                  const winnerContestant = (settings.contestants || []).find(c => c.id === getGameWinner());
+                  const winnerIndex = (settings.contestants || []).findIndex(c => c.id === getGameWinner());
                   const colors = CONTESTANT_COLORS[winnerIndex % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
                   const name = winnerContestant?.name || '';
                   const pronoun = name.endsWith('ה') || name.endsWith('ת') ? 'אלופת' : 'אלוף';

@@ -186,8 +186,8 @@ export const ControlTab: React.FC = () => {
                   <span className="text-xs text-slate-400 block mb-3 font-semibold">
                     מי צדק במשחק המשפחה?
                   </span>
-                  <div className={`grid gap-4 ${settings.contestants.length <= 2 ? 'grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'}`}>
-                    {settings.contestants.map((c, index) => {
+                  <div className={`grid gap-4 ${(settings.contestants || []).length <= 2 ? 'grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'}`}>
+                    {(settings.contestants || []).map((c, index) => {
                       const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
                       const solvedVal = gameState.solvedQuestions[shuffledIds[gameState.currentQuestionIndex]];
                       const isWinner = solvedVal ? solvedVal.split(',').includes(c.id) : false;
@@ -291,8 +291,8 @@ export const ControlTab: React.FC = () => {
             ניקוד נוכחי
           </h3>
           
-          <div className={`grid gap-4 ${settings.contestants.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-2 xl:grid-cols-4'}`}>
-            {settings.contestants.map((c, index) => {
+          <div className={`grid gap-4 ${(settings.contestants || []).length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-2 xl:grid-cols-4'}`}>
+            {(settings.contestants || []).map((c, index) => {
               const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
               return (
                 <div key={c.id} className={`p-4 bg-slate-900 border ${colors.border}/20 rounded-2xl flex flex-col items-center`}>
@@ -344,8 +344,8 @@ export const ControlTab: React.FC = () => {
                       <span className="text-slate-400 font-medium">({sp?.name})</span>
                       {winner ? (
                         winner.split(',').map(wId => {
-                          const contestant = settings.contestants.find(c => c.id === wId);
-                          const contestantIndex = settings.contestants.findIndex(c => c.id === wId);
+                          const contestant = (settings.contestants || []).find(c => c.id === wId);
+                          const contestantIndex = (settings.contestants || []).findIndex(c => c.id === wId);
                           const colors = CONTESTANT_COLORS[contestantIndex % CONTESTANT_COLORS.length] || { text: 'text-slate-400' };
                           const badgeColorClass = colors.text.replace('text', 'bg') + '/20 ' + colors.text;
                           return (

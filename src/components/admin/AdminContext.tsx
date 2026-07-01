@@ -489,7 +489,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             db.saveQuestions(fbQuestions);
             
             const currentSettings = db.getSettings();
-            const mergedSettings = { ...currentSettings, ...fbSettings };
+            const mergedSettings = healSettings({ ...currentSettings, ...fbSettings });
             db.saveSettings(mergedSettings);
             
             const currentGameState = db.getGameState();
