@@ -121,3 +121,11 @@ body {
   position: absolute;
   pointer-events: none;
 }
+
+/* BUG-04 Fix: Prevent long player names from overflowing on mobile */
+.truncate-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}

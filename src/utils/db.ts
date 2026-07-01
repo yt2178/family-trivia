@@ -19,10 +19,6 @@ export interface Contestant {
 }
 
 export interface GameSettings {
-  grandpaName: string;
-  grandpaImage: string | null;
-  grandmaName: string;
-  grandmaImage: string | null;
   theme: 'forest' | 'gold' | 'neon' | 'classic';
   contestants: Contestant[]; // Dynamic list of contestants (up to 5)
   hostName?: string; // Optional host name
@@ -37,7 +33,7 @@ export interface GameState {
   currentQuestionIndex: number;
   scores: Record<string, number>; // contestantId -> score
   solvedQuestions: Record<string, string>; // questionId -> winning contestantId ('nobody' or contestant.id)
-  revealedSpeakers: Record<string, boolean | string>; // memberId -> whether revealed OR questionId -> revealedSpeakerId
+  revealedSpeakers: Record<string, string>; // questionId -> revealedSpeakerId (the member chosen as speaker for general questions)
   shuffledQuestionIds: string[];
   isRevealed: boolean;
   isPlaying: boolean;
@@ -57,10 +53,6 @@ const DEFAULT_MEMBERS: FamilyMember[] = [];
 const DEFAULT_QUESTIONS: TriviaQuestion[] = [];
 
 const DEFAULT_SETTINGS: GameSettings = {
-  grandpaName: '',
-  grandpaImage: null,
-  grandmaName: '',
-  grandmaImage: null,
   theme: 'classic',
   contestants: [
     { id: 'contestant_1', name: 'כחול', image: null },
@@ -229,8 +221,8 @@ export const db = {
       // Migrate/Validate contestants if missing or has less than 2
       if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
         parsed.contestants = [
-          { id: 'contestant_1', name: parsed.grandpaName || 'כחול', image: parsed.grandpaImage || null },
-          { id: 'contestant_2', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
+          { id: 'contestant_1', name: (parsed as any).grandpaName || 'כחול', image: (parsed as any).grandpaImage || null },
+          { id: 'contestant_2', name: (parsed as any).grandmaName || 'סגול', image: (parsed as any).grandmaImage || null }
         ];
         changed = true;
       }

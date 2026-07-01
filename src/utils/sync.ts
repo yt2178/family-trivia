@@ -13,13 +13,9 @@ export type SyncMessage =
   | { type: 'PONG' }
   | { type: 'CONTROLLER_CONNECTED'; roomCode: string };
 
-const CHANNEL_NAME = 'family_trivia_sync';
-const STORAGE_KEY = 'family_trivia_sync_fallback';
 const CLIENT_ID = Math.random().toString(36).substring(2, 15);
 
-let channel: BroadcastChannel | null = null;
 let subscribers: Array<(message: SyncMessage) => void> = [];
-let fallbackInterval: number | null = null;
 
 // Track Firebase connection status
 let isConnected = false;
@@ -53,21 +49,8 @@ const ROOM_CODE = getRoomCode();
 let lastFirebaseTimestamp = 0;
 let roomExistsCached: boolean | null = null;
 
-// Duplicate message tracking
-const processedMsgIds = new Set<string>();
-
 const handleReceivedMessage = (envelope: any) => {
   if (!envelope || envelope.sender === CLIENT_ID) return;
-
-  const msgId = envelope.msgId || `${envelope.timestamp}_${envelope.sender}`;
-  if (processedMsgIds.has(msgId)) return;
-  processedMsgIds.add(msgId);
-
-  // Limit memory growth
-  if (processedMsgIds.size > 150) {
-    const first = processedMsgIds.values().next().value;
-    if (first !== undefined) processedMsgIds.delete(first);
-  }
 
   const message = envelope.message || envelope; // Handle envelope wrapped or flat
   subscribers.forEach(callback => {
@@ -79,29 +62,7 @@ const handleReceivedMessage = (envelope: any) => {
   });
 };
 
-// 1. Setup local BroadcastChannel always (for local tab-to-tab sync)
-try {
-  channel = new BroadcastChannel(CHANNEL_NAME);
-  channel.addEventListener('message', (event: MessageEvent<any>) => {
-    handleReceivedMessage(event.data);
-  });
-} catch (e) {
-  console.warn('BroadcastChannel is not supported, using localStorage fallback', e);
-  fallbackInterval = setInterval(() => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        const envelope = JSON.parse(data);
-        handleReceivedMessage(envelope);
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    } catch (e) {
-      console.error('Error parsing fallback sync message', e);
-    }
-  }, 150);
-}
-
-// 2. Setup Firebase sync in addition if room code exists
+// 2. Setup Firebase sync if room code exists
 if (ROOM_CODE) {
   const roomRef = ref(rtdb, `rooms/${ROOM_CODE}/lastMessage`);
   
@@ -183,27 +144,14 @@ export const sync = {
   },
 
   sendMessage(message: SyncMessage): void {
-    const msgId = Math.random().toString(36).substring(2, 10);
     const timestamp = Date.now();
     const envelope = {
       sender: CLIENT_ID,
       timestamp,
-      msgId,
       message
     };
 
-    // A. Always broadcast locally via BroadcastChannel/localStorage
-    if (channel) {
-      channel.postMessage(envelope);
-    } else {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
-      } catch (e) {
-        console.error('Error sending fallback sync message', e);
-      }
-    }
-
-    // B. Send via Firebase Cloud if room exists
+    // Send via Firebase Cloud if room exists
     if (ROOM_CODE) {
       const writeFirebase = () => {
         const roomRef = ref(rtdb, `rooms/${ROOM_CODE}/lastMessage`);
@@ -262,12 +210,6 @@ export const sync = {
       const roomRef = ref(rtdb, `rooms/${ROOM_CODE}/lastMessage`);
       off(roomRef);
     }
-    if (channel) {
-      channel.close();
-    }
-    if (fallbackInterval) {
-      clearInterval(fallbackInterval);
-    }
     subscribers = [];
   }
 };
@@ -279,3 +221,4 @@ export function useConnectionStatus() {
   }, []);
   return connected;
 }
+

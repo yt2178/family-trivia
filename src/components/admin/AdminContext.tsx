@@ -955,7 +955,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         showSuccess('ייבוא בני המשפחה מ-Excel הושלם!');
       } catch (err) {
         console.error(err);
-        alert('שגיאה בקריאת קובץ ה-Excel. אנא וודא שהשתמשת בתבנית הנכונה.');
+        const errMsg = err instanceof Error ? err.message : 'שגיאה לא ידועה';
+        alert(`שגיאה בייבוא שחקנים מ-Excel: ${errMsg}\n\nוודא שהקובץ מכיל עמודת "שם" או "Name" תקינה.`);
       }
     }
   };
@@ -980,7 +981,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         showSuccess('ייבוא השאלות מ-Excel הושלם!');
       } catch (err) {
         console.error(err);
-        alert('שגיאה בקריאת קובץ ה-Excel. אנא וודא שהשתמשת בתבנית הנכונה.');
+        const errMsg = err instanceof Error ? err.message : 'שגיאה לא ידועה';
+        alert(`שגיאה בייבוא שאלות מ-Excel: ${errMsg}\n\nוודא שהקובץ מכיל עמודת "משפט" או "ציטוט" תקינה.`);
       }
     }
   };
@@ -1040,17 +1042,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const updatedContestants = (settings.contestants || []).map(c => 
         c.id === contestantId ? { ...c, image: compressed } : c
       );
-      
-      let grandpaImage = settings.grandpaImage;
-      let grandmaImage = settings.grandmaImage;
-      if (contestantId === 'grandpa' || settings.contestants?.[0]?.id === contestantId) grandpaImage = compressed;
-      if (contestantId === 'grandma' || settings.contestants?.[1]?.id === contestantId) grandmaImage = compressed;
 
       updateSettings({ 
         ...settings, 
-        contestants: updatedContestants,
-        grandpaImage,
-        grandmaImage
+        contestants: updatedContestants
       });
     }
   };

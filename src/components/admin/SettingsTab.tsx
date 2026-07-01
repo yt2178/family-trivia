@@ -84,16 +84,10 @@ export const SettingsTab: React.FC = () => {
                           const updated = (settings.contestants || []).map(item =>
                             item.id === c.id ? { ...item, name: e.target.value } : item
                           );
-                          let grandpaName = settings.grandpaName;
-                          let grandmaName = settings.grandmaName;
-                          if (index === 0) grandpaName = e.target.value;
-                          if (index === 1) grandmaName = e.target.value;
 
                           updateSettings({ 
                             ...settings, 
-                            contestants: updated,
-                            grandpaName,
-                            grandmaName
+                            contestants: updated
                           });
                         }}
                         className="w-full bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-emerald-500"

@@ -158,7 +158,7 @@ function App() {
     };
   }, [mode, roomCode, activeTab]);
 
-  // Listen for local BroadcastChannel controller connection
+  // Listen for sync controller connection
   useEffect(() => {
     if (mode !== 'welcome' || !roomCode) return;
 
@@ -218,10 +218,6 @@ function App() {
             members: [],
             questions: [],
             settings: {
-              grandpaName: 'כחול',
-              grandpaImage: null,
-              grandmaName: 'סגול',
-              grandmaImage: null,
               theme: 'classic',
               contestants: [
                 { id: 'contestant_1', name: 'כחול', image: null },
@@ -234,10 +230,6 @@ function App() {
             }
           },
           settings: {
-            grandpaName: 'כחול',
-            grandpaImage: null,
-            grandmaName: 'סגול',
-            grandmaImage: null,
             theme: 'classic',
             contestants: [
               { id: 'contestant_1', name: 'כחול', image: null },
@@ -265,10 +257,6 @@ function App() {
         localStorage.removeItem('family_game_members');
         localStorage.removeItem('family_game_questions');
         localStorage.setItem('family_game_settings', JSON.stringify({
-          grandpaName: 'כחול',
-          grandpaImage: null,
-          grandmaName: 'סגול',
-          grandmaImage: null,
           theme: 'classic',
           contestants: [
             { id: 'contestant_1', name: 'כחול', image: null },

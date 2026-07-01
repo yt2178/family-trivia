@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAdmin, CONTESTANT_COLORS } from './AdminContext';
-import { sync } from '../../utils/sync';
+import { sync, useConnectionStatus } from '../../utils/sync';
 import { FamilyMember } from '../../utils/db';
 import {
   Play,
@@ -34,6 +34,8 @@ export const ControlTab: React.FC = () => {
     setShowContestantOrderModal
   } = useAdmin();
 
+  const isConnected = useConnectionStatus();
+
   const [showAllNextSpeakers, setShowAllNextSpeakers] = useState(false);
 
   const shuffledIds = gameState.shuffledQuestionIds || [];
@@ -54,6 +56,11 @@ export const ControlTab: React.FC = () => {
 
   return (
     <div className="grid grid-cols-12 gap-6 items-stretch">
+      {!isConnected && (
+        <div className="mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-center animate-pulse">
+          <span className="text-amber-400 text-xs font-bold">⚠️ חיבור האינטרנט נקטע. מנסה להתחבר מחדש... ⏳</span>
+        </div>
+      )}
       {/* Left side: Current Question Control */}
       <div className="col-span-12 lg:col-span-8 flex flex-col justify-between glass-panel p-6 rounded-3xl border border-slate-800">
         <div>
@@ -195,7 +202,7 @@ export const ControlTab: React.FC = () => {
                           }`}
                         >
                           <Check size={28} className={`${isWinner ? colors.text : 'text-slate-500'} group-hover:scale-110 transition-transform`} />
-                          <span className="font-bold text-sm">{c.name} {c.name.endsWith('ה') || c.name.endsWith('ת') ? 'צדקה!' : 'צדק!'}</span>
+                          <span className="font-bold text-sm truncate-name">{c.name} {c.name.endsWith('ה') || c.name.endsWith('ת') ? 'צדקה!' : 'צדק!'}</span>
                           <span className="text-[10px] text-slate-400">{isWinner ? 'לחץ שוב לביטול' : `+1 נקודה ו-${colors.glow}`}</span>
                         </button>
                       );

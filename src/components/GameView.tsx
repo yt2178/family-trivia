@@ -144,8 +144,8 @@ const healSettings = (s: any): GameSettings => {
   const parsed = { ...s };
   if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
     parsed.contestants = [
-      { id: 'contestant_1', name: parsed.grandpaName || 'כחול', image: parsed.grandpaImage || null },
-      { id: 'contestant_2', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
+      { id: 'contestant_1', name: (parsed as any).grandpaName || 'כחול', image: (parsed as any).grandpaImage || null },
+      { id: 'contestant_2', name: (parsed as any).grandmaName || 'סגול', image: (parsed as any).grandmaImage || null }
     ];
   }
   if (parsed.hostName === undefined) {
@@ -681,7 +681,7 @@ export const GameView: React.FC = React.memo(() => {
                       </div>
                     )}
                   </div>
-                  <h2 className="text-lg font-bold text-slate-100 truncate max-w-[120px]">{c.name}</h2>
+                  <h2 className="text-lg font-bold text-slate-100 truncate truncate-name max-w-[120px]">{c.name}</h2>
                   <span className={`text-[9px] ${colors.text} font-semibold tracking-wider uppercase mt-0.5`}>{colors.glow}</span>
                 </div>
 
@@ -721,7 +721,7 @@ export const GameView: React.FC = React.memo(() => {
                     </div>
                   )}
                 </div>
-                <h2 className="text-2xl font-bold text-slate-100 truncate max-w-[180px]" title={c.name}>{c.name}</h2>
+                <h2 className="text-2xl font-bold text-slate-100 truncate truncate-name max-w-[180px]" title={c.name}>{c.name}</h2>
                 <span className={`text-xs ${colors.text} font-semibold tracking-wider uppercase mt-1`}>{colors.glow}</span>
               </div>
 
