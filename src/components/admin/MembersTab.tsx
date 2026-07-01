@@ -29,7 +29,7 @@ export const MembersTab: React.FC = () => {
       {/* Add/Edit Member Form */}
       <div className="col-span-12 lg:col-span-4 glass-panel p-6 rounded-3xl border border-slate-800">
         <h3 className="text-lg font-bold mb-4 text-emerald-400">
-          {editingMemberId ? 'עריכת בן משפחה קיים' : 'הוספת בן משפחה חדש'}
+          {editingMemberId ? 'עריכת משתתף קיים' : 'הוספת משתתף חדש'}
         </h3>
         <form onSubmit={editingMemberId ? handleSaveEdit : handleAddMember} className="space-y-4">
           
@@ -143,12 +143,12 @@ export const MembersTab: React.FC = () => {
       {/* Members List Table */}
       <div className="col-span-12 lg:col-span-8 glass-panel p-6 rounded-3xl border border-slate-800 max-h-[600px] overflow-y-auto">
         <h3 className="text-lg font-bold mb-4 text-emerald-400 flex justify-between items-center">
-          <span>רשימת בני משפחה ({members.length})</span>
+          <span>רשימת משתתפים ({members.length})</span>
           <span className="text-xs text-slate-500">עריכה ומחיקת נתונים</span>
         </h3>
 
         {members.length === 0 ? (
-          <div className="text-center py-12 text-slate-600">אין בני משפחה רשומים. ייבא מקובץ Excel או הוסף ידנית.</div>
+          <div className="text-center py-12 text-slate-600">אין משתתפים רשומים. ייבא מקובץ Excel או הוסף ידנית.</div>
         ) : (
           <div className="overflow-x-auto w-full">
             <table className="w-full text-right text-xs">

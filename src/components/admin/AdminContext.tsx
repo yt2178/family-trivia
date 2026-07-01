@@ -59,8 +59,8 @@ export const healSettings = (s: any): GameSettings => {
   const parsed = { ...s };
   if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
     parsed.contestants = [
-      { id: 'contestant_1', name: parsed.grandpaName || 'כחול', image: parsed.grandpaImage || null },
-      { id: 'contestant_2', name: parsed.grandmaName || 'סגול', image: parsed.grandmaImage || null }
+      { id: 'contestant_1', name: 'כחול', image: null },
+      { id: 'contestant_2', name: 'סגול', image: null }
     ];
   }
   if (parsed.hostName === undefined) {

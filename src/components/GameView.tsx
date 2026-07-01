@@ -144,8 +144,8 @@ const healSettings = (s: any): GameSettings => {
   const parsed = { ...s };
   if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
     parsed.contestants = [
-      { id: 'contestant_1', name: (parsed as any).grandpaName || 'כחול', image: (parsed as any).grandpaImage || null },
-      { id: 'contestant_2', name: (parsed as any).grandmaName || 'סגול', image: (parsed as any).grandmaImage || null }
+      { id: 'contestant_1', name: 'כחול', image: null },
+      { id: 'contestant_2', name: 'סגול', image: null }
     ];
   }
   if (parsed.hostName === undefined) {
@@ -450,9 +450,9 @@ export const GameView: React.FC = React.memo(() => {
 
     let colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6']; // Gold, green, etc.
     const contestantIndex = settings.contestants?.findIndex(c => c.id === winner) ?? -1;
-    if (contestantIndex === 0 || winner === 'grandpa') {
+    if (contestantIndex === 0) {
       colors = ['#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#ffffff']; // Blue tones
-    } else if (contestantIndex === 1 || winner === 'grandma') {
+    } else if (contestantIndex === 1) {
       colors = ['#d946ef', '#f472b6', '#f0abfc', '#fbcfe8', '#ffffff']; // Purple/pink tones
     } else if (contestantIndex === 2) {
       colors = ['#f59e0b', '#f97316', '#fb923c', '#ffedd5', '#ffffff']; // Orange tones

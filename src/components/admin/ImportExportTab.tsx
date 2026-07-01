@@ -52,7 +52,7 @@ export const ImportExportTab: React.FC = () => {
               className="px-3 py-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-xs font-bold rounded-lg cursor-pointer inline-flex items-center gap-1.5"
             >
               <Upload size={12} />
-              <span>בחר קובץ בני משפחה</span>
+              <span>בחר קובץ משתתפים</span>
             </label>
           </div>
 

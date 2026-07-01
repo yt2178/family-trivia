@@ -230,23 +230,23 @@ export const ControlTab: React.FC = () => {
                 <p className="text-xs text-slate-400">הגענו לסוף כל השאלות.</p>
               </div>
             ) : (
-            <div className="text-center py-10">
-              <p className="text-sm text-slate-400 mb-4">המשחק טרם התחיל. הוסף בני משפחה ושאלות דרך הלשוניות למעלה.</p>
-              <button
-                onClick={handleStartGame}
-                disabled={members.length === 0 || questions.length === 0}
-                className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 mx-auto hover:from-emerald-400 hover:to-teal-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-950/20"
-              >
-                <Play size={18} fill="currentColor" />
-                <span>הפעל והתחל משחק 🚀</span>
-              </button>
-              {(members.length === 0 || questions.length === 0) && (
-                <p className="text-[10px] text-amber-500/80 mt-2">
-                  * יש להוסיף לפחות בן משפחה אחד ושאלה אחת כדי להפעיל את המשחק.
-                </p>
-              )}
-            </div>
-          )}
+              <div className="text-center py-10">
+                <p className="text-sm text-slate-400 mb-4">המשחק טרם התחיל. הוסף משתתפים ושאלות דרך הלשוניות למעלה.</p>
+                <button
+                  onClick={handleStartGame}
+                  disabled={members.length === 0 || questions.length === 0}
+                  className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 mx-auto hover:from-emerald-400 hover:to-teal-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-950/20"
+                >
+                  <Play size={18} fill="currentColor" />
+                  <span>הפעל והתחל משחק 🚀</span>
+                </button>
+                {(members.length === 0 || questions.length === 0) && (
+                  <p className="text-[10px] text-amber-500/80 mt-2">
+                    * יש להוסיף לפחות משתתף אחד ושאלה אחת כדי להפעיל את המשחק.
+                  </p>
+                )}
+              </div>
+            )}
         </div>
 
         {/* Prev / Next Pagination */}

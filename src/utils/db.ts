@@ -218,11 +218,10 @@ export const db = {
       const parsed = JSON.parse(data) as GameSettings;
       let changed = false;
 
-      // Migrate/Validate contestants if missing or has less than 2
       if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
         parsed.contestants = [
-          { id: 'contestant_1', name: (parsed as any).grandpaName || 'כחול', image: (parsed as any).grandpaImage || null },
-          { id: 'contestant_2', name: (parsed as any).grandmaName || 'סגול', image: (parsed as any).grandmaImage || null }
+          { id: 'contestant_1', name: 'כחול', image: null },
+          { id: 'contestant_2', name: 'סגול', image: null }
         ];
         changed = true;
       }

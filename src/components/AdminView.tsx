@@ -197,7 +197,7 @@ const AdminViewInner: React.FC = () => {
     badge?: number;
   }> = [
     { key: 'control', label: 'בקרה', icon: <Tv size={16} /> },
-    { key: 'members', label: 'בני משפחה', icon: <Users size={16} />, badge: members.length },
+    { key: 'members', label: 'משתתפים', icon: <Users size={16} />, badge: members.length },
     { key: 'questions', label: 'שאלות', icon: <HelpCircle size={16} />, badge: questions.length },
     { key: 'settings', label: 'הגדרות', icon: <Settings size={16} /> },
     { key: 'import', label: 'ייבוא/ייצוא', icon: <FileSpreadsheet size={16} /> },
