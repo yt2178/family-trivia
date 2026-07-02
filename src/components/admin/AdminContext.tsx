@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { db, FamilyMember, GameSettings, GameState, TriviaQuestion, Contestant, healGameState } from '../../utils/db';
+import { db, FamilyMember, GameSettings, GameState, TriviaQuestion, Contestant, healGameState, ensureArray } from '../../utils/db';
 import { sync } from '../../utils/sync';
 import { excelHelper } from '../../utils/excelHelper';
 import { audioHelper } from '../../utils/audioHelper';
@@ -57,7 +57,8 @@ export const healSettings = (s: any): GameSettings => {
   const defaultSettings = db.getSettings();
   if (!s) return defaultSettings;
   const parsed = { ...s };
-  if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
+  parsed.contestants = ensureArray<Contestant>(parsed.contestants);
+  if (parsed.contestants.length < 2) {
     parsed.contestants = [
       { id: 'contestant_1', name: 'כחול', image: null },
       { id: 'contestant_2', name: 'סגול', image: null }
@@ -468,8 +469,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         try {
           const data = await sync.fetchCurrentRoomDatabase();
           if (data) {
-            const fbMembers = data.db?.members || [];
-            const fbQuestions = data.db?.questions || [];
+             const fbMembers = ensureArray<FamilyMember>(data.db?.members);
+             const fbQuestions = ensureArray<TriviaQuestion>(data.db?.questions);
             const fbSettings = data.db?.settings || data.settings || {};
             const fbState = data.state || data.db?.state || {};
 
@@ -572,13 +573,14 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           settings: db.getSettings()
         });
       } else if (msg.type === 'DATABASE_SYNC') {
-        const healed = msg.members;
+        const healed = ensureArray<FamilyMember>(msg.members);
+        const healedQuestions = ensureArray<TriviaQuestion>(msg.questions);
         const healedSettings = healSettings(msg.settings);
         setMembers(healed);
-        setQuestions(msg.questions);
+        setQuestions(healedQuestions);
         setSettings(healedSettings);
         db.saveMembers(healed);
-        db.saveQuestions(msg.questions);
+        db.saveQuestions(healedQuestions);
         db.saveSettings(healedSettings);
       } else if (msg.type === 'STATE_CHANGED') {
         const healedState = healGameState(msg.state, settings);

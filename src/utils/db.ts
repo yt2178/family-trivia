@@ -75,6 +75,26 @@ const DEFAULT_GAME_STATE: GameState = {
   isPaused: false,
 };
 
+export function ensureArray<T>(val: any): T[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'object') {
+    const keys = Object.keys(val).map(Number).filter(n => !isNaN(n));
+    if (keys.length > 0) {
+      const arr: T[] = [];
+      Object.keys(val).forEach(k => {
+        const idx = parseInt(k, 10);
+        if (!isNaN(idx)) {
+          arr[idx] = val[k];
+        }
+      });
+      return arr.filter(item => item !== undefined);
+    }
+    return Object.values(val);
+  }
+  return [];
+}
+
 // Healing function for GameState to handle null/undefined from Firebase
 export const healGameState = (s: any, settings?: GameSettings): GameState => {
   const defaultState = { ...DEFAULT_GAME_STATE };
@@ -97,9 +117,7 @@ export const healGameState = (s: any, settings?: GameSettings): GameState => {
   }
   
   // Ensure shuffledQuestionIds is an array
-  if (!Array.isArray(parsed.shuffledQuestionIds)) {
-    parsed.shuffledQuestionIds = [];
-  }
+  parsed.shuffledQuestionIds = ensureArray(parsed.shuffledQuestionIds);
   
   // Ensure numeric fields
   if (typeof parsed.currentQuestionIndex !== 'number') {
@@ -218,7 +236,8 @@ export const db = {
       const parsed = JSON.parse(data) as GameSettings;
       let changed = false;
 
-      if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
+      parsed.contestants = ensureArray(parsed.contestants);
+      if (parsed.contestants.length < 2) {
         parsed.contestants = [
           { id: 'contestant_1', name: 'כחול', image: null },
           { id: 'contestant_2', name: 'סגול', image: null }

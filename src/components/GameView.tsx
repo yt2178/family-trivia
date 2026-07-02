@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { db, FamilyMember, GameSettings, GameState, healGameState } from '../utils/db';
+import { db, FamilyMember, GameSettings, GameState, healGameState, ensureArray, TriviaQuestion, Contestant } from '../utils/db';
 import { sync } from '../utils/sync';
 import { audioHelper } from '../utils/audioHelper';
 import { Trophy, Volume2, Award, Sparkles, RefreshCw, VolumeX } from 'lucide-react';
@@ -142,7 +142,8 @@ const healSettings = (s: any): GameSettings => {
   const defaultSettings = db.getSettings();
   if (!s) return defaultSettings;
   const parsed = { ...s };
-  if (!parsed.contestants || !Array.isArray(parsed.contestants) || parsed.contestants.length < 2) {
+  parsed.contestants = ensureArray<Contestant>(parsed.contestants);
+  if (parsed.contestants.length < 2) {
     parsed.contestants = [
       { id: 'contestant_1', name: 'כחול', image: null },
       { id: 'contestant_2', name: 'סגול', image: null }
@@ -219,8 +220,8 @@ export const GameView: React.FC = React.memo(() => {
         try {
           const data = await sync.fetchCurrentRoomDatabase();
           if (data) {
-             const fbMembers = data.db?.members || [];
-            const fbQuestions = data.db?.questions || [];
+            const fbMembers = ensureArray<FamilyMember>(data.db?.members);
+            const fbQuestions = ensureArray<TriviaQuestion>(data.db?.questions);
             const fbSettings = data.settings || data.db?.settings || {};
             const fbState = data.state || data.db?.state || {};
 
@@ -335,8 +336,9 @@ export const GameView: React.FC = React.memo(() => {
     const unsubscribeMembers = onValue(membersRef, (snapshot) => {
       const val = snapshot.val();
       if (val) {
-        db.saveMembers(val);
-        setMembers(val);
+        const arr = ensureArray<FamilyMember>(val);
+        db.saveMembers(arr);
+        setMembers(arr);
       }
     });
 
@@ -345,8 +347,9 @@ export const GameView: React.FC = React.memo(() => {
     const unsubscribeQuestions = onValue(questionsRef, (snapshot) => {
       const val = snapshot.val();
       if (val) {
-        db.saveQuestions(val);
-        setQuestions(val);
+        const arr = ensureArray<TriviaQuestion>(val);
+        db.saveQuestions(arr);
+        setQuestions(arr);
       }
     });
 
@@ -414,12 +417,14 @@ export const GameView: React.FC = React.memo(() => {
         setSettings(healedSettings);
       } else if (msg.type === 'DATABASE_SYNC') {
         const healedSettings = healSettings(msg.settings);
-        db.saveMembers(msg.members);
-        db.saveQuestions(msg.questions);
+        const fbMembers = ensureArray<FamilyMember>(msg.members);
+        const fbQuestions = ensureArray<TriviaQuestion>(msg.questions);
+        db.saveMembers(fbMembers);
+        db.saveQuestions(fbQuestions);
         db.saveSettings(healedSettings);
         
-        setMembers(msg.members);
-        setQuestions(msg.questions);
+        setMembers(fbMembers);
+        setQuestions(fbQuestions);
         setSettings(healedSettings);
       } else if (msg.type === 'TRIGGER_CONFETTI') {
         if (msg.isUndo) {
