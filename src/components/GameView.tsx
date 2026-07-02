@@ -437,8 +437,10 @@ export const GameView: React.FC = React.memo(() => {
       }
     });
 
-    // Request full database sync from the active host (phone) when mounting
-    sync.sendMessage({ type: 'REQUEST_DATABASE' });
+    // Request full database sync from the active host (phone) when mounting if not in Firebase mode
+    if (!sync.getRoomCode()) {
+      sync.sendMessage({ type: 'REQUEST_DATABASE' });
+    }
 
     return () => unsubscribe();
   }, []);
@@ -826,7 +828,7 @@ export const GameView: React.FC = React.memo(() => {
     );
   }
 
-  const isInitialSetup = (settings?.setupComplete === false || totalQuestions === 0) && gameState.currentQuestionIndex === 0;
+  const isInitialSetup = (settings?.setupComplete === false || totalQuestions === 0 || !gameState.isPlaying) && gameState.currentQuestionIndex === 0;
 
   // Pause screen when host is away
   if (gameState.isPaused && !isInitialSetup) {

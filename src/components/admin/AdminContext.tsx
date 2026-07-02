@@ -566,12 +566,16 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const unsubscribe = sync.subscribe((msg) => {
       if (msg.type === 'REQUEST_DATABASE') {
-        sync.sendMessage({
-          type: 'DATABASE_SYNC',
-          members: db.getMembers(),
-          questions: db.getQuestions(),
-          settings: db.getSettings()
-        });
+        const localMembers = db.getMembers();
+        const localQuestions = db.getQuestions();
+        if (localMembers.length > 0 || localQuestions.length > 0) {
+          sync.sendMessage({
+            type: 'DATABASE_SYNC',
+            members: localMembers,
+            questions: localQuestions,
+            settings: db.getSettings()
+          });
+        }
       } else if (msg.type === 'DATABASE_SYNC') {
         const healed = ensureArray<FamilyMember>(msg.members);
         const healedQuestions = ensureArray<TriviaQuestion>(msg.questions);
