@@ -152,7 +152,7 @@ export class AudioHelper {
     this.isBgPlaying = true;
     this.bgGain = ctx.createGain();
     this.bgGain.connect(ctx.destination);
-    this.bgGain.gain.setValueAtTime(0.25, ctx.currentTime); // Significantly louder background volume
+    this.bgGain.gain.setValueAtTime(0.75, ctx.currentTime); // Much louder dramatic background volume
 
     let step = 0;
     

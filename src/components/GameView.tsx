@@ -169,6 +169,20 @@ export const GameView: React.FC = React.memo(() => {
   const [winnerRevealTimer, setWinnerRevealTimer] = useState<number>(0);
   const [hasTriggeredWinnerReveal, setHasTriggeredWinnerReveal] = useState<boolean>(false);
   const [securityError, setSecurityError] = useState<boolean>(false);
+  const [showStartOverlay, setShowStartOverlay] = useState<boolean>(false);
+  const prevIsPlaying = useRef<boolean>(gameState.isPlaying);
+
+  // Transition effect from waiting screen to active game
+  useEffect(() => {
+    if (!prevIsPlaying.current && gameState.isPlaying) {
+      setShowStartOverlay(true);
+      const timer = setTimeout(() => {
+        setShowStartOverlay(false);
+      }, 2500); // 2.5 seconds
+      return () => clearTimeout(timer);
+    }
+    prevIsPlaying.current = gameState.isPlaying;
+  }, [gameState.isPlaying]);
   
   const hostLabel = settings.hostName || 'המנחה';
   
@@ -1374,6 +1388,28 @@ export const GameView: React.FC = React.memo(() => {
           <span>הפעל שמע 🔊</span>
         </button>
       )}
+
+      {/* Start Game Cinematic Reveal Transition Overlay */}
+      <AnimatePresence>
+        {showStartOverlay && (
+          <motion.div
+            initial={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(2, 6, 23, 0.95)' }}
+            animate={{ backdropFilter: 'blur(0px)', backgroundColor: 'rgba(2, 6, 23, 0)' }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 2.2, ease: "easeOut" }}
+            className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-none"
+          >
+            <motion.h1
+              initial={{ scale: 0.2, opacity: 0 }}
+              animate={{ scale: [0.2, 1.3, 2.5], opacity: [0, 1, 0] }}
+              transition={{ duration: 2.2, ease: "easeInOut" }}
+              className="text-7xl md:text-9xl font-black text-emerald-400 font-sans tracking-widest drop-shadow-[0_0_50px_rgba(16,185,129,0.6)]"
+            >
+              מתחילים! 🚀
+            </motion.h1>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 });
