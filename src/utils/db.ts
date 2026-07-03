@@ -19,7 +19,7 @@ export interface Contestant {
 }
 
 export interface GameSettings {
-  theme: 'forest' | 'gold' | 'neon' | 'classic';
+
   contestants: Contestant[]; // Dynamic list of contestants (up to 5)
   hostName?: string; // Optional host name
   setupComplete?: boolean; // Whether host has finished setting up the room
@@ -53,7 +53,7 @@ const DEFAULT_MEMBERS: FamilyMember[] = [];
 const DEFAULT_QUESTIONS: TriviaQuestion[] = [];
 
 const DEFAULT_SETTINGS: GameSettings = {
-  theme: 'classic',
+
   contestants: [
     { id: 'contestant_1', name: 'כחול', image: null },
     { id: 'contestant_2', name: 'סגול', image: null }

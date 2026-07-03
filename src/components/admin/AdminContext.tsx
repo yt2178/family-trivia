@@ -11,26 +11,46 @@ export const CONTESTANT_COLORS = [
   {
     bg: 'bg-sky-950/40 border-sky-500/40 hover:bg-sky-900/40 text-sky-100',
     text: 'text-sky-400',
-    glow: 'כחול Glow',
-    border: 'border-sky-500'
+    glow: 'שחקן כחול',
+    border: 'border-sky-500',
+    gradient: 'from-sky-600 to-sky-400',
+    scoreBg: 'bg-sky-955/30',
+    imageFallbackBg: 'bg-sky-955/40',
+    accentGlow: 'bg-sky-500/10',
+    shadowGlow: 'shadow-sky-500/20'
   },
   {
     bg: 'bg-fuchsia-950/40 border-fuchsia-500/40 hover:bg-fuchsia-900/40 text-fuchsia-100',
     text: 'text-fuchsia-400',
-    glow: 'סגול Glow',
-    border: 'border-fuchsia-500'
+    glow: 'שחקן סגול',
+    border: 'border-fuchsia-500',
+    gradient: 'from-fuchsia-600 to-fuchsia-400',
+    scoreBg: 'bg-fuchsia-955/30',
+    imageFallbackBg: 'bg-fuchsia-955/40',
+    accentGlow: 'bg-fuchsia-500/10',
+    shadowGlow: 'shadow-fuchsia-500/20'
+  },
+  {
+    bg: 'bg-amber-950/40 border-amber-500/40 hover:bg-amber-900/40 text-amber-100',
+    text: 'text-amber-400',
+    glow: 'שחקן כתום',
+    border: 'border-amber-500',
+    gradient: 'from-amber-600 to-amber-400',
+    scoreBg: 'bg-amber-955/30',
+    imageFallbackBg: 'bg-amber-955/40',
+    accentGlow: 'bg-amber-500/10',
+    shadowGlow: 'shadow-amber-500/20'
   },
   {
     bg: 'bg-emerald-950/40 border-emerald-500/40 hover:bg-emerald-900/40 text-emerald-100',
     text: 'text-emerald-400',
-    glow: 'ירוק Glow',
-    border: 'border-emerald-500'
-  },
-  {
-    bg: 'bg-amber-950/40 border-amber-500/40 hover:bg-amber-900/40 text-amber-100',
-    text: 'text-amber-500',
-    glow: 'כתום Glow',
-    border: 'border-amber-500'
+    glow: 'שחקן ירוק',
+    border: 'border-emerald-500',
+    gradient: 'from-emerald-600 to-emerald-400',
+    scoreBg: 'bg-emerald-955/30',
+    imageFallbackBg: 'bg-emerald-955/40',
+    accentGlow: 'bg-emerald-500/10',
+    shadowGlow: 'shadow-emerald-500/20'
   }
 ];
 
@@ -44,12 +64,12 @@ export const CONTESTANT_THEMES = [
     border: 'border-fuchsia-500/30'
   },
   {
-    bg: 'bg-emerald-500/10 text-emerald-400',
-    border: 'border-emerald-500/30'
+    bg: 'bg-amber-500/10 text-amber-400',
+    border: 'border-amber-500/30'
   },
   {
-    bg: 'bg-amber-500/10 text-amber-500',
-    border: 'border-amber-500/30'
+    bg: 'bg-emerald-500/10 text-emerald-400',
+    border: 'border-emerald-500/30'
   }
 ];
 

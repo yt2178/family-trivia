@@ -62,31 +62,56 @@ export const CONTESTANT_COLORS = [
     bg: 'bg-sky-950/40 border-sky-500/40 hover:bg-sky-900/40 text-sky-100',
     text: 'text-sky-400',
     glow: 'שחקן כחול',
-    border: 'border-sky-500'
+    border: 'border-sky-500',
+    gradient: 'from-sky-600 to-sky-400',
+    scoreBg: 'bg-sky-955/30',
+    imageFallbackBg: 'bg-sky-955/40',
+    accentGlow: 'bg-sky-500/10',
+    shadowGlow: 'shadow-sky-500/20'
   },
   {
     bg: 'bg-fuchsia-950/40 border-fuchsia-500/40 hover:bg-fuchsia-900/40 text-fuchsia-100',
     text: 'text-fuchsia-400',
     glow: 'שחקן סגול',
-    border: 'border-fuchsia-500'
+    border: 'border-fuchsia-500',
+    gradient: 'from-fuchsia-600 to-fuchsia-400',
+    scoreBg: 'bg-fuchsia-955/30',
+    imageFallbackBg: 'bg-fuchsia-955/40',
+    accentGlow: 'bg-fuchsia-500/10',
+    shadowGlow: 'shadow-fuchsia-500/20'
   },
   {
     bg: 'bg-amber-950/40 border-amber-500/40 hover:bg-amber-900/40 text-amber-100',
     text: 'text-amber-400',
     glow: 'שחקן כתום',
-    border: 'border-amber-500'
+    border: 'border-amber-500',
+    gradient: 'from-amber-600 to-amber-400',
+    scoreBg: 'bg-amber-955/30',
+    imageFallbackBg: 'bg-amber-955/40',
+    accentGlow: 'bg-amber-500/10',
+    shadowGlow: 'shadow-amber-500/20'
   },
   {
     bg: 'bg-emerald-950/40 border-emerald-500/40 hover:bg-emerald-900/40 text-emerald-100',
     text: 'text-emerald-400',
     glow: 'שחקן ירוק',
-    border: 'border-emerald-500'
+    border: 'border-emerald-500',
+    gradient: 'from-emerald-600 to-emerald-400',
+    scoreBg: 'bg-emerald-955/30',
+    imageFallbackBg: 'bg-emerald-955/40',
+    accentGlow: 'bg-emerald-500/10',
+    shadowGlow: 'shadow-emerald-500/20'
   },
   {
     bg: 'bg-rose-950/40 border-rose-500/40 hover:bg-rose-900/40 text-rose-100',
     text: 'text-rose-400',
     glow: 'שחקן אדום',
-    border: 'border-rose-500'
+    border: 'border-rose-500',
+    gradient: 'from-rose-600 to-rose-400',
+    scoreBg: 'bg-rose-955/30',
+    imageFallbackBg: 'bg-rose-955/40',
+    accentGlow: 'bg-rose-500/10',
+    shadowGlow: 'shadow-rose-500/20'
   }
 ];
 
@@ -690,14 +715,14 @@ export const GameView: React.FC = React.memo(() => {
             return (
               <div key={c.id} className="glass-panel p-4 rounded-3xl border border-slate-800/80 shadow-2xl relative overflow-hidden flex flex-col justify-between items-center flex-grow">
                 {/* Accent Glow */}
-                <div className={`absolute -top-12 -right-12 w-24 h-24 bg-${colors.border.split('-')[1]}-500/10 rounded-full blur-2xl pointer-events-none`} />
+                <div className={`absolute -top-12 -right-12 w-24 h-24 ${colors.accentGlow} rounded-full blur-2xl pointer-events-none`} />
                 
                 <div className="flex flex-col items-center text-center">
                   <div className={`relative w-16 h-16 rounded-2xl border-2 ${colors.border}/45 p-0.5 bg-slate-900/60 shadow-xl overflow-hidden mb-2 flex items-center justify-center`}>
                     {c.image ? (
                       <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-xl" />
                     ) : (
-                      <div className={`w-full h-full bg-${colors.border.split('-')[1]}-950/40 flex items-center justify-center ${colors.text} rounded-xl`}>
+                      <div className={`w-full h-full ${colors.imageFallbackBg} flex items-center justify-center ${colors.text} rounded-xl`}>
                         <Award size={28} className="opacity-80" />
                       </div>
                     )}
@@ -707,7 +732,7 @@ export const GameView: React.FC = React.memo(() => {
                 </div>
 
                 <div className="my-2 flex flex-col items-center">
-                  <div className={`text-3xl font-black ${colors.text} bg-${colors.border.split('-')[1]}-955/30 w-12 h-12 rounded-full border ${colors.border}/30 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.2)]`}>
+                  <div className={`text-3xl font-black ${colors.text} ${colors.scoreBg} w-12 h-12 rounded-full border ${colors.border}/30 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.2)]`}>
                     {score}
                   </div>
                 </div>
@@ -719,7 +744,7 @@ export const GameView: React.FC = React.memo(() => {
                       initial={{ width: 0 }}
                       animate={{ width: `${progress}%` }}
                       transition={{ type: 'spring', stiffness: 60 }}
-                      className={`h-full bg-gradient-to-r from-${colors.border.split('-')[1]}-600 to-${colors.border.split('-')[1]}-400 rounded-full`}
+                      className={`h-full bg-gradient-to-r ${colors.gradient} rounded-full`}
                     />
                   </div>
                 </div>
@@ -730,14 +755,14 @@ export const GameView: React.FC = React.memo(() => {
           return (
             <div key={c.id} className="glass-panel p-4 rounded-3xl border border-slate-800/80 shadow-2xl relative overflow-hidden flex flex-col justify-between items-center h-full flex-grow">
               {/* Accent Glow */}
-              <div className={`absolute -top-12 -right-12 w-32 h-32 bg-${colors.border.split('-')[1]}-500/10 rounded-full blur-3xl pointer-events-none`} />
+              <div className={`absolute -top-12 -right-12 w-32 h-32 ${colors.accentGlow} rounded-full blur-3xl pointer-events-none`} />
 
               <div className="flex flex-col items-center text-center">
                 <div className={`relative w-24 h-24 rounded-3xl border-2 ${colors.border}/40 p-1 bg-slate-900/60 shadow-xl overflow-hidden mb-4 flex items-center justify-center`}>
                   {c.image ? (
                     <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-2xl" />
                   ) : (
-                    <div className={`w-full h-full bg-${colors.border.split('-')[1]}-955/40 flex items-center justify-center ${colors.text} rounded-2xl`}>
+                    <div className={`w-full h-full ${colors.imageFallbackBg} flex items-center justify-center ${colors.text} rounded-2xl`}>
                       <Award size={48} className="opacity-80" />
                     </div>
                   )}
@@ -748,7 +773,7 @@ export const GameView: React.FC = React.memo(() => {
 
               <div className="my-6 flex flex-col items-center">
                 <span className="text-xs text-slate-400 mb-1">ניקוד</span>
-                <div className={`text-5xl font-black ${colors.text} bg-${colors.border.split('-')[1]}-950/30 w-20 h-20 rounded-full border ${colors.border}/30 flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.3)]`}>
+                <div className={`text-5xl font-black ${colors.text} ${colors.scoreBg} w-20 h-20 rounded-full border ${colors.border}/30 flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.3)]`}>
                   {score}
                 </div>
               </div>
@@ -760,7 +785,7 @@ export const GameView: React.FC = React.memo(() => {
                     initial={{ height: 0 }}
                     animate={{ height: `${progress}%` }}
                     transition={{ type: 'spring', stiffness: 60 }}
-                    className={`w-full bg-gradient-to-t from-${colors.border.split('-')[1]}-600 to-${colors.border.split('-')[1]}-400 rounded-full`}
+                    className={`w-full bg-gradient-to-t ${colors.gradient} rounded-full`}
                   />
                 </div>
               </div>
@@ -771,20 +796,7 @@ export const GameView: React.FC = React.memo(() => {
     );
   };
 
-  // Background Theme Styles
-  const getThemeBackground = () => {
-    switch (settings.theme) {
-      case 'gold':
-        return 'from-slate-950 via-amber-950/20 to-slate-950';
-      case 'neon':
-        return 'from-black via-zinc-950 to-black';
-      case 'classic':
-        return 'from-gray-950 via-slate-900 to-gray-950';
-      case 'forest':
-      default:
-        return 'from-slate-950 via-emerald-950/10 to-slate-950';
-    }
-  };
+
 
   if (isLoading) {
     return (
@@ -847,7 +859,7 @@ export const GameView: React.FC = React.memo(() => {
   // Pause screen when host is away
   if (gameState.isPaused && !isInitialSetup) {
     return (
-      <div className={`relative w-full min-h-screen bg-gradient-to-b ${getThemeBackground()} text-slate-100 flex flex-col items-center justify-center p-6 overflow-hidden`}>
+      <div className="relative w-full min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 overflow-hidden">
         {/* Decorative blur elements */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
@@ -884,7 +896,7 @@ export const GameView: React.FC = React.memo(() => {
 
   if (isInitialSetup) {
     return (
-      <div className={`relative w-full min-h-screen bg-gradient-to-b ${getThemeBackground()} text-slate-100 flex flex-col items-center justify-center p-6 overflow-hidden`}>
+      <div className="relative w-full min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 overflow-hidden">
         {/* Canvas for Confetti */}
         <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
         
@@ -1036,7 +1048,7 @@ export const GameView: React.FC = React.memo(() => {
   const females = members.filter(m => m.gender === 'female').length;
 
   return (
-    <div className={`relative w-full min-h-screen bg-gradient-to-b ${getThemeBackground()} text-slate-100 flex flex-col p-6 overflow-hidden`}>
+    <div className="relative w-full min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-100 flex flex-col p-6 overflow-hidden">
       {/* Canvas for Confetti */}
       <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
 
@@ -1310,7 +1322,7 @@ export const GameView: React.FC = React.memo(() => {
                     const score = gameState.scores[c.id] || 0;
                     return (
                       <div key={c.id} className="glass-panel p-6 rounded-3xl border border-slate-800 text-center relative overflow-hidden">
-                        <div className={`absolute -top-12 -right-12 w-24 h-24 bg-${colors.border.split('-')[1]}-500/5 rounded-full blur-2xl`} />
+                        <div className={`absolute -top-12 -right-12 w-24 h-24 ${colors.accentGlow} opacity-50 rounded-full blur-2xl`} />
                         <div className={`w-16 h-16 rounded-2xl border-2 ${colors.border}/30 mx-auto mb-3 overflow-hidden flex items-center justify-center p-0.5`}>
                           {c.image ? (
                             <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-xl" />

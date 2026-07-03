@@ -197,7 +197,7 @@ export const ControlTab: React.FC = () => {
                           onClick={() => handleAssignPoints(c.id)}
                           className={`p-4 hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl flex flex-col items-center gap-2 group relative border ${
                             isWinner
-                              ? `${colors.border} bg-slate-900 shadow-lg shadow-${colors.text.split('-')[1]}-500/20`
+                              ? `${colors.border} bg-slate-900 shadow-lg ${colors.shadowGlow}`
                               : colors.bg
                           }`}
                         >

@@ -156,12 +156,12 @@ export class AudioHelper {
 
     let step = 0;
     
-    // Tense, dark minor chords (D minor / Bb/D dramatic shifts)
+    // Low, heavy suspense chords with dark minor & diminished tension shifts (octave lower)
     const chords = [
-      [146.83, 174.61, 220.00], // D3, F3, A3 (Dm - Suspense root)
-      [146.83, 174.61, 233.08], // D3, F3, Bb3 (Bb/D - Rising tension)
-      [138.59, 164.81, 207.65], // C#3, E3, G#3 (C#m - Dissonant shift)
-      [130.81, 155.56, 196.00]  // Cm - Heavy dramatic resolution
+      [110.00, 130.81, 164.81], // A2, C3, E3 (Am suspense root)
+      [116.54, 138.59, 174.61], // Bb2, C#3, F3 (Bbm dramatic shift)
+      [110.00, 130.81, 155.56], // A2, C3, Eb3 (Adim - highly tense diminished chord)
+      [98.00, 116.54, 146.83]    // G2, Bb2, D3 (Gm heavy dramatic resolution)
     ];
     let currentChordIndex = 0;
 
@@ -170,23 +170,23 @@ export class AudioHelper {
       
       const currentTime = this.ctx.currentTime;
 
-      // 1. Clock Tick (Triangle, very short high-pitch transient)
+      // 1. Clock Tick (Triangle, short high-pitch transient)
       if (step % 2 === 0) {
         const tickOsc = this.ctx.createOscillator();
         const tickGain = this.ctx.createGain();
         tickOsc.type = 'triangle';
-        tickOsc.frequency.setValueAtTime(1000, currentTime);
+        tickOsc.frequency.setValueAtTime(1300, currentTime);
         tickOsc.connect(tickGain);
         if (this.bgGain) tickGain.connect(this.bgGain);
         
-        tickGain.gain.setValueAtTime(0.04, currentTime);
-        tickGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.03);
+        tickGain.gain.setValueAtTime(0.08, currentTime); // Crisp ticking sound
+        tickGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.02);
         
         tickOsc.start(currentTime);
-        tickOsc.stop(currentTime + 0.04);
+        tickOsc.stop(currentTime + 0.03);
       }
 
-      // 2. Deep Heartbeat Thump (Double low-pitch thump: lub-dub)
+      // 2. Heavy Subsonic Heartbeat Thump (lub-dub)
       if (step % 4 === 0) {
         const thump = (delay: number) => {
           if (!this.ctx) return;
@@ -195,24 +195,24 @@ export class AudioHelper {
           const gain = this.ctx.createGain();
           
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(58, t); // Very low G1/A1 pitch
-          osc.frequency.exponentialRampToValueAtTime(35, t + 0.12);
+          osc.frequency.setValueAtTime(45, t); // Deep bass thump (F1)
+          osc.frequency.exponentialRampToValueAtTime(28, t + 0.08);
           
           osc.connect(gain);
           if (this.bgGain) gain.connect(this.bgGain);
           
-          gain.gain.setValueAtTime(0.65, t); // Louder thumps
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+          gain.gain.setValueAtTime(0.85, t); // Heavy thump volume
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
           
           osc.start(t);
-          osc.stop(t + 0.18);
+          osc.stop(t + 0.12);
         };
         
         thump(0);
-        thump(0.12); // Double thump offset
+        thump(0.09); // Fast double thump offset
       }
 
-      // 3. Cinematic Swelling Minor Pads (Triggered every 8 steps)
+      // 3. Cinematic Swelling Minor Pads (every 8 steps = 1.4s at 175ms tempo)
       if (step % 8 === 0) {
         const chord = chords[currentChordIndex];
         chord.forEach((freq, idx) => {
@@ -221,18 +221,18 @@ export class AudioHelper {
           const gain = this.ctx.createGain();
           
           osc.type = 'triangle';
-          // Detune slightly for tension chorus effect
-          osc.frequency.setValueAtTime(freq + (idx === 1 ? 0.6 : -0.6), currentTime);
+          // Detune slightly for chorus tension effect
+          osc.frequency.setValueAtTime(freq + (idx === 1 ? 0.7 : -0.7), currentTime);
           
           osc.connect(gain);
           if (this.bgGain) gain.connect(this.bgGain);
           
           gain.gain.setValueAtTime(0, currentTime);
-          gain.gain.linearRampToValueAtTime(0.22, currentTime + 0.8); // Louder chord swells
-          gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 2.3);
+          gain.gain.linearRampToValueAtTime(0.38, currentTime + 0.3); // Rapid dramatic swell
+          gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 1.25);
           
           osc.start(currentTime);
-          osc.stop(currentTime + 2.4);
+          osc.stop(currentTime + 1.3);
         });
 
         currentChordIndex = (currentChordIndex + 1) % chords.length;
@@ -241,8 +241,8 @@ export class AudioHelper {
       step++;
     };
 
-    // Play suspense step every 300ms
-    this.bgInterval = window.setInterval(playStep, 300);
+    // Play suspense steps twice as fast (every 175ms instead of 300ms) for high tension
+    this.bgInterval = window.setInterval(playStep, 175);
   }
 
   stopBackgroundMusic() {

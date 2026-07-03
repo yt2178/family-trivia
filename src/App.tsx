@@ -218,7 +218,6 @@ function App() {
             members: [],
             questions: [],
             settings: {
-              theme: 'classic',
               contestants: [
                 { id: 'contestant_1', name: 'כחול', image: null },
                 { id: 'contestant_2', name: 'סגול', image: null }
@@ -230,7 +229,6 @@ function App() {
             }
           },
           settings: {
-            theme: 'classic',
             contestants: [
               { id: 'contestant_1', name: 'כחול', image: null },
               { id: 'contestant_2', name: 'סגול', image: null }
@@ -257,7 +255,6 @@ function App() {
         localStorage.removeItem('family_game_members');
         localStorage.removeItem('family_game_questions');
         localStorage.setItem('family_game_settings', JSON.stringify({
-          theme: 'classic',
           contestants: [
             { id: 'contestant_1', name: 'כחול', image: null },
             { id: 'contestant_2', name: 'סגול', image: null }
@@ -718,7 +715,7 @@ function App() {
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">2. בחרו מספר לחדר בן 4 ספרות:</label>
-                  <div className="flex gap-2">
+                  <div className="space-y-2">
                     <input
                       type="text"
                       required
@@ -729,13 +726,13 @@ function App() {
                         setCreateError(null);
                       }}
                       placeholder="הקלד מספר חדר בן 4 ספרות"
-                      className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-sm font-black text-emerald-400 placeholder-slate-650 focus:outline-none focus:border-emerald-500 font-mono"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-sm font-black text-emerald-400 placeholder-slate-650 focus:outline-none focus:border-emerald-500 font-mono"
                     />
                     <button
                       type="button"
                       disabled={isCheckingRoom}
                       onClick={handleGenerateRandomCode}
-                      className="px-4 py-2 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full py-2.5 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <RefreshCw size={14} className={isCheckingRoom ? 'animate-spin' : ''} />
                       <span>בחר מספר אקראי</span>
