@@ -1186,72 +1186,86 @@ export const GameView: React.FC = React.memo(() => {
                 <p className="text-slate-400 text-sm">מיד נדע מי ניצח במשפחה...</p>
               </div>
             </div>
-          ) : !gameState.isRevealed && currentQuestion ? (
-            <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center relative overflow-hidden">
-              <motion.div
-                initial={{ scale: 0.8, rotate: -10 }}
-                animate={{ scale: [0.9, 1.05, 0.9], rotate: [-5, 5, -5] }}
-                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                className="text-9xl mb-6 select-none text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.3)] flex items-center justify-center"
-              >
-                ❓
-              </motion.div>
-              <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent mb-2">
-                מי אמר את זה?
-              </h2>
-              <p className="text-slate-400 text-sm max-w-md text-center">
-                המשפחה מנסה לנחש! <strong className="font-black text-amber-400">{hostLabel}</strong> יחשוף את התשובה והדובר יתגלה...
-              </p>
-            </div>
           ) : (
-            <div className="flex-grow min-h-[500px] flex flex-col">
-              {(() => {
-                const resolvedSpeakerId = (currentQuestion?.speakerId === 'general' || !currentQuestion?.speakerId)
-                  ? (gameState.revealedSpeakers?.[currentQuestion?.id || ''] as string)
-                  : currentQuestion?.speakerId;
-                const speaker = members.find(m => m.id === resolvedSpeakerId);
-                const speakerName = speaker ? speaker.name : 'פלוני אלמוני';
-                return (
-                  <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40 p-8">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40 p-8">
+              {/* Blur decoration always present for rich aesthetics */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
 
+              <AnimatePresence mode="wait">
+                {!gameState.isRevealed && currentQuestion ? (
+                  <motion.div
+                    key="unrevealed"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex flex-col items-center text-center relative z-10"
+                  >
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                      className="flex flex-col items-center text-center relative z-10 space-y-6"
+                      initial={{ scale: 0.8, rotate: -10 }}
+                      animate={{ scale: [0.9, 1.05, 0.9], rotate: [-5, 5, -5] }}
+                      transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                      className="text-9xl mb-6 select-none text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.3)] flex items-center justify-center"
                     >
-                      <span className="text-emerald-400 text-sm font-bold uppercase tracking-widest px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                        הדובר נחשף! 🎉
-                      </span>
-
-                      <div className="relative">
-                        <div className="absolute -inset-2 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full blur opacity-70 animate-pulse" />
-                        <div className="relative w-44 h-44 rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden shadow-2xl flex items-center justify-center">
-                          {speaker?.image ? (
-                            <img src={speaker.image} alt={speakerName} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-8xl select-none">
-                              {speaker ? (speaker.gender === 'female' ? '👩' : '👨') : '❓'}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <h2 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-md">
-                          {speakerName}
-                        </h2>
-                      </div>
-
-                      <p className="text-slate-400 text-sm max-w-sm italic">
-                        ״אמר/ה את הציטוט בהתרגשות רבה!״
-                      </p>
+                      ❓
                     </motion.div>
-                  </div>
-                );
-              })()}
+                    <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent mb-2">
+                      מי אמר את זה?
+                    </h2>
+                    <p className="text-slate-400 text-sm max-w-md text-center">
+                      המשפחה מנסה לנחש! <strong className="font-black text-amber-400">{hostLabel}</strong> יחשוף את התשובה והדובר יתגלה...
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="revealed"
+                    initial={{ opacity: 0, scale: 0.85 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.85 }}
+                    transition={{ type: "spring", stiffness: 100, damping: 15 }}
+                    className="flex flex-col items-center text-center relative z-10 space-y-6"
+                  >
+                    {(() => {
+                      const resolvedSpeakerId = (currentQuestion?.speakerId === 'general' || !currentQuestion?.speakerId)
+                        ? (gameState.revealedSpeakers?.[currentQuestion?.id || ''] as string)
+                        : currentQuestion?.speakerId;
+                      const speaker = members.find(m => m.id === resolvedSpeakerId);
+                      const speakerName = speaker ? speaker.name : 'פלוני אלמוני';
+                      return (
+                        <>
+                          <span className="text-emerald-400 text-sm font-bold uppercase tracking-widest px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                            הדובר נחשף! 🎉
+                          </span>
+
+                          <div className="relative">
+                            <div className="absolute -inset-2 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full blur opacity-70 animate-pulse" />
+                            <div className="relative w-44 h-44 rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden shadow-2xl flex items-center justify-center">
+                              {speaker?.image ? (
+                                <img src={speaker.image} alt={speakerName} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-8xl select-none">
+                                  {speaker ? (speaker.gender === 'female' ? '👩' : '👨') : '❓'}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <h2 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-md">
+                              {speakerName}
+                            </h2>
+                          </div>
+
+                          <p className="text-slate-400 text-sm max-w-sm italic">
+                            ״אמר/ה את הציטוט בהתרגשות רבה!״
+                          </p>
+                        </>
+                      );
+                    })()}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
