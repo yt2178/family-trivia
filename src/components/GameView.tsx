@@ -219,7 +219,7 @@ export const GameView: React.FC = React.memo(() => {
       audioHelper.play('game-start-boom');
       const timer = setTimeout(() => {
         setStartCountdownValue(null);
-      }, 1200);
+      }, 2200); // 2.2 seconds matches the cinematic grow duration
       return () => clearTimeout(timer);
     }
   }, [startCountdownValue]);
@@ -1437,54 +1437,62 @@ export const GameView: React.FC = React.memo(() => {
       <AnimatePresence>
         {startCountdownValue !== null && (
           <motion.div
-            initial={{ opacity: 0, backdropFilter: 'blur(30px)' }}
-            animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
-            exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-            transition={{ duration: 0.5 }}
-            className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-slate-950/95"
+            initial={{ backdropFilter: 'blur(30px)', backgroundColor: 'rgba(2, 6, 23, 0.95)' }}
+            animate={{ 
+              backdropFilter: startCountdownValue === 0 ? 'blur(0px)' : 'blur(20px)',
+              backgroundColor: startCountdownValue === 0 ? 'rgba(2, 6, 23, 0)' : 'rgba(2, 6, 23, 0.95)'
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: startCountdownValue === 0 ? 2.2 : 0.5, ease: "easeOut" }}
+            className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center ${
+              startCountdownValue === 0 ? 'pointer-events-none' : ''
+            }`}
           >
-            {/* Visual heartbeat pulse in the background */}
-            <div className="absolute w-[600px] h-[600px] rounded-full bg-emerald-500/5 blur-3xl animate-pulse pointer-events-none" />
+            {/* Visual heartbeat pulse in the background - show only during active numbers countdown */}
+            {startCountdownValue > 0 && (
+              <div className="absolute w-[600px] h-[600px] rounded-full bg-emerald-500/5 blur-3xl animate-pulse pointer-events-none" />
+            )}
             
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-center space-y-2 z-10 select-none"
-            >
-              <h2 className="text-2xl md:text-3xl font-black text-slate-400 uppercase tracking-widest">
-                המשחק מתחיל! 🎮
-              </h2>
-              <p className="text-lg md:text-xl font-bold text-emerald-400">
-                כולם מוכנים? 🤔
-              </p>
-            </motion.div>
+            {startCountdownValue > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="text-center space-y-2 z-10 select-none"
+              >
+                <h2 className="text-2xl md:text-3xl font-black text-slate-400 uppercase tracking-widest">
+                  המשחק מתחיל! 🎮
+                </h2>
+                <p className="text-lg md:text-xl font-bold text-emerald-400">
+                  כולם מוכנים? 🤔
+                </p>
+              </motion.div>
+            )}
 
-            {/* Giant Animated Number */}
+            {/* Giant Animated Number or Growing Text */}
             <div className="h-96 flex items-center justify-center z-10 select-none">
               <AnimatePresence mode="wait">
-                <motion.div
-                  key={startCountdownValue}
-                  initial={{ scale: 0.1, opacity: 0, rotate: -20 }}
-                  animate={{ 
-                    scale: startCountdownValue === 0 ? [0.5, 1.5, 1.2] : 1, 
-                    opacity: 1, 
-                    rotate: 0 
-                  }}
-                  exit={{ scale: 1.8, opacity: 0, rotate: 10 }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: startCountdownValue === 0 ? 100 : 150, 
-                    damping: startCountdownValue === 0 ? 12 : 10 
-                  }}
-                  className={`text-9xl md:text-[14rem] font-black tracking-tighter drop-shadow-[0_0_80px_rgba(16,185,129,0.3)] ${
-                    startCountdownValue === 0 
-                      ? 'text-rose-400 font-sans tracking-wide drop-shadow-[0_0_120px_rgba(244,63,94,0.6)]' 
-                      : 'text-emerald-400'
-                  }`}
-                >
-                  {startCountdownValue === 0 ? 'בום! 🚀' : startCountdownValue}
-                </motion.div>
+                {startCountdownValue > 0 ? (
+                  <motion.div
+                    key={startCountdownValue}
+                    initial={{ scale: 0.1, opacity: 0, rotate: -20 }}
+                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                    exit={{ scale: 1.8, opacity: 0, rotate: 10 }}
+                    transition={{ type: "spring", stiffness: 150, damping: 10 }}
+                    className="text-9xl md:text-[14rem] font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_80px_rgba(16,185,129,0.3)]"
+                  >
+                    {startCountdownValue}
+                  </motion.div>
+                ) : (
+                  <motion.h1
+                    initial={{ scale: 0.2, opacity: 0 }}
+                    animate={{ scale: [0.2, 1.3, 3.0], opacity: [0, 1, 0] }}
+                    transition={{ duration: 2.2, ease: "easeInOut" }}
+                    className="text-7xl md:text-9xl font-black text-emerald-400 font-sans tracking-widest drop-shadow-[0_0_60px_rgba(16,185,129,0.6)] text-center whitespace-nowrap"
+                  >
+                    מתחילים! 🚀
+                  </motion.h1>
+                )}
               </AnimatePresence>
             </div>
           </motion.div>
