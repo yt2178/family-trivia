@@ -151,6 +151,8 @@ interface AdminContextType {
   setWizardQuestionTimer: React.Dispatch<React.SetStateAction<number | null>>;
   wizardShowNameBank: boolean;
   setWizardShowNameBank: React.Dispatch<React.SetStateAction<boolean>>;
+  wizardNextQuestionDelay: 'manual' | number;
+  setWizardNextQuestionDelay: React.Dispatch<React.SetStateAction<'manual' | number>>;
   wizardContestants: Array<{ id: string; name: string; image: string | null }>;
   setWizardContestants: React.Dispatch<React.SetStateAction<Array<{ id: string; name: string; image: string | null }>>>;
   wizardStepLocal: number | null;
@@ -198,7 +200,8 @@ interface AdminContextType {
     questionTimer: number | null,
     questionOrder: 'sequential' | 'random',
     step: number,
-    showNameBankVal?: boolean
+    showNameBankVal?: boolean,
+    nextQuestionDelayVal?: 'manual' | number
   ) => void;
 }
 
@@ -291,6 +294,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [wizardContestantCount, setWizardContestantCount] = useState(2);
   const [wizardQuestionTimer, setWizardQuestionTimer] = useState<number | null>(null);
   const [wizardShowNameBank, setWizardShowNameBank] = useState<boolean>(false);
+  const [wizardNextQuestionDelay, setWizardNextQuestionDelay] = useState<'manual' | number>('manual');
   const [wizardContestants, setWizardContestants] = useState<Array<{ id: string; name: string; image: string | null }>>([]);
   const [wizardStepLocal, setWizardStepLocal] = useState<number | null>(null);
   const [hasInitializedWizard, setHasInitializedWizard] = useState(false);
@@ -324,6 +328,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardContestantCount(draft.contestantCount || 2);
         setWizardQuestionTimer(draft.questionTimer !== undefined ? draft.questionTimer : (settings.questionTimer || null));
         setWizardShowNameBank(draft.showNameBank !== undefined ? draft.showNameBank : (settings.showNameBank || false));
+        setWizardNextQuestionDelay(draft.nextQuestionDelay !== undefined ? draft.nextQuestionDelay : (settings.nextQuestionDelay || 'manual'));
         setWizardStepLocal(draft.wizardStep || settings.wizardStep || 1);
         
         const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
@@ -343,6 +348,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardContestantCount(settings.contestants?.length || 2);
         setWizardQuestionTimer(settings.questionTimer !== undefined ? settings.questionTimer : null);
         setWizardShowNameBank(settings.showNameBank || false);
+        setWizardNextQuestionDelay(settings.nextQuestionDelay !== undefined ? settings.nextQuestionDelay : 'manual');
         setWizardStepLocal(settings.wizardStep || 1);
         
         const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
@@ -448,7 +454,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     questionTimer: number | null,
     questionOrder: 'sequential' | 'random',
     step: number,
-    showNameBankVal?: boolean
+    showNameBankVal?: boolean,
+    nextQuestionDelayVal?: 'manual' | number
   ) => {
     const rCode = sync.getRoomCode();
     if (!rCode) return;
@@ -460,6 +467,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         questionTimer,
         questionOrder,
         showNameBank: showNameBankVal !== undefined ? showNameBankVal : wizardShowNameBank,
+        nextQuestionDelay: nextQuestionDelayVal !== undefined ? nextQuestionDelayVal : wizardNextQuestionDelay,
         wizardStep: step
       }));
     } catch (e: any) {
@@ -527,6 +535,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setWizardContestantCount(mergedSettings.contestants?.length || 2);
             setWizardQuestionTimer(mergedSettings.questionTimer !== undefined ? mergedSettings.questionTimer : null);
             setWizardShowNameBank(mergedSettings.showNameBank || false);
+            setWizardNextQuestionDelay(mergedSettings.nextQuestionDelay !== undefined ? mergedSettings.nextQuestionDelay : 'manual');
             setWizardStepLocal(mergedSettings.wizardStep || 1);
             
             const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
@@ -751,7 +760,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updateGameState(updatedState);
       playAdminSound('success');
       showSuccess('התשובה נחשפה (אף אחד לא קיבל ניקוד).');
-      setNextQuestionTimer(10);
+      const delay = settings.nextQuestionDelay && settings.nextQuestionDelay !== 'manual'
+        ? (settings.nextQuestionDelay as number)
+        : 0;
+      setNextQuestionTimer(delay);
       return;
     }
 
@@ -793,8 +805,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       sync.sendMessage({ type: 'TRIGGER_CONFETTI', winner, isUndo });
     }
 
-    // Start 10-second timer after assigning points
-    setNextQuestionTimer(10);
+    // Start auto-advance timer if configured
+    const delay = settings.nextQuestionDelay && settings.nextQuestionDelay !== 'manual'
+      ? (settings.nextQuestionDelay as number)
+      : 0;
+    setNextQuestionTimer(delay);
   };
 
   const handleAddMember = async (e: React.FormEvent) => {
@@ -1137,6 +1152,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setWizardQuestionTimer,
       wizardShowNameBank,
       setWizardShowNameBank,
+      wizardNextQuestionDelay,
+      setWizardNextQuestionDelay,
       wizardContestants,
       setWizardContestants,
       wizardStepLocal,

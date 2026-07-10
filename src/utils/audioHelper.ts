@@ -1,8 +1,31 @@
 export class AudioHelper {
+  private bgAudio: HTMLAudioElement | null = null;
+  private correctAudio: HTMLAudioElement | null = null;
+  private wrongAudio: HTMLAudioElement | null = null;
+  private winAudio: HTMLAudioElement | null = null;
   private ctx: AudioContext | null = null;
+  private isBgPlaying = false;
+  private isMuted = false;
 
   private init() {
-    if (this.ctx) return;
+    if (this.bgAudio) return;
+
+    // Load actual high-quality Who Wants to Be a Millionaire audio files (CORS-friendly raw Git content)
+    this.bgAudio = new Audio('https://raw.githubusercontent.com/aaronnech/Who-Wants-to-be-a-Millionaire/master/sound/background.mp3');
+    this.bgAudio.loop = true;
+    this.bgAudio.volume = 0.55; // Audible background music
+
+    this.correctAudio = new Audio('https://raw.githubusercontent.com/aaronnech/Who-Wants-to-be-a-Millionaire/master/sound/right.mp3');
+    this.correctAudio.volume = 0.65;
+
+    this.wrongAudio = new Audio('https://raw.githubusercontent.com/aaronnech/Who-Wants-to-be-a-Millionaire/master/sound/wrong.mp3');
+    this.wrongAudio.volume = 0.6;
+
+    // Clapping/Cheering sound for final victory celebration
+    this.winAudio = new Audio('https://raw.githubusercontent.com/techieshruti/Quiz-App-with-Timer/main/sounds/clapping.mp3');
+    this.winAudio.volume = 0.75;
+
+    // Synthesizer context for zero-latency ticking & explosions
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (AudioContextClass) {
       this.ctx = new AudioContextClass();
@@ -21,241 +44,133 @@ export class AudioHelper {
 
   async resume(): Promise<boolean> {
     this.init();
-    if (!this.ctx) return false;
-    if (this.ctx.state === 'suspended') {
+    if (this.ctx && this.ctx.state === 'suspended') {
       try {
         await this.ctx.resume();
-        return (this.ctx.state as string) === 'running';
       } catch (e) {
         console.warn('Failed to resume AudioContext:', e);
-        return false;
       }
+    }
+    // Also unlock HTMLAudio elements on iOS/Safari by playing & pausing briefly
+    if (this.bgAudio) {
+      this.bgAudio.play().then(() => this.bgAudio?.pause()).catch(() => {});
     }
     return true;
   }
 
-  play(type: 'success' | 'undo' | 'reveal' | 'winner') {
+  setMute(mute: boolean) {
+    this.isMuted = mute;
     this.init();
-    const ctx = this.ctx;
-    if (!ctx) return;
-
-    // Try to resume if suspended (during interaction)
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
-
-    try {
-      if (type === 'success') {
-        const osc1 = ctx.createOscillator();
-        const osc2 = ctx.createOscillator();
-        const gain = ctx.createGain();
-        
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(ctx.destination);
-        
-        osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-        osc2.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
-        
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        
-        osc1.start();
-        osc2.start();
-        
-        setTimeout(() => {
-          try {
-            osc1.stop();
-            osc2.stop();
-          } catch (e) {}
-        }, 400);
-      } else if (type === 'undo') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        
-        osc.frequency.setValueAtTime(392.00, ctx.currentTime); // G4
-        osc.frequency.exponentialRampToValueAtTime(261.63, ctx.currentTime + 0.35); // C4
-        
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        
-        osc.start();
-        setTimeout(() => {
-          try {
-            osc.stop();
-          } catch (e) {}
-        }, 400);
-      } else if (type === 'reveal') {
-        const osc1 = ctx.createOscillator();
-        const osc2 = ctx.createOscillator();
-        const gain = ctx.createGain();
-        
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(ctx.destination);
-        
-        osc1.frequency.setValueAtTime(349.23, ctx.currentTime); // F4
-        osc1.frequency.exponentialRampToValueAtTime(523.25, ctx.currentTime + 0.4); // C5
-        osc2.frequency.setValueAtTime(440.00, ctx.currentTime); // A4
-        osc2.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.4); // E5
-        
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-        
-        osc1.start();
-        osc2.start();
-        setTimeout(() => {
-          try {
-            osc1.stop();
-            osc2.stop();
-          } catch (e) {}
-        }, 450);
-      } else if (type === 'winner') {
-        const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
-        notes.forEach((freq, index) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          
-          osc.frequency.setValueAtTime(freq, ctx.currentTime + index * 0.1);
-          gain.gain.setValueAtTime(0, ctx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + index * 0.1 + 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + index * 0.1 + 0.8);
-          
-          osc.start(ctx.currentTime + index * 0.1);
-          setTimeout(() => {
-            try {
-              osc.stop();
-            } catch (e) {}
-          }, 1000 + index * 100);
-        });
-      }
-    } catch (e) {
-      console.warn("Audio playing tone failed:", e);
-    }
+    if (this.bgAudio) this.bgAudio.muted = mute;
+    if (this.correctAudio) this.correctAudio.muted = mute;
+    if (this.wrongAudio) this.wrongAudio.muted = mute;
+    if (this.winAudio) this.winAudio.muted = mute;
   }
-
-  private bgOscs: OscillatorNode[] = [];
-  private bgGain: GainNode | null = null;
-  private bgInterval: number | null = null;
-  private isBgPlaying = false;
 
   startBackgroundMusic() {
     this.init();
-    const ctx = this.ctx;
-    if (!ctx || this.isBgPlaying) return;
-
+    if (this.isMuted) return;
     this.isBgPlaying = true;
-    this.bgGain = ctx.createGain();
-    this.bgGain.connect(ctx.destination);
-    this.bgGain.gain.setValueAtTime(0.75, ctx.currentTime); // Much louder dramatic background volume
-
-    let step = 0;
-    
-    // Low, heavy suspense chords with dark minor & diminished tension shifts (octave lower)
-    const chords = [
-      [110.00, 130.81, 164.81], // A2, C3, E3 (Am suspense root)
-      [116.54, 138.59, 174.61], // Bb2, C#3, F3 (Bbm dramatic shift)
-      [110.00, 130.81, 155.56], // A2, C3, Eb3 (Adim - highly tense diminished chord)
-      [98.00, 116.54, 146.83]    // G2, Bb2, D3 (Gm heavy dramatic resolution)
-    ];
-    let currentChordIndex = 0;
-
-    const playStep = () => {
-      if (!this.isBgPlaying || !this.ctx) return;
-      
-      const currentTime = this.ctx.currentTime;
-
-      // 1. Clock Tick (Triangle, short high-pitch transient)
-      if (step % 2 === 0) {
-        const tickOsc = this.ctx.createOscillator();
-        const tickGain = this.ctx.createGain();
-        tickOsc.type = 'triangle';
-        tickOsc.frequency.setValueAtTime(1300, currentTime);
-        tickOsc.connect(tickGain);
-        if (this.bgGain) tickGain.connect(this.bgGain);
-        
-        tickGain.gain.setValueAtTime(0.08, currentTime); // Crisp ticking sound
-        tickGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.02);
-        
-        tickOsc.start(currentTime);
-        tickOsc.stop(currentTime + 0.03);
-      }
-
-      // 2. Heavy Subsonic Heartbeat Thump (lub-dub)
-      if (step % 4 === 0) {
-        const thump = (delay: number) => {
-          if (!this.ctx) return;
-          const t = this.ctx.currentTime + delay;
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(45, t); // Deep bass thump (F1)
-          osc.frequency.exponentialRampToValueAtTime(28, t + 0.08);
-          
-          osc.connect(gain);
-          if (this.bgGain) gain.connect(this.bgGain);
-          
-          gain.gain.setValueAtTime(0.85, t); // Heavy thump volume
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-          
-          osc.start(t);
-          osc.stop(t + 0.12);
-        };
-        
-        thump(0);
-        thump(0.09); // Fast double thump offset
-      }
-
-      // 3. Cinematic Swelling Minor Pads (every 8 steps = 1.4s at 175ms tempo)
-      if (step % 8 === 0) {
-        const chord = chords[currentChordIndex];
-        chord.forEach((freq, idx) => {
-          if (!this.ctx) return;
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          
-          osc.type = 'triangle';
-          // Detune slightly for chorus tension effect
-          osc.frequency.setValueAtTime(freq + (idx === 1 ? 0.7 : -0.7), currentTime);
-          
-          osc.connect(gain);
-          if (this.bgGain) gain.connect(this.bgGain);
-          
-          gain.gain.setValueAtTime(0, currentTime);
-          gain.gain.linearRampToValueAtTime(0.38, currentTime + 0.3); // Rapid dramatic swell
-          gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 1.25);
-          
-          osc.start(currentTime);
-          osc.stop(currentTime + 1.3);
-        });
-
-        currentChordIndex = (currentChordIndex + 1) % chords.length;
-      }
-
-      step++;
-    };
-
-    // Play suspense steps twice as fast (every 175ms instead of 300ms) for high tension
-    this.bgInterval = window.setInterval(playStep, 175);
+    if (this.bgAudio) {
+      this.bgAudio.currentTime = 0;
+      this.bgAudio.play().catch(err => console.log('Tension music play failed:', err));
+    }
   }
 
   stopBackgroundMusic() {
     this.isBgPlaying = false;
-    if (this.bgInterval) {
-      clearInterval(this.bgInterval);
-      this.bgInterval = null;
+    if (this.bgAudio) {
+      this.bgAudio.pause();
+      this.bgAudio.currentTime = 0;
     }
-    if (this.bgGain) {
-      try {
-        this.bgGain.disconnect();
-      } catch (e) {}
-      this.bgGain = null;
+  }
+
+  play(type: 'success' | 'undo' | 'reveal' | 'winner' | 'victory' | 'countdown-tick' | 'game-start-boom') {
+    this.init();
+    if (this.isMuted) return;
+
+    // Map logic to real sounds
+    if (type === 'success' || type === 'reveal') {
+      if (this.correctAudio) {
+        this.correctAudio.currentTime = 0;
+        this.correctAudio.play().catch(e => console.log('Correct sound failed:', e));
+      }
+    } else if (type === 'undo' || type === 'winner') {
+      // Small synthesized buzzer sound or play correct/wrong sound
+      if (this.wrongAudio) {
+        this.wrongAudio.currentTime = 0;
+        this.wrongAudio.play().catch(e => console.log('Wrong sound failed:', e));
+      }
+    } else if (type === 'victory') {
+      if (this.winAudio) {
+        this.winAudio.currentTime = 0;
+        this.winAudio.play().catch(e => console.log('Victory applause failed:', e));
+      }
+    } else if (type === 'countdown-tick') {
+      this.playTick();
+    } else if (type === 'game-start-boom') {
+      this.playBoom();
+    }
+  }
+
+  private playTick() {
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, t); // Crisp high-frequency beep
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      
+      osc.start(t);
+      osc.stop(t + 0.1);
+    } catch (e) {
+      console.warn('Synthesized tick failed:', e);
+    }
+  }
+
+  private playBoom() {
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      
+      // Low frequency rumble sweep
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, t);
+      osc.frequency.exponentialRampToValueAtTime(30, t + 0.7);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+      
+      osc.start(t);
+      osc.stop(t + 0.9);
+
+      // High crash sizzle
+      const sizzle = this.ctx.createOscillator();
+      const sizzleGain = this.ctx.createGain();
+      sizzle.type = 'triangle';
+      sizzle.frequency.setValueAtTime(6000, t);
+      sizzle.frequency.exponentialRampToValueAtTime(3000, t + 0.3);
+      sizzle.connect(sizzleGain);
+      sizzleGain.connect(this.ctx.destination);
+      
+      sizzleGain.gain.setValueAtTime(0.18, t);
+      sizzleGain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      
+      sizzle.start(t);
+      sizzle.stop(t + 0.4);
+    } catch (e) {
+      console.warn('Synthesized boom failed:', e);
     }
   }
 }

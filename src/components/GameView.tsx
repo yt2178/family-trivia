@@ -194,20 +194,35 @@ export const GameView: React.FC = React.memo(() => {
   const [winnerRevealTimer, setWinnerRevealTimer] = useState<number>(0);
   const [hasTriggeredWinnerReveal, setHasTriggeredWinnerReveal] = useState<boolean>(false);
   const [securityError, setSecurityError] = useState<boolean>(false);
-  const [showStartOverlay, setShowStartOverlay] = useState<boolean>(false);
+  const [startCountdownValue, setStartCountdownValue] = useState<number | null>(null);
   const prevIsPlaying = useRef<boolean>(gameState.isPlaying);
 
-  // Transition effect from waiting screen to active game
+  // Trigger game start countdown when isPlaying changes to true
   useEffect(() => {
     if (!prevIsPlaying.current && gameState.isPlaying) {
-      setShowStartOverlay(true);
-      const timer = setTimeout(() => {
-        setShowStartOverlay(false);
-      }, 2500); // 2.5 seconds
-      return () => clearTimeout(timer);
+      setStartCountdownValue(10);
     }
     prevIsPlaying.current = gameState.isPlaying;
   }, [gameState.isPlaying]);
+
+  // Tick down the start countdown
+  useEffect(() => {
+    if (startCountdownValue === null) return;
+
+    if (startCountdownValue > 0) {
+      audioHelper.play('countdown-tick');
+      const timer = setTimeout(() => {
+        setStartCountdownValue(startCountdownValue - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (startCountdownValue === 0) {
+      audioHelper.play('game-start-boom');
+      const timer = setTimeout(() => {
+        setStartCountdownValue(null);
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [startCountdownValue]);
   
   const hostLabel = settings.hostName || 'המנחה';
   
@@ -246,10 +261,13 @@ export const GameView: React.FC = React.memo(() => {
   // Suspense timer for winner reveal - Tick Down
   useEffect(() => {
     if (winnerRevealTimer > 0) {
+      audioHelper.play('countdown-tick');
       const timer = setTimeout(() => setWinnerRevealTimer(prev => prev - 1), 1000);
       return () => clearTimeout(timer);
+    } else if (winnerRevealTimer === 0 && hasTriggeredWinnerReveal) {
+      audioHelper.play('victory');
     }
-  }, [winnerRevealTimer]);
+  }, [winnerRevealTimer, hasTriggeredWinnerReveal]);
 
   // Load initial data
   useEffect(() => {
@@ -1417,22 +1435,58 @@ export const GameView: React.FC = React.memo(() => {
 
       {/* Start Game Cinematic Reveal Transition Overlay */}
       <AnimatePresence>
-        {showStartOverlay && (
+        {startCountdownValue !== null && (
           <motion.div
-            initial={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(2, 6, 23, 0.95)' }}
-            animate={{ backdropFilter: 'blur(0px)', backgroundColor: 'rgba(2, 6, 23, 0)' }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 2.2, ease: "easeOut" }}
-            className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0, backdropFilter: 'blur(30px)' }}
+            animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
+            exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+            transition={{ duration: 0.5 }}
+            className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-slate-950/95"
           >
-            <motion.h1
-              initial={{ scale: 0.2, opacity: 0 }}
-              animate={{ scale: [0.2, 1.3, 2.5], opacity: [0, 1, 0] }}
-              transition={{ duration: 2.2, ease: "easeInOut" }}
-              className="text-7xl md:text-9xl font-black text-emerald-400 font-sans tracking-widest drop-shadow-[0_0_50px_rgba(16,185,129,0.6)]"
+            {/* Visual heartbeat pulse in the background */}
+            <div className="absolute w-[600px] h-[600px] rounded-full bg-emerald-500/5 blur-3xl animate-pulse pointer-events-none" />
+            
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-center space-y-2 z-10 select-none"
             >
-              מתחילים! 🚀
-            </motion.h1>
+              <h2 className="text-2xl md:text-3xl font-black text-slate-400 uppercase tracking-widest">
+                המשחק מתחיל! 🎮
+              </h2>
+              <p className="text-lg md:text-xl font-bold text-emerald-400">
+                כולם מוכנים? 🤔
+              </p>
+            </motion.div>
+
+            {/* Giant Animated Number */}
+            <div className="h-96 flex items-center justify-center z-10 select-none">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={startCountdownValue}
+                  initial={{ scale: 0.1, opacity: 0, rotate: -20 }}
+                  animate={{ 
+                    scale: startCountdownValue === 0 ? [0.5, 1.5, 1.2] : 1, 
+                    opacity: 1, 
+                    rotate: 0 
+                  }}
+                  exit={{ scale: 1.8, opacity: 0, rotate: 10 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: startCountdownValue === 0 ? 100 : 150, 
+                    damping: startCountdownValue === 0 ? 12 : 10 
+                  }}
+                  className={`text-9xl md:text-[14rem] font-black tracking-tighter drop-shadow-[0_0_80px_rgba(16,185,129,0.3)] ${
+                    startCountdownValue === 0 
+                      ? 'text-rose-400 font-sans tracking-wide drop-shadow-[0_0_120px_rgba(244,63,94,0.6)]' 
+                      : 'text-emerald-400'
+                  }`}
+                >
+                  {startCountdownValue === 0 ? 'בום! 🚀' : startCountdownValue}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

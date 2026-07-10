@@ -225,7 +225,8 @@ function App() {
               hostName: cleanName,
               setupComplete: false,
               wizardStep: 1,
-              questionTimer: null
+              questionTimer: null,
+              nextQuestionDelay: 'manual'
             }
           },
           settings: {
@@ -236,7 +237,8 @@ function App() {
             hostName: cleanName,
             setupComplete: false,
             wizardStep: 1,
-            questionTimer: null
+            questionTimer: null,
+            nextQuestionDelay: 'manual'
           },
           state: {
             currentQuestionIndex: 0,
@@ -262,7 +264,8 @@ function App() {
           hostName: cleanName,
           setupComplete: false,
           wizardStep: 1,
-          questionTimer: null
+          questionTimer: null,
+          nextQuestionDelay: 'manual'
         }));
         localStorage.removeItem('family_game_state');
       } catch (err) {

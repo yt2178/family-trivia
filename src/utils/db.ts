@@ -27,6 +27,7 @@ export interface GameSettings {
   wizardStep?: number; // Current wizard step (1-6) if setup not complete
   questionOrder?: 'sequential' | 'random'; // Order of questions in game
   showNameBank?: boolean;
+  nextQuestionDelay?: 'manual' | number;
 }
 
 export interface GameState {
@@ -61,7 +62,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   hostName: '',
   questionTimer: null,
   wizardStep: 1,
-  questionOrder: 'random'
+  questionOrder: 'random',
+  nextQuestionDelay: 'manual'
 };
 
 const DEFAULT_GAME_STATE: GameState = {

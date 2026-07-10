@@ -40,6 +40,8 @@ export const AdminWizard: React.FC = () => {
     setWizardQuestionTimer,
     wizardShowNameBank,
     setWizardShowNameBank,
+    wizardNextQuestionDelay,
+    setWizardNextQuestionDelay,
     wizardContestants,
     setWizardContestants,
     wizardStepLocal,
@@ -233,6 +235,7 @@ export const AdminWizard: React.FC = () => {
       questionTimer: wizardQuestionTimer,
       questionOrder: wizardQuestionOrder,
       showNameBank: wizardShowNameBank,
+      nextQuestionDelay: wizardNextQuestionDelay,
       contestants: wizardContestants.slice(0, wizardContestantCount),
       wizardStep: undefined 
     });
@@ -254,6 +257,7 @@ export const AdminWizard: React.FC = () => {
         questionTimer: wizardQuestionTimer,
         questionOrder: wizardQuestionOrder,
         showNameBank: wizardShowNameBank,
+        nextQuestionDelay: wizardNextQuestionDelay,
         contestants: wizardContestants.slice(0, wizardContestantCount),
         wizardStep: undefined 
       });
@@ -931,7 +935,7 @@ export const AdminWizard: React.FC = () => {
                       const val = e.target.value;
                       const seconds = val === 'unlimited' ? null : parseInt(val);
                       setWizardQuestionTimer(seconds);
-                      saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, seconds, wizardQuestionOrder, currentStep);
+                      saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, seconds, wizardQuestionOrder, currentStep, wizardShowNameBank, wizardNextQuestionDelay);
                     }}
                     className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 text-sm font-black"
                   >
@@ -945,6 +949,29 @@ export const AdminWizard: React.FC = () => {
                   </select>
                   <p className="text-[10px] text-slate-500 mt-2 bg-slate-950/30 p-3 rounded-lg leading-relaxed">
                     💡 אם תבחר הגבלת זמן, יופיע פס התקדמות (טיימר) בראש מסך ההקרנה כשהמנחה מפעיל שאלה. כשהזמן ייגמר יושמע צליל התראה מיוחד על מנת לזרז את המתמודדים.
+                  </p>
+                </div>
+
+                <div className="mt-6 border-t border-slate-800 pt-6">
+                  <label className="text-xs font-bold text-slate-300 block mb-2">מעבר לשאלה הבאה לאחר חשיפת התשובה:</label>
+                  <select
+                    value={wizardNextQuestionDelay}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const delay = val === 'manual' ? 'manual' : parseInt(val);
+                      setWizardNextQuestionDelay(delay);
+                      saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep, wizardShowNameBank, delay);
+                    }}
+                    className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 text-sm font-black"
+                  >
+                    <option value="manual">🎯 ידני בלבד (לחיצה על כפתור "שאלה הבאה")</option>
+                    <option value="5">⏱️ אוטומטי - 5 שניות</option>
+                    <option value="10">⏱️ אוטומטי - 10 שניות</option>
+                    <option value="15">⏱️ אוטומטי - 15 שניות</option>
+                    <option value="20">⏱️ אוטומטי - 20 שניות</option>
+                  </select>
+                  <p className="text-[10px] text-slate-500 mt-2 bg-slate-950/30 p-3 rounded-lg leading-relaxed">
+                    💡 בחר "ידני בלבד" אם ברצונך לשלוט לחלוטין בקצב המשחק ולעבור שאלה רק כשתלחץ על הכפתור בשלט המנחה.
                   </p>
                 </div>
 
