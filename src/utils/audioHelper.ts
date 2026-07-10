@@ -95,13 +95,13 @@ export class AudioHelper {
         this.correctAudio.currentTime = 0;
         this.correctAudio.play().catch(e => console.log('Correct sound failed:', e));
       }
-    } else if (type === 'undo' || type === 'winner') {
+    } else if (type === 'undo') {
       // Small synthesized buzzer sound or play correct/wrong sound
       if (this.wrongAudio) {
         this.wrongAudio.currentTime = 0;
         this.wrongAudio.play().catch(e => console.log('Wrong sound failed:', e));
       }
-    } else if (type === 'victory') {
+    } else if (type === 'victory' || type === 'winner') {
       if (this.winAudio) {
         this.winAudio.currentTime = 0;
         this.winAudio.play().catch(e => console.log('Victory applause failed:', e));

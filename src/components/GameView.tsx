@@ -376,13 +376,6 @@ export const GameView: React.FC = React.memo(() => {
           if (!prev.isRevealed && healedState.isRevealed) {
             playGameSound('reveal');
           }
-          const totalQ = healedState.shuffledQuestionIds?.length || 0;
-          const prevTotalQ = prev.shuffledQuestionIds?.length || 0;
-          const prevGameOver = prevTotalQ > 0 && prev.currentQuestionIndex >= prevTotalQ;
-          const newGameOver = totalQ > 0 && healedState.currentQuestionIndex >= totalQ;
-          if (!prevGameOver && newGameOver) {
-            playGameSound('winner');
-          }
           return healedState;
         });
       }
@@ -423,7 +416,11 @@ export const GameView: React.FC = React.memo(() => {
 
   // Background music effect
   useEffect(() => {
-    if (!isAudioSuspended && !isBgMusicMuted) {
+    const totalQ = (gameState.shuffledQuestionIds || []).length;
+    const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
+    const isRunning = gameState.isPlaying && !isGameOver && startCountdownValue === null;
+
+    if (!isAudioSuspended && !isBgMusicMuted && isRunning) {
       audioHelper.startBackgroundMusic();
     } else {
       audioHelper.stopBackgroundMusic();
@@ -431,7 +428,7 @@ export const GameView: React.FC = React.memo(() => {
     return () => {
       audioHelper.stopBackgroundMusic();
     };
-  }, [isAudioSuspended, isBgMusicMuted]);
+  }, [isAudioSuspended, isBgMusicMuted, gameState.isPlaying, gameState.currentQuestionIndex, gameState.shuffledQuestionIds, startCountdownValue]);
 
   useEffect(() => {
     const ctx = audioHelper.getContext();
