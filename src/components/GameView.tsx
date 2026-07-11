@@ -420,7 +420,7 @@ export const GameView: React.FC = React.memo(() => {
     return () => {
       audioHelper.stopBackgroundMusic();
     };
-  }, [isAudioSuspended, isBgMusicMuted, gameState.isPlaying, gameState.currentQuestionIndex, gameState.shuffledQuestionIds, startCountdownValue]);
+  }, [isAudioSuspended, isBgMusicMuted, gameState.isPlaying, startCountdownValue, gameState.isPaused]);
 
   useEffect(() => {
     const ctx = audioHelper.getContext();
