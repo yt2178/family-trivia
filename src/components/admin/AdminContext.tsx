@@ -153,8 +153,8 @@ interface AdminContextType {
   setWizardShowNameBank: React.Dispatch<React.SetStateAction<boolean>>;
   wizardNextQuestionDelay: 'manual' | number;
   setWizardNextQuestionDelay: React.Dispatch<React.SetStateAction<'manual' | number>>;
-  wizardContestants: Array<{ id: string; name: string; image: string | null }>;
-  setWizardContestants: React.Dispatch<React.SetStateAction<Array<{ id: string; name: string; image: string | null }>>>;
+  wizardContestants: Array<{ id: string; name: string; image: string | null; gender?: 'male' | 'female' }>;
+  setWizardContestants: React.Dispatch<React.SetStateAction<Array<{ id: string; name: string; image: string | null; gender?: 'male' | 'female' }>>>;
   wizardStepLocal: number | null;
   setWizardStepLocal: React.Dispatch<React.SetStateAction<number | null>>;
   hasInitializedWizard: boolean;
@@ -196,7 +196,7 @@ interface AdminContextType {
   saveDraftToLocalStorage: (
     hostName: string,
     contestantCount: number,
-    contestants: Array<{ id: string; name: string; image: string | null }>,
+    contestants: Array<{ id: string; name: string; image: string | null; gender?: 'male' | 'female' }>,
     questionTimer: number | null,
     questionOrder: 'sequential' | 'random',
     step: number,
@@ -295,7 +295,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [wizardQuestionTimer, setWizardQuestionTimer] = useState<number | null>(null);
   const [wizardShowNameBank, setWizardShowNameBank] = useState<boolean>(false);
   const [wizardNextQuestionDelay, setWizardNextQuestionDelay] = useState<'manual' | number>('manual');
-  const [wizardContestants, setWizardContestants] = useState<Array<{ id: string; name: string; image: string | null }>>([]);
+  const [wizardContestants, setWizardContestants] = useState<Array<{ id: string; name: string; image: string | null; gender?: 'male' | 'female' }>>([]);
   const [wizardStepLocal, setWizardStepLocal] = useState<number | null>(null);
   const [hasInitializedWizard, setHasInitializedWizard] = useState(false);
   const [adminSubMode, setAdminSubMode] = useState<'controller' | 'wizard'>('controller');
@@ -339,7 +339,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           arr.push({
             id: existing?.id || defaultIds[i],
             name: existing?.name || defaultNames[i],
-            image: existing?.image || null
+            image: existing?.image || null,
+            gender: existing?.gender || (defaultNames[i] === 'סגול' ? 'female' : 'male')
           });
         }
         setWizardContestants(arr);
@@ -359,7 +360,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           arr.push({
             id: existing?.id || defaultIds[i],
             name: existing?.name || defaultNames[i],
-            image: existing?.image || null
+            image: existing?.image || null,
+            gender: existing?.gender || (defaultNames[i] === 'סגול' ? 'female' : 'male')
           });
         }
         setWizardContestants(arr);
@@ -546,7 +548,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               arr.push({
                 id: existing?.id || defaultIds[i],
                 name: existing?.name || defaultNames[i],
-                image: existing?.image || null
+                image: existing?.image || null,
+                gender: existing?.gender || (defaultNames[i] === 'סגול' ? 'female' : 'male')
               });
             }
             setWizardContestants(arr);
@@ -681,6 +684,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     db.saveSettings(newSettings);
     setSettings(newSettings);
     sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
+    sync.sendMessage({ type: 'START_GAME_COUNTDOWN' });
     showSuccess('המשחק אותחל וערבוב השאלות הושלם בהצלחה!');
   };
 
@@ -692,6 +696,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     db.saveSettings(newSettings);
     setSettings(newSettings);
     sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
+    sync.sendMessage({ type: 'START_GAME_COUNTDOWN' });
     showSuccess('המשחק אותחל בהצלחה!');
   };
 

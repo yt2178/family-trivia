@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { rtdb } from '../utils/firebase';
 import { ref, set, onValue, off, get } from 'firebase/database';
 
-function CountdownTimer({ duration, isRevealed, currentQuestionId }: { duration: number; isRevealed: boolean; currentQuestionId: string }) {
+function CountdownTimer({ duration, isRevealed, currentQuestionId, isPaused }: { duration: number; isRevealed: boolean; currentQuestionId: string; isPaused: boolean }) {
   const [timeLeft, setTimeLeft] = useState(duration);
 
   useEffect(() => {
@@ -15,7 +15,7 @@ function CountdownTimer({ duration, isRevealed, currentQuestionId }: { duration:
   }, [duration, currentQuestionId]);
 
   useEffect(() => {
-    if (isRevealed || timeLeft <= 0) return;
+    if (isRevealed || isPaused || timeLeft <= 0) return;
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -32,7 +32,7 @@ function CountdownTimer({ duration, isRevealed, currentQuestionId }: { duration:
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isRevealed, timeLeft, currentQuestionId]);
+  }, [isRevealed, isPaused, timeLeft, currentQuestionId]);
 
   if (isRevealed) return null;
 
@@ -131,10 +131,10 @@ class ConfettiParticle {
     this.y = -20 - Math.random() * 100;
     this.size = Math.random() * 8 + 6;
     this.color = colors[Math.floor(Math.random() * colors.length)];
-    this.speedX = Math.random() * 4 - 2;
-    this.speedY = Math.random() * 5 + 3;
+    this.speedX = Math.random() * 2 - 1;
+    this.speedY = Math.random() * 2.5 + 1.5;
     this.rotation = Math.random() * 360;
-    this.rotationSpeed = Math.random() * 4 - 2;
+    this.rotationSpeed = Math.random() * 2 - 1;
   }
 
   suckUp() {
@@ -191,19 +191,7 @@ export const GameView: React.FC = React.memo(() => {
   const [isLoading, setIsLoading] = useState<boolean>(!!sync.getRoomCode());
   const [roomError, setRoomError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(5);
-  const [winnerRevealTimer, setWinnerRevealTimer] = useState<number>(0);
-  const [hasTriggeredWinnerReveal, setHasTriggeredWinnerReveal] = useState<boolean>(false);
-  const [securityError, setSecurityError] = useState<boolean>(false);
   const [startCountdownValue, setStartCountdownValue] = useState<number | null>(null);
-  const prevIsPlaying = useRef<boolean>(gameState.isPlaying);
-
-  // Trigger game start countdown when isPlaying changes to true
-  useEffect(() => {
-    if (!prevIsPlaying.current && gameState.isPlaying) {
-      setStartCountdownValue(10);
-    }
-    prevIsPlaying.current = gameState.isPlaying;
-  }, [gameState.isPlaying]);
 
   // Tick down the start countdown
   useEffect(() => {
@@ -240,6 +228,10 @@ export const GameView: React.FC = React.memo(() => {
     }
   }, [roomError, countdown]);
 
+  const [winnerRevealTimer, setWinnerRevealTimer] = useState<number>(0);
+  const [hasTriggeredWinnerReveal, setHasTriggeredWinnerReveal] = useState<boolean>(false);
+  const [securityError, setSecurityError] = useState<boolean>(false);
+
   // Suspense timer for winner reveal - Trigger Check
   useEffect(() => {
     const totalQ = (gameState.shuffledQuestionIds || []).length;
@@ -247,7 +239,7 @@ export const GameView: React.FC = React.memo(() => {
     
     if (isGameOver) {
       if (!hasTriggeredWinnerReveal && winnerRevealTimer === 0) {
-        setWinnerRevealTimer(5); // 5 second suspense timer
+        setWinnerRevealTimer(10); // 10 second suspense timer for maximum drama
         setHasTriggeredWinnerReveal(true);
       }
     } else {
@@ -488,6 +480,8 @@ export const GameView: React.FC = React.memo(() => {
           playGameSound('success');
           triggerConfetti(msg.winner);
         }
+      } else if (msg.type === 'START_GAME_COUNTDOWN') {
+        setStartCountdownValue(10);
       }
     });
 
@@ -1187,6 +1181,7 @@ export const GameView: React.FC = React.memo(() => {
                     duration={settings.questionTimer}
                     isRevealed={gameState.isRevealed}
                     currentQuestionId={currentQuestion.id}
+                    isPaused={gameState.isPaused}
                   />
                 ) : null}
               </motion.div>
@@ -1393,12 +1388,13 @@ export const GameView: React.FC = React.memo(() => {
                   const winnerIndex = (settings.contestants || []).findIndex(c => c.id === getGameWinner());
                   const colors = CONTESTANT_COLORS[winnerIndex % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
                   const name = winnerContestant?.name || '';
-                  const pronoun = name.endsWith('ה') || name.endsWith('ת') ? 'אלופת' : 'אלוף';
-                  const greeting = name.endsWith('ה') || name.endsWith('ת') ? 'ברכות למנצחת שזוכרת הכל' : 'ברכות לגיבור שזיהה הכי הרבה משפטים';
+                  const gender = winnerContestant?.gender || 'male';
+                  const pronoun = gender === 'female' ? 'אלופת' : 'אלוף';
+                  const greeting = gender === 'female' ? 'ברכות למנצחת שזוכרת הכל' : 'ברכות לגיבור שזיהה הכי הרבה משפטים';
                   return (
                     <div>
                       <h3 className={`text-2xl font-bold ${colors.text} flex items-center justify-center gap-2`}>
-                        🏆 {name} {name.endsWith('ה') || name.endsWith('ת') ? 'היא' : 'הוא'} {pronoun} המשחק!
+                        🏆 {name} {gender === 'female' ? 'היא' : 'הוא'} {pronoun} המשחק!
                       </h3>
                       <p className="text-xs text-slate-400 mt-2">{greeting}</p>
                     </div>

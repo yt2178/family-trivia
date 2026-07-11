@@ -16,6 +16,7 @@ export interface Contestant {
   id: string;
   name: string;
   image: string | null;
+  gender?: 'male' | 'female';
 }
 
 export interface GameSettings {

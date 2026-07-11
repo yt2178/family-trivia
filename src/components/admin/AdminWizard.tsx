@@ -88,7 +88,16 @@ export const AdminWizard: React.FC = () => {
     if (updated[index]) {
       updated[index] = { ...updated[index], name };
       setWizardContestants(updated);
-      saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
+      saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep, wizardShowNameBank, wizardNextQuestionDelay);
+    }
+  };
+
+  const handleWizardContestantGenderChange = (index: number, gender: 'male' | 'female') => {
+    const updated = [...wizardContestants];
+    if (updated[index]) {
+      updated[index] = { ...updated[index], gender };
+      setWizardContestants(updated);
+      saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep, wizardShowNameBank, wizardNextQuestionDelay);
     }
   };
 
@@ -633,6 +642,33 @@ export const AdminWizard: React.FC = () => {
                             placeholder={`שם מתמודד (למשל: ${theme.name})`}
                             className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-100 placeholder-slate-650 focus:outline-none focus:border-emerald-500 text-xs font-bold"
                           />
+                          <div className="flex items-center gap-2 mt-1.5" dir="rtl">
+                            <span className="text-[9px] text-slate-450 font-bold">קריינות:</span>
+                            <div className="flex bg-slate-900 p-0.5 rounded-md border border-slate-800">
+                              <button
+                                type="button"
+                                onClick={() => handleWizardContestantGenderChange(idx, 'male')}
+                                className={`px-2 py-0.5 text-[9px] font-black rounded transition-all ${
+                                  c.gender === 'male' || !c.gender
+                                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                                    : 'text-slate-450 hover:text-slate-200'
+                                }`}
+                              >
+                                זכר 👨
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleWizardContestantGenderChange(idx, 'female')}
+                                className={`px-2 py-0.5 text-[9px] font-black rounded transition-all ${
+                                  c.gender === 'female'
+                                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                                    : 'text-slate-450 hover:text-slate-200'
+                                }`}
+                              >
+                                נקבה 👩
+                              </button>
+                            </div>
+                          </div>
                         </div>
 
                         {c.image && (

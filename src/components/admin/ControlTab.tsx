@@ -31,7 +31,8 @@ export const ControlTab: React.FC = () => {
     handleAbsoluteReset,
     nextQuestionTimer,
     showContestantOrderModal,
-    setShowContestantOrderModal
+    setShowContestantOrderModal,
+    handleTogglePause
   } = useAdmin();
 
   const isConnected = useConnectionStatus();
@@ -64,14 +65,38 @@ export const ControlTab: React.FC = () => {
       {/* Left side: Current Question Control */}
       <div className="col-span-12 lg:col-span-8 flex flex-col justify-between glass-panel p-6 rounded-3xl border border-slate-800">
         <div>
-          <h3 className="text-lg font-bold mb-4 text-emerald-400 flex items-center gap-2">
-            <span>שליטה בסיבוב המשחק</span>
-            {!isGameLoaded && (
-              <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">
-                טרם התחיל המשחק
-              </span>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-emerald-400 flex items-center gap-2">
+              <span>שליטה בסיבוב המשחק</span>
+              {!isGameLoaded && (
+                <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">
+                  טרם התחיל המשחק
+                </span>
+              )}
+            </h3>
+            {isGameLoaded && (
+              <button
+                onClick={handleTogglePause}
+                className={`px-4 py-2 text-xs font-black rounded-xl border flex items-center gap-2 transition-all active:scale-95 ${
+                  gameState.isPaused
+                    ? 'bg-amber-500 border-amber-400 text-slate-950 hover:bg-amber-400 shadow-md shadow-amber-950/20 animate-pulse'
+                    : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-850 hover:text-rose-455'
+                }`}
+              >
+                {gameState.isPaused ? (
+                  <>
+                    <Play size={14} fill="currentColor" />
+                    <span>המשך משחק ▶️</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-block w-2 h-2 bg-rose-500 rounded-full animate-ping" />
+                    <span>עצור משחק ⏸️</span>
+                  </>
+                )}
+              </button>
             )}
-          </h3>
+          </div>
 
           {isGameLoaded && gameState.currentQuestionIndex < shuffledIds.length ? (
               <div>
@@ -202,7 +227,7 @@ export const ControlTab: React.FC = () => {
                           }`}
                         >
                           <Check size={28} className={`${isWinner ? colors.text : 'text-slate-500'} group-hover:scale-110 transition-transform`} />
-                          <span className="font-bold text-sm truncate-name">{c.name} {c.name.endsWith('ה') || c.name.endsWith('ת') ? 'צדקה!' : 'צדק!'}</span>
+                          <span className="font-bold text-sm truncate-name">{c.name} {c.gender === 'female' ? 'צדקה!' : 'צדק!'}</span>
                           <span className="text-[10px] text-slate-400">{isWinner ? 'לחץ שוב לביטול' : `+1 נקודה ו-${colors.glow}`}</span>
                         </button>
                       );
