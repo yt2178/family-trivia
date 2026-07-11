@@ -204,7 +204,7 @@ export const GameView: React.FC = React.memo(() => {
       }, 1000);
       return () => clearTimeout(timer);
     } else if (startCountdownValue === 0) {
-      audioHelper.play('game-start-boom');
+      // No boom sound — cinematic visual transition only
       const timer = setTimeout(() => {
         setStartCountdownValue(null);
       }, 2200); // 2.2 seconds matches the cinematic grow duration
@@ -252,11 +252,16 @@ export const GameView: React.FC = React.memo(() => {
 
   // Suspense timer for winner reveal - Tick Down
   useEffect(() => {
+    if (winnerRevealTimer === 10) {
+      // First tick — start KBC suspense music
+      audioHelper.startSuspenseMusic();
+    }
     if (winnerRevealTimer > 0) {
       audioHelper.play('countdown-tick');
       const timer = setTimeout(() => setWinnerRevealTimer(prev => prev - 1), 1000);
       return () => clearTimeout(timer);
     } else if (winnerRevealTimer === 0 && hasTriggeredWinnerReveal) {
+      audioHelper.stopSuspenseMusic();
       audioHelper.play('victory');
     }
   }, [winnerRevealTimer, hasTriggeredWinnerReveal]);

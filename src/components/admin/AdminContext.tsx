@@ -1100,7 +1100,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const updated = { ...gameState, isPaused: !gameState.isPaused };
     setGameState(updated);
     db.saveGameState(updated);
-    sync.sendMessage({ type: 'DATABASE_SYNC', members, questions, settings });
+    sync.sendMessage({ type: 'STATE_CHANGED', state: updated });
   };
 
   const showSuccess = (msg: string) => {
