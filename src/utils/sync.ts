@@ -11,7 +11,8 @@ export type SyncMessage =
   | { type: 'TRIGGER_CONFETTI'; winner: string; isUndo?: boolean }
   | { type: 'PING' }
   | { type: 'PONG' }
-  | { type: 'CONTROLLER_CONNECTED'; roomCode: string };
+  | { type: 'CONTROLLER_CONNECTED'; roomCode: string }
+  | { type: 'START_GAME_COUNTDOWN' };
 
 const CLIENT_ID = Math.random().toString(36).substring(2, 15);
 
