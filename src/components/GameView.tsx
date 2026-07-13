@@ -193,31 +193,44 @@ export const GameView: React.FC = React.memo(() => {
   const [countdown, setCountdown] = useState<number>(5);
   const [startCountdownValue, setStartCountdownValue] = useState<number | null>(null);
 
-  // Tick down the start countdown - robust interval implementation to prevent skipping numbers
+  const startIntervalRef = useRef<any>(null);
+  const winnerIntervalRef = useRef<any>(null);
+
+  // Tick down the start countdown - robust interval implementation using useRef to prevent resetting when state changes
   useEffect(() => {
-    if (startCountdownValue !== 10) return;
+    if (startCountdownValue === 10) {
+      if (startIntervalRef.current) {
+        clearInterval(startIntervalRef.current);
+      }
 
-    audioHelper.startIntroMusic();
-    audioHelper.play('countdown-tick');
+      audioHelper.startIntroMusic();
+      audioHelper.play('countdown-tick');
 
-    const interval = setInterval(() => {
-      setStartCountdownValue(prev => {
-        if (prev === null || prev <= 1) {
-          clearInterval(interval);
-          audioHelper.stopIntroMusic();
-          audioHelper.play('game-start-boom');
-          setTimeout(() => {
-            setStartCountdownValue(null);
-          }, 2200);
-          return 0;
-        }
-        audioHelper.play('countdown-tick');
-        return prev - 1;
-      });
-    }, 1000);
+      startIntervalRef.current = setInterval(() => {
+        setStartCountdownValue(prev => {
+          if (prev === null || prev <= 1) {
+            clearInterval(startIntervalRef.current);
+            startIntervalRef.current = null;
+            audioHelper.stopIntroMusic();
+            audioHelper.play('game-start-boom');
+            setTimeout(() => {
+              setStartCountdownValue(null);
+            }, 2200);
+            return 0;
+          }
+          audioHelper.play('countdown-tick');
+          return prev - 1;
+        });
+      }, 1000);
+    }
 
-    return () => clearInterval(interval);
-  }, [startCountdownValue === 10]);
+    return () => {
+      if (startCountdownValue === null && startIntervalRef.current) {
+        clearInterval(startIntervalRef.current);
+        startIntervalRef.current = null;
+      }
+    };
+  }, [startCountdownValue]);
   
   const hostLabel = settings.hostName || 'המנחה';
   
@@ -257,28 +270,38 @@ export const GameView: React.FC = React.memo(() => {
     }
   }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, hasTriggeredWinnerReveal]);
 
-  // Suspense timer for winner reveal - Tick Down - robust interval implementation to prevent skipping numbers
+  // Suspense timer for winner reveal - Tick Down - robust interval implementation using useRef to prevent resetting when state changes
   useEffect(() => {
-    if (winnerRevealTimer !== 10) return;
+    if (winnerRevealTimer === 10) {
+      if (winnerIntervalRef.current) {
+        clearInterval(winnerIntervalRef.current);
+      }
 
-    audioHelper.startSuspenseMusic();
-    audioHelper.play('countdown-tick');
+      audioHelper.startSuspenseMusic();
+      audioHelper.play('countdown-tick');
 
-    const interval = setInterval(() => {
-      setWinnerRevealTimer(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          audioHelper.stopSuspenseMusic();
-          audioHelper.play('victory');
-          return 0;
-        }
-        audioHelper.play('countdown-tick');
-        return prev - 1;
-      });
-    }, 1000);
+      winnerIntervalRef.current = setInterval(() => {
+        setWinnerRevealTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(winnerIntervalRef.current);
+            winnerIntervalRef.current = null;
+            audioHelper.stopSuspenseMusic();
+            audioHelper.play('victory');
+            return 0;
+          }
+          audioHelper.play('countdown-tick');
+          return prev - 1;
+        });
+      }, 1000);
+    }
 
-    return () => clearInterval(interval);
-  }, [winnerRevealTimer === 10]);
+    return () => {
+      if (winnerRevealTimer === 0 && winnerIntervalRef.current) {
+        clearInterval(winnerIntervalRef.current);
+        winnerIntervalRef.current = null;
+      }
+    };
+  }, [winnerRevealTimer]);
 
   // Load initial data
   useEffect(() => {
