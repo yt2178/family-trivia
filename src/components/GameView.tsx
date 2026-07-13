@@ -193,29 +193,31 @@ export const GameView: React.FC = React.memo(() => {
   const [countdown, setCountdown] = useState<number>(5);
   const [startCountdownValue, setStartCountdownValue] = useState<number | null>(null);
 
-  // Tick down the start countdown
+  // Tick down the start countdown - robust interval implementation to prevent skipping numbers
   useEffect(() => {
-    if (startCountdownValue === null) return;
+    if (startCountdownValue !== 10) return;
 
-    if (startCountdownValue === 10) {
-      audioHelper.startIntroMusic();
-    }
+    audioHelper.startIntroMusic();
+    audioHelper.play('countdown-tick');
 
-    if (startCountdownValue > 0) {
-      audioHelper.play('countdown-tick');
-      const timer = setTimeout(() => {
-        setStartCountdownValue(startCountdownValue - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else if (startCountdownValue === 0) {
-      audioHelper.stopIntroMusic();
-      audioHelper.play('game-start-boom');
-      const timer = setTimeout(() => {
-        setStartCountdownValue(null);
-      }, 2200); // 2.2 seconds matches the cinematic grow duration
-      return () => clearTimeout(timer);
-    }
-  }, [startCountdownValue]);
+    const interval = setInterval(() => {
+      setStartCountdownValue(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          audioHelper.stopIntroMusic();
+          audioHelper.play('game-start-boom');
+          setTimeout(() => {
+            setStartCountdownValue(null);
+          }, 2200);
+          return 0;
+        }
+        audioHelper.play('countdown-tick');
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [startCountdownValue === 10]);
   
   const hostLabel = settings.hostName || 'המנחה';
   
@@ -255,21 +257,28 @@ export const GameView: React.FC = React.memo(() => {
     }
   }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, hasTriggeredWinnerReveal]);
 
-  // Suspense timer for winner reveal - Tick Down
+  // Suspense timer for winner reveal - Tick Down - robust interval implementation to prevent skipping numbers
   useEffect(() => {
-    if (winnerRevealTimer === 10) {
-      // First tick — start KBC suspense music
-      audioHelper.startSuspenseMusic();
-    }
-    if (winnerRevealTimer > 0) {
-      audioHelper.play('countdown-tick');
-      const timer = setTimeout(() => setWinnerRevealTimer(prev => prev - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (winnerRevealTimer === 0 && hasTriggeredWinnerReveal) {
-      audioHelper.stopSuspenseMusic();
-      audioHelper.play('victory');
-    }
-  }, [winnerRevealTimer, hasTriggeredWinnerReveal]);
+    if (winnerRevealTimer !== 10) return;
+
+    audioHelper.startSuspenseMusic();
+    audioHelper.play('countdown-tick');
+
+    const interval = setInterval(() => {
+      setWinnerRevealTimer(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          audioHelper.stopSuspenseMusic();
+          audioHelper.play('victory');
+          return 0;
+        }
+        audioHelper.play('countdown-tick');
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [winnerRevealTimer === 10]);
 
   // Load initial data
   useEffect(() => {

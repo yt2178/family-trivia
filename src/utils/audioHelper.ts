@@ -9,6 +9,8 @@ export class AudioHelper {
   private ctx: AudioContext | null = null;
   private isBgPlaying = false;
   private isMuted = false;
+  private currentActiveTrack: HTMLAudioElement | null = null;
+  private fadeIntervals = new Map<HTMLAudioElement, any>();
 
   private init() {
     if (this.bgAudio) return;
@@ -37,8 +39,11 @@ export class AudioHelper {
     this.suspenseAudio.volume = 0.7;
 
     // Kevin MacLeod "Local Forecast - Elevator" — calm elevator music for pause state
+    // Kevin MacLeod "Bossa Antigua" — warm acoustic bossa nova for pause state
     // License: CC BY 4.0 (incompetech.com)
-    this.pauseAudio = new Audio('https://incompetech.com/music/royalty-free/mp3-royaltyfree/Local%20Forecast%20-%20Elevator.mp3');
+    this.pauseAudio = new Audio('https://incompetech.com/music/royalty-free/mp3-royaltyfree/Bossa%20Antigua.mp3');
+    this.pauseAudio.loop = true;
+    this.pauseAudio.volume = 0.5;
     this.pauseAudio.loop = true;
     this.pauseAudio.volume = 0.5;
 
@@ -89,97 +94,140 @@ export class AudioHelper {
     if (this.suspenseAudio) this.suspenseAudio.muted = mute;
     if (this.pauseAudio) this.pauseAudio.muted = mute;
     if (this.introAudio) this.introAudio.muted = mute;
+
+    // If unmuting, play the active track if it was paused
+    if (!mute && this.currentActiveTrack && this.currentActiveTrack.paused) {
+      this.currentActiveTrack.play().catch(e => console.log('Play on unmute failed:', e));
+    }
   }
 
-  // ─── Background music (tension loop during questions) ────────────────────
-  startBackgroundMusic() {
+  // Crossfade and volume smoothing transition helper
+  private fadeTo(targetAudio: HTMLAudioElement | null, targetVolume: number, duration: number = 800) {
     this.init();
-    this.stopSuspenseMusic();
-    this.stopPauseMusic();
-    this.stopIntroMusic();
-    if (this.isMuted) return;
-    this.isBgPlaying = true;
-    if (this.bgAudio) {
-      if (this.bgAudio.paused) {
-        this.bgAudio.currentTime = 0;
-        this.bgAudio.play().catch(err => console.log('BG music play failed:', err));
+
+    // 1. If we are fading to the same audio that is already playing, do nothing
+    if (this.currentActiveTrack === targetAudio) {
+      if (targetAudio && targetAudio.paused && !this.isMuted) {
+        targetAudio.volume = targetVolume;
+        targetAudio.play().catch(e => console.log('Play failed:', e));
+      }
+      return;
+    }
+
+    const oldAudio = this.currentActiveTrack;
+    this.currentActiveTrack = targetAudio;
+
+    const steps = 16;
+    const intervalTime = duration / steps;
+
+    // 2. Fade out the old audio
+    if (oldAudio) {
+      if (this.fadeIntervals.has(oldAudio)) {
+        clearInterval(this.fadeIntervals.get(oldAudio));
+        this.fadeIntervals.delete(oldAudio);
+      }
+
+      let currentVol = oldAudio.volume;
+      const volStep = currentVol / steps;
+
+      const fadeOutTimer = setInterval(() => {
+        if (oldAudio.volume > volStep) {
+          oldAudio.volume = Math.max(0, oldAudio.volume - volStep);
+        } else {
+          oldAudio.volume = 0;
+          oldAudio.pause();
+          clearInterval(fadeOutTimer);
+          this.fadeIntervals.delete(oldAudio);
+        }
+      }, intervalTime);
+
+      this.fadeIntervals.set(oldAudio, fadeOutTimer);
+    }
+
+    // 3. Fade in the new audio
+    if (targetAudio) {
+      if (this.fadeIntervals.has(targetAudio)) {
+        clearInterval(this.fadeIntervals.get(targetAudio));
+        this.fadeIntervals.delete(targetAudio);
+      }
+
+      targetAudio.volume = 0;
+      targetAudio.muted = this.isMuted;
+
+      if (!this.isMuted) {
+        targetAudio.currentTime = 0;
+        targetAudio.play().then(() => {
+          let currentVol = 0;
+          const volStep = targetVolume / steps;
+
+          const fadeInTimer = setInterval(() => {
+            if (currentVol < targetVolume) {
+              currentVol = Math.min(targetVolume, currentVol + volStep);
+              targetAudio.volume = currentVol;
+            } else {
+              targetAudio.volume = targetVolume;
+              clearInterval(fadeInTimer);
+              this.fadeIntervals.delete(targetAudio);
+            }
+          }, intervalTime);
+
+          this.fadeIntervals.set(targetAudio, fadeInTimer);
+        }).catch(err => {
+          console.log('Fade in play failed:', err);
+          targetAudio.volume = targetVolume;
+        });
+      } else {
+        targetAudio.volume = targetVolume;
       }
     }
+  }
+
+  // Loop music starters & stoppers with crossfade transitions
+  startBackgroundMusic() {
+    this.init();
+    this.isBgPlaying = true;
+    this.fadeTo(this.bgAudio, 0.55);
   }
 
   stopBackgroundMusic() {
     this.isBgPlaying = false;
-    if (this.bgAudio) {
-      this.bgAudio.pause();
-      this.bgAudio.currentTime = 0;
+    if (this.currentActiveTrack === this.bgAudio) {
+      this.fadeTo(null, 0);
     }
   }
 
-  // ─── Suspense music (KBC jingle during winner reveal countdown) ──────────
   startSuspenseMusic() {
     this.init();
-    this.stopBackgroundMusic();
-    this.stopPauseMusic();
-    this.stopIntroMusic();
-    if (this.isMuted) return;
-    if (this.suspenseAudio) {
-      if (this.suspenseAudio.paused) {
-        this.suspenseAudio.currentTime = 0;
-        this.suspenseAudio.play().catch(err => console.log('Suspense music play failed:', err));
-      }
-    }
+    this.fadeTo(this.suspenseAudio, 0.70);
   }
 
   stopSuspenseMusic() {
-    if (this.suspenseAudio) {
-      this.suspenseAudio.pause();
-      this.suspenseAudio.currentTime = 0;
+    if (this.currentActiveTrack === this.suspenseAudio) {
+      this.fadeTo(null, 0);
     }
   }
 
-  // ─── Pause music (calm elevator music during pause) ──────────────────────────
   startPauseMusic() {
     this.init();
-    this.stopBackgroundMusic();
-    this.stopSuspenseMusic();
-    this.stopIntroMusic();
-    if (this.isMuted) return;
-    if (this.pauseAudio) {
-      if (this.pauseAudio.paused) {
-        this.pauseAudio.currentTime = 0;
-        this.pauseAudio.play().catch(err => console.log('Pause music play failed:', err));
-      }
-    }
+    this.fadeTo(this.pauseAudio, 0.50);
   }
 
   stopPauseMusic() {
-    if (this.pauseAudio) {
-      this.pauseAudio.pause();
-      this.pauseAudio.currentTime = 0;
+    if (this.currentActiveTrack === this.pauseAudio) {
+      this.fadeTo(null, 0);
     }
   }
 
-  // ─── Intro music (Let's Play during start countdown) ──────────────────────────
   startIntroMusic() {
     this.init();
-    this.stopBackgroundMusic();
-    this.stopSuspenseMusic();
-    this.stopPauseMusic();
-    if (this.isMuted) return;
-    if (this.introAudio) {
-      if (this.introAudio.paused) {
-        this.introAudio.currentTime = 0;
-        this.introAudio.play().catch(err => console.log('Intro music play failed:', err));
-      }
-    }
+    this.fadeTo(this.introAudio, 0.65);
   }
 
   stopIntroMusic() {
-    if (this.introAudio) {
-      this.introAudio.pause();
-      this.introAudio.currentTime = 0;
+    if (this.currentActiveTrack === this.introAudio) {
+      this.fadeTo(null, 0);
     }
-  }
+  }  }
   
   // ─── Helper method to check if intro is declared ──────────────────────────────
   hasIntroAudio() {
