@@ -1422,7 +1422,7 @@ export const GameView: React.FC = React.memo(() => {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               className={`glass-panel p-10 w-full rounded-3xl border border-slate-800 text-center shadow-2xl relative overflow-hidden transition-all duration-500 ${
-                winnerRevealTimer === 0 ? 'max-w-3xl' : 'max-w-2xl'
+                winnerRevealTimer === 0 ? 'max-w-6xl' : 'max-w-2xl'
               }`}
             >
               {/* Confetti decoration */}
