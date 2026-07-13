@@ -1206,6 +1206,7 @@ export const AdminWizard: React.FC = () => {
                     </label>
                   </div>
                 </div>
+              </div>
             </div>
           )}
 
