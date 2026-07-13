@@ -332,16 +332,24 @@ export const GameView: React.FC = React.memo(() => {
     const roomCode = sync.getRoomCode();
     if (roomCode) {
       const statusRef = ref(rtdb, `rooms/${roomCode}/gameScreenConnected`);
-      // Only set if room exists to avoid creating data for non-existent rooms
       const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
+      const connectedRef = ref(rtdb, ".info/connected");
+      let unsubscribeConnected = null;
+      
+      // Only set if room exists to avoid creating data for non-existent rooms
       get(roomRef).then((snapshot) => {
         if (snapshot.exists()) {
-          set(statusRef, true);
-          onDisconnect(statusRef).set(false);
+          unsubscribeConnected = onValue(connectedRef, (snap) => {
+            if (snap.val() === true) {
+              set(statusRef, true);
+              onDisconnect(statusRef).set(false);
+            }
+          });
         }
       }).catch(err => console.error("Error checking room existence:", err));
       
       return () => {
+        if (unsubscribeConnected) unsubscribeConnected();
         const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
         get(roomRef).then((snapshot) => {
           if (snapshot.exists()) {

@@ -240,12 +240,18 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (roomCode && !isLoading && !securityError) {
       const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
       const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
+      const connectedRef = ref(rtdb, ".info/connected");
+      let unsubscribeConnected = null;
       
       // Only set controller status if room exists to avoid creating data for non-existent rooms
       get(roomRef).then((snapshot) => {
         if (snapshot.exists()) {
-          set(controllerStatusRef, true);
-          onDisconnect(controllerStatusRef).set(false);
+          unsubscribeConnected = onValue(connectedRef, (snap) => {
+            if (snap.val() === true) {
+              set(controllerStatusRef, true);
+              onDisconnect(controllerStatusRef).set(false);
+            }
+          });
         }
       }).catch(err => console.error("Error checking room existence:", err));
 
@@ -258,6 +264,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
 
       return () => {
+        if (unsubscribeConnected) unsubscribeConnected();
         get(roomRef).then((snapshot) => {
           if (snapshot.exists()) {
             set(controllerStatusRef, false);
