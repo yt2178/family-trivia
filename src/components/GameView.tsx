@@ -415,15 +415,27 @@ export const GameView: React.FC = React.memo(() => {
   useEffect(() => {
     const totalQ = (gameState.shuffledQuestionIds || []).length;
     const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
-    const isRunning = gameState.isPlaying && !isGameOver && startCountdownValue === null;
+    
+    // Play background music if game is active, not over, not paused, and countdown is finished
+    const isRunning = gameState.isPlaying && !isGameOver && startCountdownValue === null && !gameState.isPaused;
 
     if (!isAudioSuspended && !isBgMusicMuted && isRunning) {
       audioHelper.startBackgroundMusic();
     } else {
       audioHelper.stopBackgroundMusic();
     }
+
+    // Play calm pause music if game is active, not over, and is paused
+    const isPausedMode = gameState.isPlaying && !isGameOver && gameState.isPaused;
+    if (!isAudioSuspended && !isBgMusicMuted && isPausedMode) {
+      audioHelper.startPauseMusic();
+    } else {
+      audioHelper.stopPauseMusic();
+    }
+
     return () => {
       audioHelper.stopBackgroundMusic();
+      audioHelper.stopPauseMusic();
     };
   }, [isAudioSuspended, isBgMusicMuted, gameState.isPlaying, startCountdownValue, gameState.isPaused]);
 
