@@ -28,6 +28,8 @@ function App() {
   const [showForm, setShowForm] = useState<boolean>(false);
   const [roomCode, setRoomCode] = useState<string>('');
   const [inputRoomCode, setInputRoomCode] = useState<string>('');
+  const [joinedRoomMembersCount, setJoinedRoomMembersCount] = useState<number>(-1);
+  const [joinedRoomQuestionsCount, setJoinedRoomQuestionsCount] = useState<number>(-1);
   const [lastRoomCode, setLastRoomCode] = useState<string | null>(null);
   const [joinSelectionRoom, setJoinSelectionRoom] = useState<string | null>(null);
 
@@ -371,6 +373,13 @@ function App() {
         return { ok: false };
       }
       const data = snap.val();
+      const dbMembers = data?.db?.members || [];
+      const dbQuestions = data?.db?.questions || [];
+      const membersCount = Array.isArray(dbMembers) ? dbMembers.length : Object.keys(dbMembers || {}).length;
+      const questionsCount = Array.isArray(dbQuestions) ? dbQuestions.length : Object.keys(dbQuestions || {}).length;
+      setJoinedRoomMembersCount(membersCount);
+      setJoinedRoomQuestionsCount(questionsCount);
+
       const storedName: string = (data?.settings?.hostName || data?.db?.settings?.hostName || '').trim();
       if (storedName && storedName.toLowerCase() !== cleanJoinName.toLowerCase()) {
         setJoinError('❌ שם המנחה שגוי — בדוק ונסה שוב');
@@ -584,9 +593,20 @@ function App() {
                 } catch (e) {
                   console.error("Failed to sync room data to localStorage", e);
                 }
+                if (joinedRoomMembersCount === 0 || joinedRoomQuestionsCount === 0) {
+                  let alertMsg = 'אי אפשר להפעיל את שלט המנחה:\n';
+                  if (joinedRoomMembersCount === 0) alertMsg += '- לא מולא אף משתתף בחידון\n';
+                  if (joinedRoomQuestionsCount === 0) alertMsg += '- לא מולאה אף שאלה בחידון\n';
+                  alert(alertMsg + '\nאנא היכנס לערוך את ההגדרות והמשתתפים תחילה.');
+                  return;
+                }
                 window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}&controller=true&host=${encodeURIComponent(joinHostName)}`;
               }}
-              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 cursor-pointer"
+              className={`w-full py-4 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 cursor-pointer ${
+                joinedRoomMembersCount === 0 || joinedRoomQuestionsCount === 0
+                  ? 'bg-slate-850 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950'
+              }`}
             >
               <Play size={24} />
               <span>🎮 להשתמש בתור שלט מנחה</span>

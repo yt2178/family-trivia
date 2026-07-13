@@ -260,17 +260,21 @@ export const ControlTab: React.FC = () => {
                 <p className="text-sm text-slate-400 mb-4">המשחק טרם התחיל. הוסף משתתפים ושאלות דרך הלשוניות למעלה.</p>
                 <button
                   onClick={handleStartGame}
-                  disabled={members.length === 0 || questions.length === 0}
+                  disabled={members.length === 0 || questions.length === 0 || !gameScreenConnected}
                   className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 mx-auto hover:from-emerald-400 hover:to-teal-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-950/20"
                 >
                   <Play size={18} fill="currentColor" />
                   <span>הפעל והתחל משחק 🚀</span>
                 </button>
-                {(members.length === 0 || questions.length === 0) && (
+                {(members.length === 0 || questions.length === 0) ? (
                   <p className="text-[10px] text-amber-500/80 mt-2">
                     * יש להוסיף לפחות משתתף אחד ושאלה אחת כדי להפעיל את המשחק.
                   </p>
-                )}
+                ) : !gameScreenConnected ? (
+                  <p className="text-[10px] text-amber-500/80 mt-2 animate-pulse">
+                    * יש לפתוח ולחבר את מסך ההקרנה כדי להתחיל את המשחק.
+                  </p>
+                ) : null}
               </div>
             )}
         </div>

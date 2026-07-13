@@ -428,12 +428,23 @@ export const AdminWizard: React.FC = () => {
                   window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}?mode=admin&room=${rCode}&host=${encodeURIComponent(wizardHostName)}`);
                 }
                 // Automatically initialize and launch game state
+                if (!gameScreenConnected) return; // Safety
                 handleStartGame();
               }}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-95"
+              disabled={!gameScreenConnected}
+              className={`w-full py-3.5 font-black text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 ${
+                !gameScreenConnected
+                  ? 'bg-slate-850 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-emerald-950/20'
+              }`}
             >
               <span>כניסה לשלט המנחה והפעלת המשחק 🚀</span>
             </button>
+            {!gameScreenConnected && (
+              <p className="text-xs text-amber-400 font-bold text-center mt-2 animate-pulse">
+                ⚠️ יש לפתוח ולחבר את מסך ההקרנה תחילה!
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -474,10 +485,21 @@ export const AdminWizard: React.FC = () => {
             <button
               type="button"
               onClick={() => {
+                if (members.length === 0 || questions.length === 0) {
+                  let alertMsg = 'אי אפשר לעבור לשלט המשחק:\n';
+                  if (members.length === 0) alertMsg += '- לא מולא אף משתתף בחידון\n';
+                  if (questions.length === 0) alertMsg += '- לא מולאה אף שאלה בחידון\n';
+                  alert(alertMsg + '\nאנא הוסף משתתפים ושאלות תחילה.');
+                  return;
+                }
                 updateSettings({ ...settings, setupComplete: true });
                 setAdminSubMode('controller');
               }}
-              className="text-xs text-slate-400 hover:text-slate-200 transition-colors font-bold px-2.5 py-1.5 rounded-lg border border-slate-850 bg-slate-900/30 flex items-center gap-1"
+              className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border flex items-center gap-1 transition-all ${
+                members.length === 0 || questions.length === 0
+                  ? 'bg-slate-900 border-slate-850 text-slate-650 cursor-not-allowed opacity-50'
+                  : 'bg-slate-900/30 border-slate-850 text-slate-400 hover:text-slate-200'
+              }`}
             >
               <span>ביטול וחזרה לשלט ◀️</span>
             </button>

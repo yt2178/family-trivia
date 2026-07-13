@@ -5,7 +5,7 @@ import { audioHelper } from '../utils/audioHelper';
 import { Trophy, Volume2, Award, Sparkles, RefreshCw, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { rtdb } from '../utils/firebase';
-import { ref, set, onValue, off, get } from 'firebase/database';
+import { ref, set, onValue, off, get, onDisconnect } from 'firebase/database';
 
 function CountdownTimer({ duration, isRevealed, currentQuestionId, isPaused }: { duration: number; isRevealed: boolean; currentQuestionId: string; isPaused: boolean }) {
   const [timeLeft, setTimeLeft] = useState(duration);
@@ -197,6 +197,10 @@ export const GameView: React.FC = React.memo(() => {
   useEffect(() => {
     if (startCountdownValue === null) return;
 
+    if (startCountdownValue === 10) {
+      audioHelper.startIntroMusic();
+    }
+
     if (startCountdownValue > 0) {
       audioHelper.play('countdown-tick');
       const timer = setTimeout(() => {
@@ -204,7 +208,8 @@ export const GameView: React.FC = React.memo(() => {
       }, 1000);
       return () => clearTimeout(timer);
     } else if (startCountdownValue === 0) {
-      // No boom sound — cinematic visual transition only
+      audioHelper.stopIntroMusic();
+      audioHelper.play('game-start-boom');
       const timer = setTimeout(() => {
         setStartCountdownValue(null);
       }, 2200); // 2.2 seconds matches the cinematic grow duration
@@ -332,6 +337,7 @@ export const GameView: React.FC = React.memo(() => {
       get(roomRef).then((snapshot) => {
         if (snapshot.exists()) {
           set(statusRef, true);
+          onDisconnect(statusRef).set(false);
         }
       }).catch(err => console.error("Error checking room existence:", err));
       
@@ -410,6 +416,11 @@ export const GameView: React.FC = React.memo(() => {
 
   const [isAudioSuspended, setIsAudioSuspended] = useState(false);
   const [isBgMusicMuted, setIsBgMusicMuted] = useState(false);
+
+  // Sync mute state with AudioHelper
+  useEffect(() => {
+    audioHelper.setMute(isBgMusicMuted);
+  }, [isBgMusicMuted]);
 
   // Background music effect
   useEffect(() => {

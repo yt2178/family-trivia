@@ -5,6 +5,7 @@ export class AudioHelper {
   private winAudio: HTMLAudioElement | null = null;
   private suspenseAudio: HTMLAudioElement | null = null;
   private pauseAudio: HTMLAudioElement | null = null;
+  private introAudio: HTMLAudioElement | null = null;
   private ctx: AudioContext | null = null;
   private isBgPlaying = false;
   private isMuted = false;
@@ -40,6 +41,10 @@ export class AudioHelper {
     this.pauseAudio = new Audio('https://incompetech.com/music/royalty-free/mp3-royaltyfree/Local%20Forecast%20-%20Elevator.mp3');
     this.pauseAudio.loop = true;
     this.pauseAudio.volume = 0.5;
+
+    // Who Wants to Be a Millionaire — Let's Play intro music for start countdown
+    this.introAudio = new Audio('https://raw.githubusercontent.com/UniPiSSL/quiz-game-demo/main/sounds/lets_play.mp3');
+    this.introAudio.volume = 0.65;
 
     // Synthesizer context for zero-latency ticking & start-boom
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -83,16 +88,22 @@ export class AudioHelper {
     if (this.winAudio) this.winAudio.muted = mute;
     if (this.suspenseAudio) this.suspenseAudio.muted = mute;
     if (this.pauseAudio) this.pauseAudio.muted = mute;
+    if (this.introAudio) this.introAudio.muted = mute;
   }
 
   // ─── Background music (tension loop during questions) ────────────────────
   startBackgroundMusic() {
     this.init();
+    this.stopSuspenseMusic();
+    this.stopPauseMusic();
+    this.stopIntroMusic();
     if (this.isMuted) return;
     this.isBgPlaying = true;
     if (this.bgAudio) {
-      this.bgAudio.currentTime = 0;
-      this.bgAudio.play().catch(err => console.log('BG music play failed:', err));
+      if (this.bgAudio.paused) {
+        this.bgAudio.currentTime = 0;
+        this.bgAudio.play().catch(err => console.log('BG music play failed:', err));
+      }
     }
   }
 
@@ -107,12 +118,15 @@ export class AudioHelper {
   // ─── Suspense music (KBC jingle during winner reveal countdown) ──────────
   startSuspenseMusic() {
     this.init();
-    if (this.isMuted) return;
-    // Stop normal background music first
     this.stopBackgroundMusic();
+    this.stopPauseMusic();
+    this.stopIntroMusic();
+    if (this.isMuted) return;
     if (this.suspenseAudio) {
-      this.suspenseAudio.currentTime = 0;
-      this.suspenseAudio.play().catch(err => console.log('Suspense music play failed:', err));
+      if (this.suspenseAudio.paused) {
+        this.suspenseAudio.currentTime = 0;
+        this.suspenseAudio.play().catch(err => console.log('Suspense music play failed:', err));
+      }
     }
   }
 
@@ -126,12 +140,15 @@ export class AudioHelper {
   // ─── Pause music (calm elevator music during pause) ──────────────────────────
   startPauseMusic() {
     this.init();
-    if (this.isMuted) return;
     this.stopBackgroundMusic();
     this.stopSuspenseMusic();
+    this.stopIntroMusic();
+    if (this.isMuted) return;
     if (this.pauseAudio) {
-      this.pauseAudio.currentTime = 0;
-      this.pauseAudio.play().catch(err => console.log('Pause music play failed:', err));
+      if (this.pauseAudio.paused) {
+        this.pauseAudio.currentTime = 0;
+        this.pauseAudio.play().catch(err => console.log('Pause music play failed:', err));
+      }
     }
   }
 
@@ -140,6 +157,33 @@ export class AudioHelper {
       this.pauseAudio.pause();
       this.pauseAudio.currentTime = 0;
     }
+  }
+
+  // ─── Intro music (Let's Play during start countdown) ──────────────────────────
+  startIntroMusic() {
+    this.init();
+    this.stopBackgroundMusic();
+    this.stopSuspenseMusic();
+    this.stopPauseMusic();
+    if (this.isMuted) return;
+    if (this.introAudio) {
+      if (this.introAudio.paused) {
+        this.introAudio.currentTime = 0;
+        this.introAudio.play().catch(err => console.log('Intro music play failed:', err));
+      }
+    }
+  }
+
+  stopIntroMusic() {
+    if (this.introAudio) {
+      this.introAudio.pause();
+      this.introAudio.currentTime = 0;
+    }
+  }
+  
+  // ─── Helper method to check if intro is declared ──────────────────────────────
+  hasIntroAudio() {
+    return !!this.introAudio;
   }
 
   // ─── One-shot sound effects ───────────────────────────────────────────────
