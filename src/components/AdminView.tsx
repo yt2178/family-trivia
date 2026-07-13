@@ -148,7 +148,7 @@ const AdminViewInner: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${gameScreenConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
-                <span className="text-[10px] text-slate-400 hidden sm:block">
+                <span className="text-[10px] text-slate-400">
                   {gameScreenConnected ? 'מסך המשחק מחובר' : 'ממתין לחיבור מסך'}
                 </span>
               </div>
@@ -232,7 +232,7 @@ const AdminViewInner: React.FC = () => {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${gameScreenConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
-              <span className="text-[10px] text-slate-400 hidden sm:block">
+              <span className="text-[10px] text-slate-400">
                 {gameScreenConnected ? 'מסך המשחק מחובר' : 'ממתין לחיבור מסך'}
               </span>
             </div>

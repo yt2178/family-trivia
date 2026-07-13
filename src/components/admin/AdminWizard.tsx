@@ -40,6 +40,8 @@ export const AdminWizard: React.FC = () => {
     setWizardQuestionTimer,
     wizardShowNameBank,
     setWizardShowNameBank,
+    wizardShowDetailedGalleryPage,
+    setWizardShowDetailedGalleryPage,
     wizardNextQuestionDelay,
     setWizardNextQuestionDelay,
     wizardContestants,
@@ -77,6 +79,7 @@ export const AdminWizard: React.FC = () => {
 
   const [wizardQuestionOrder, setWizardQuestionOrder] = useState<'sequential' | 'random'>(settings.questionOrder || 'random');
   const [validationAlert, setValidationAlert] = useState<{ title: string; bullets: string[]; footer: string } | null>(null);
+  const [showSkipConfirmModal, setShowSkipConfirmModal] = useState<boolean>(false);
 
   const roomCode = sync.getRoomCode() || '';
 
@@ -146,18 +149,27 @@ export const AdminWizard: React.FC = () => {
       questionTimer: wizardQuestionTimer,
       questionOrder: wizardQuestionOrder,
       showNameBank: wizardShowNameBank,
+      nextQuestionDelay: wizardNextQuestionDelay,
+      showDetailedGalleryPage: wizardShowDetailedGalleryPage,
       wizardStep: nextStep
     });
-    saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, nextStep, wizardShowNameBank);
+    saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, nextStep, wizardShowNameBank, wizardNextQuestionDelay, wizardShowDetailedGalleryPage);
   };
 
   const proceedBack = (prevStep: number) => {
     setWizardStepLocal(prevStep);
     updateSettings({
       ...settings,
-      wizardStep: prevStep
+      wizardStep: prevStep,
+      hostName: wizardHostName,
+      contestants: wizardContestants.slice(0, wizardContestantCount),
+      questionTimer: wizardQuestionTimer,
+      questionOrder: wizardQuestionOrder,
+      showNameBank: wizardShowNameBank,
+      nextQuestionDelay: wizardNextQuestionDelay,
+      showDetailedGalleryPage: wizardShowDetailedGalleryPage
     });
-    saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, prevStep, wizardShowNameBank);
+    saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, prevStep, wizardShowNameBank, wizardNextQuestionDelay, wizardShowDetailedGalleryPage);
   };
 
   const handleNext = () => {
@@ -233,12 +245,26 @@ export const AdminWizard: React.FC = () => {
   };
 
   const handleSkip = () => {
-    if (!settings.setupComplete) {
-      const confirmSkip = window.confirm(
-        "האם אתה בטוח שברצונך לדלג על תהליך ההגדרה?\n\nמסך ההקרנה לא יוכל לפעול בצורה תקינה כל עוד לא תשלים את הזנת השחקנים והשאלות באשף."
-      );
-      if (!confirmSkip) return;
+    if (members.length === 0 || questions.length === 0) {
+      setValidationAlert({
+        title: 'אי אפשר לעבור לשלט המשחק',
+        bullets: [
+          members.length === 0 ? 'לא מולא אף משתתף בחידון' : '',
+          questions.length === 0 ? 'לא מולאה אף שאלה בחידון' : ''
+        ].filter(Boolean),
+        footer: 'אנא הוסף משתתפים ושאלות תחילה.'
+      });
+      return;
     }
+
+    if (!settings.setupComplete) {
+      setShowSkipConfirmModal(true);
+    } else {
+      executeSkip();
+    }
+  };
+
+  const executeSkip = () => {
     updateSettings({ 
       ...settings, 
       setupComplete: true, 
@@ -247,6 +273,7 @@ export const AdminWizard: React.FC = () => {
       questionOrder: wizardQuestionOrder,
       showNameBank: wizardShowNameBank,
       nextQuestionDelay: wizardNextQuestionDelay,
+      showDetailedGalleryPage: wizardShowDetailedGalleryPage,
       contestants: wizardContestants.slice(0, wizardContestantCount),
       wizardStep: undefined 
     });
@@ -432,10 +459,10 @@ export const AdminWizard: React.FC = () => {
                 if (!gameScreenConnected) return; // Safety
                 handleStartGame();
               }}
-              disabled={!gameScreenConnected}
+              disabled={!gameScreenConnected || members.length === 0 || questions.length === 0}
               className={`w-full py-3.5 font-black text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 ${
-                !gameScreenConnected
-                  ? 'bg-slate-850 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50'
+                (!gameScreenConnected || members.length === 0 || questions.length === 0)
+                  ? 'bg-slate-850 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50 pointer-events-none'
                   : 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-emerald-950/20'
               }`}
             >
@@ -512,9 +539,13 @@ export const AdminWizard: React.FC = () => {
           <button
             type="button"
             onClick={handleSkip}
-            className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg border border-emerald-500/30 flex items-center gap-1 shadow-md shadow-emerald-900/20"
+            className={`text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1 shadow-md ${
+              members.length === 0 || questions.length === 0
+                ? 'bg-slate-850 text-slate-500 border-slate-800 cursor-not-allowed opacity-50 pointer-events-none'
+                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-emerald-500/30 shadow-emerald-900/20 active:scale-95 transition-all'
+            }`}
           >
-            <span>🎮 עבור לשלט משחק</span>
+            <span>דילוג אל שלט המשחק</span>
           </button>
         </div>
       </div>
@@ -1147,7 +1178,7 @@ export const AdminWizard: React.FC = () => {
                         onChange={e => {
                           const checked = e.target.checked;
                           setWizardShowNameBank(checked);
-                          saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep, checked);
+                          saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep, checked, wizardNextQuestionDelay, wizardShowDetailedGalleryPage);
                         }}
                         className="sr-only peer"
                       />
@@ -1155,7 +1186,29 @@ export const AdminWizard: React.FC = () => {
                     </label>
                   </div>
                 </div>
-              </div>
+
+                <div className="border-t border-slate-850/60 pt-4 mt-4">
+                  <label className="text-xs font-bold text-slate-300 block mb-2">תצוגת מנצחים מורחבת בסיום המשחק:</label>
+                  <div className="flex items-center justify-between bg-slate-900 border border-slate-850 p-4 rounded-xl">
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-slate-200 block">מעבר אוטומטי למסך תמונות חגיגי בסיום</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">במסך המנצח יוצגו השמות בלבד, ולאחר 10 שניות יופיע מסך מלא עם תמונות כל המשתתפים וכותרת "כל הכבוד לכל המשתתפים!"</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={wizardShowDetailedGalleryPage}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setWizardShowDetailedGalleryPage(checked);
+                          saveDraftToLocalStorage(wizardHostName, wizardContestantCount, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep, wizardShowNameBank, wizardNextQuestionDelay, checked);
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-slate-700 after:border-slate-350 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 peer-checked:after:bg-slate-950" />
+                    </label>
+                  </div>
+                </div>
             </div>
           )}
 
@@ -1348,6 +1401,49 @@ export const AdminWizard: React.FC = () => {
             </div>
           </div>
         )}
+
+      {/* Custom Skip Confirmation Modal */}
+      {showSkipConfirmModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[150] flex items-center justify-center p-4 animate-fade-in" dir="rtl">
+          <div className="max-w-md w-full bg-slate-900/95 border border-amber-500/20 p-8 rounded-3xl space-y-6 shadow-2xl relative overflow-hidden text-right">
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="text-center space-y-4">
+              <div className="inline-flex items-center justify-center p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full">
+                <span className="text-3xl">❓</span>
+              </div>
+              <h2 className="text-2xl font-black text-amber-400">דילוג על תהליך ההגדרה</h2>
+            </div>
+
+            <p className="text-slate-200 text-sm leading-relaxed text-center font-medium">
+              האם אתה בטוח שברצונך לדלג על תהליך ההגדרה?
+            </p>
+            <p className="text-rose-400 text-xs leading-relaxed text-center font-medium">
+              מסך ההקרנה לא יוכל לפעול בצורה תקינה כל עוד לא תשלים את הזנת השחקנים והשאלות באשף.
+            </p>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  executeSkip();
+                  setShowSkipConfirmModal(false);
+                }}
+                className="flex-[2] py-3 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-500/30 hover:border-amber-500/40 text-amber-300 font-black rounded-xl transition-all cursor-pointer shadow-lg active:scale-95 text-center"
+              >
+                אישור
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSkipConfirmModal(false)}
+                className="flex-1 py-3 bg-slate-950 border border-slate-850 hover:bg-slate-900 text-slate-400 text-xs font-black rounded-xl transition-all active:scale-95 cursor-pointer text-center"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Custom Premium Validation Modal */}
       {validationAlert && (

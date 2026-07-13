@@ -29,6 +29,7 @@ export interface GameSettings {
   questionOrder?: 'sequential' | 'random'; // Order of questions in game
   showNameBank?: boolean;
   nextQuestionDelay?: 'manual' | number;
+  showDetailedGalleryPage?: boolean;
 }
 
 export interface GameState {

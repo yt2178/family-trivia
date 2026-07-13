@@ -251,6 +251,9 @@ export const GameView: React.FC = React.memo(() => {
   const [winnerRevealTimer, setWinnerRevealTimer] = useState<number>(0);
   const [hasTriggeredWinnerReveal, setHasTriggeredWinnerReveal] = useState<boolean>(false);
   const [securityError, setSecurityError] = useState<boolean>(false);
+  
+  const [galleryTransitionTimer, setGalleryTransitionTimer] = useState<number | null>(null);
+  const galleryIntervalRef = useRef<any>(null);
 
   // Suspense timer for winner reveal - Trigger Check
   useEffect(() => {
@@ -302,6 +305,47 @@ export const GameView: React.FC = React.memo(() => {
       }
     };
   }, [winnerRevealTimer]);
+
+  // Trigger secondary transition for detailed gallery page
+  useEffect(() => {
+    const totalQ = (gameState.shuffledQuestionIds || []).length;
+    const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
+    
+    if (isGameOver && winnerRevealTimer === 0 && settings.showDetailedGalleryPage) {
+      if (galleryTransitionTimer === null) {
+        setGalleryTransitionTimer(10); // Start 10 seconds transition timer
+      }
+    } else {
+      if (galleryTransitionTimer !== null) {
+        setGalleryTransitionTimer(null);
+      }
+    }
+  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, winnerRevealTimer, settings.showDetailedGalleryPage]);
+
+  // Tick down transition timer for detailed gallery page
+  useEffect(() => {
+    if (galleryTransitionTimer === 10) {
+      if (galleryIntervalRef.current) {
+        clearInterval(galleryIntervalRef.current);
+      }
+      galleryIntervalRef.current = setInterval(() => {
+        setGalleryTransitionTimer(prev => {
+          if (prev === null || prev <= 1) {
+            clearInterval(galleryIntervalRef.current);
+            galleryIntervalRef.current = null;
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (galleryTransitionTimer === null && galleryIntervalRef.current) {
+        clearInterval(galleryIntervalRef.current);
+        galleryIntervalRef.current = null;
+      }
+    };
+  }, [galleryTransitionTimer]);
 
   // Load initial data
   useEffect(() => {
@@ -368,17 +412,13 @@ export const GameView: React.FC = React.memo(() => {
       const connectedRef = ref(rtdb, ".info/connected");
       let unsubscribeConnected: (() => void) | null = null;
       
-      // Only set if room exists to avoid creating data for non-existent rooms
-      get(roomRef).then((snapshot) => {
-        if (snapshot.exists()) {
-          unsubscribeConnected = onValue(connectedRef, (snap) => {
-            if (snap.val() === true) {
-              set(statusRef, true);
-              onDisconnect(statusRef).set(false);
-            }
-          });
+      // Set game screen status directly to register connection presence instantly
+      unsubscribeConnected = onValue(connectedRef, (snap) => {
+        if (snap.val() === true) {
+          set(statusRef, true);
+          onDisconnect(statusRef).set(false);
         }
-      }).catch(err => console.error("Error checking room existence:", err));
+      });
       
       return () => {
         if (unsubscribeConnected) unsubscribeConnected();
@@ -1451,126 +1491,175 @@ export const GameView: React.FC = React.memo(() => {
               {/* Confetti decoration */}
               <div className="absolute -top-16 -left-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
               {winnerRevealTimer === 0 && (
-                <div className={`grid gap-4 mb-8 ${(settings.contestants?.length || 0) <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
-                  {(settings.contestants || []).map((c, index) => {
-                    const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
-                    const score = gameState.scores[c.id] || 0;
-                    return (
-                      <div key={c.id} className="glass-panel p-6 rounded-3xl border border-slate-800 text-center relative overflow-hidden">
-                        <div className={`absolute -top-12 -right-12 w-24 h-24 ${colors.accentGlow} opacity-50 rounded-full blur-2xl`} />
-                        <div className={`w-16 h-16 rounded-2xl border-2 ${colors.border}/30 mx-auto mb-3 overflow-hidden flex items-center justify-center p-0.5`}>
-                          {c.image ? (
-                            <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-xl" />
-                          ) : (
-                            <div className={`w-full h-full flex items-center justify-center ${colors.text}`}>
-                              <Award size={24} />
-                            </div>
-                          )}
-                        </div>
-                        <h3 className="font-bold text-slate-200 truncate">{c.name}</h3>
-                        <div className={`text-3xl font-black mt-2 ${colors.text}`}>{score} נק׳</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl mb-8">
-                {winnerRevealTimer > 0 ? (
-                  // Suspense timer countdown
-                  <div className="py-6 text-center space-y-4">
-                    <h3 className="text-4xl md:text-5xl font-black flex items-center justify-center gap-4 animate-pulse text-amber-400">
-                      <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent py-1 leading-normal">
-                        המנצח הוא??!!!!
-                      </span>
-                      <span className="text-slate-100 font-normal select-none">🥁🤔</span>
-                    </h3>
-                    <div className="text-6xl font-extrabold text-emerald-400 animate-bounce">
-                      {winnerRevealTimer}
-                    </div>
-                    <p className="text-sm text-slate-400">כמה שניות במתח ואז החשיפה...</p>
-                  </div>
-                ) : getGameWinner() === 'tie' ? (
-                  <div>
-                    <h3 className="text-2xl font-bold text-amber-400 flex items-center justify-center gap-2">
-                      🤝 תיקו משפחתי מהמם!
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-2">שניכם אלופים ושניכם מכירים את המשפחה מעולה</p>
-                  </div>
-                ) : (() => {
-                  const winnerContestant = (settings.contestants || []).find(c => c.id === getGameWinner());
-                  const winnerIndex = (settings.contestants || []).findIndex(c => c.id === getGameWinner());
-                  const colors = CONTESTANT_COLORS[winnerIndex % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
-                  const name = winnerContestant?.name || '';
-                  const gender = winnerContestant?.gender || 'male';
-                  const pronoun = gender === 'female' ? 'אלופת' : 'אלוף';
-                  const greeting = gender === 'female' ? 'ברכות למנצחת שזוכרת הכל' : 'ברכות לגיבור שזיהה הכי הרבה משפטים';
-                  return (
-                    <div>
-                      <h3 className={`text-2xl font-bold ${colors.text} flex items-center justify-center gap-2`}>
-                        🏆 {name} {gender === 'female' ? 'היא' : 'הוא'} {pronoun} המשחק!
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-2">{greeting}</p>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Family Members / Participants Gallery - scrollbar removed, size adjusts dynamically to fit up to 80+ members on screen */}
-              {winnerRevealTimer === 0 && members.length > 0 && (() => {
-                const avatarSize = members.length > 50 
-                  ? 'w-9 h-9' 
-                  : members.length > 30 
-                    ? 'w-10 h-10' 
-                    : 'w-12 h-12';
-                const emojiSize = members.length > 50
-                  ? 'text-base'
-                  : members.length > 30
-                    ? 'text-lg'
-                    : 'text-xl';
-                const cardWidth = members.length > 50 
-                  ? 'w-12' 
-                  : members.length > 30 
-                    ? 'w-14' 
-                    : 'w-16';
-                const textSize = members.length > 50 
-                  ? 'text-[8px]' 
-                  : 'text-[10px]';
-                const gapClass = members.length > 50 
-                  ? 'gap-3.5' 
-                  : 'gap-5';
-
-                return (
-                  <div className="mt-8 pt-6 border-t border-slate-800/80 text-right" dir="rtl">
-                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 text-center">
-                      משתתפי החידון המשפחתי:
-                    </h4>
-                    <div className={`flex flex-wrap justify-center ${gapClass} py-2 px-1`}>
-                      {members.map(m => (
-                        <div key={m.id} className={`flex flex-col items-center space-y-1.5 ${cardWidth} group`}>
-                          <div className="relative">
-                            <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
-                            <div className={`relative ${avatarSize} rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md`}>
-                              {m.image ? (
-                                <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center ${emojiSize} select-none`}>
-                                  {m.gender === 'female' ? '👩' : '👨'}
-                                </div>
-                              )}
-                            </div>
+                <div {galleryTransitionTimer === 0 ? (
+                // Phase 2: Full Screen Festive Gallery Page
+                <div className="py-6 space-y-8 animate-fade-in text-center">
+                  <h2 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                    כל הכבוד לכל המשתתפים!
+                  </h2>
+                  
+                  <div className="flex flex-wrap justify-center gap-6 py-4 px-6 max-w-5xl mx-auto max-h-[480px] overflow-y-auto custom-scrollbar">
+                    {members.map(m => (
+                      <div key={m.id} className="flex flex-col items-center space-y-2 w-20 group">
+                        <div className="relative">
+                          <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
+                          <div className="relative w-16 h-16 rounded-full border-2 border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
+                            {m.image ? (
+                              <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-2xl select-none">
+                                {m.gender === 'female' ? '👩' : '👨'}
+                              </div>
+                            )}
                           </div>
-                          <span className={`${textSize} font-bold text-slate-355 truncate w-full text-center group-hover:text-emerald-450 transition-colors`} title={m.name}>
-                            {m.name}
-                          </span>
                         </div>
-                      ))}
-                    </div>
+                        <span className="text-xs font-bold text-slate-300 truncate w-full text-center group-hover:text-emerald-450 transition-colors" title={m.name}>
+                          {m.name}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                );
-              })()}
+                </div>
+              ) : (
+                // Phase 1 (Scoreboard and plain list of names below)
+                <>
+                  <div className={`grid gap-4 mb-8 ${(settings.contestants?.length || 0) <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+                    {(settings.contestants || []).map((c, index) => {
+                      const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
+                      const score = gameState.scores[c.id] || 0;
+                      return (
+                        <div key={c.id} className="glass-panel p-6 rounded-3xl border border-slate-800 text-center relative overflow-hidden">
+                          <div className={`absolute -top-12 -right-12 w-24 h-24 ${colors.accentGlow} opacity-50 rounded-full blur-2xl`} />
+                          <div className={`w-16 h-16 rounded-2xl border-2 ${colors.border}/30 mx-auto mb-3 overflow-hidden flex items-center justify-center p-0.5`}>
+                            {c.image ? (
+                              <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-xl" />
+                            ) : (
+                              <div className={`w-full h-full flex items-center justify-center ${colors.text}`}>
+                                <Award size={24} />
+                              </div>
+                            )}
+                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${colors.text} px-2 py-0.5 bg-slate-900/50 rounded-md border border-slate-800/50`}>
+                            {c.name}
+                          </span>
+                          <div className="mt-2 text-2xl font-black text-slate-100">{score}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-              <div className="text-xs text-slate-500 mt-6">
+                  <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl mb-8">
+                    {winnerRevealTimer > 0 ? (
+                      <div className="py-6 text-center space-y-4">
+                        <h3 className="text-4xl md:text-5xl font-black flex items-center justify-center gap-4 animate-pulse text-amber-400">
+                          <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent py-1 leading-normal">
+                            המנצח הוא??!!!!
+                          </span>
+                          <span className="text-slate-100 font-normal select-none">🥁🤔</span>
+                        </h3>
+                        <div className="text-6xl font-extrabold text-emerald-400 animate-bounce">
+                          {winnerRevealTimer}
+                        </div>
+                        <p className="text-sm text-slate-400">המתנה קצרה... מי אמר את הכי הרבה ציטוטים נכונה?</p>
+                      </div>
+                    ) : getGameWinner() === 'tie' ? (
+                      <div>
+                        <h3 className="text-2xl font-bold text-amber-400 flex items-center justify-center gap-2">
+                          תיקו דרמטי! המשחק הסתיים בשוויון!
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-2">כל הכבוד למנצחים! הפרש קטן, כולם שיחקו בצורה מדהימה!</p>
+                      </div>
+                    ) : (() => {
+                      const winnerContestant = (settings.contestants || []).find(c => c.id === getGameWinner());
+                      const winnerIndex = (settings.contestants || []).findIndex(c => c.id === getGameWinner());
+                      const colors = CONTESTANT_COLORS[winnerIndex % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
+                      const name = winnerContestant?.name || '';
+                      const gender = winnerContestant?.gender || 'male';
+                      const pronoun = gender === 'female' ? 'הזוכה היא' : 'הזוכה הוא';
+                      const greeting = gender === 'female' ? 'ברכות לזוכה המאושרת ששיחקה כמו אלופה!' : 'ברכות למנצח הגדול ששיחק בכישרון יוצא דופן!';
+                      return (
+                        <div>
+                          <h3 className={`text-2xl font-bold ${colors.text} flex items-center justify-center gap-2`}>
+                            🏆 {name} {gender === 'female' ? 'ניצחה!' : 'ניצח!'} {pronoun} המנצח!
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-2">{greeting}</p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Family Members / Participants Gallery */}
+                  {winnerRevealTimer === 0 && members.length > 0 && (() => {
+                    if (settings.showDetailedGalleryPage) {
+                      // Phase 1 (First 10s): Plain text names
+                      return (
+                        <div className="mt-8 pt-6 border-t border-slate-800/80 text-center animate-fade-in" dir="rtl">
+                          <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">
+                            משתתפי החידון המשפחתי:
+                          </h4>
+                          <p className="text-sm font-bold text-slate-400 leading-relaxed max-w-2xl mx-auto">
+                            {members.map(m => m.name).join(' • ')}
+                          </p>
+                        </div>
+                      );
+                    } else {
+                      // Normal gallery
+                      const avatarSize = members.length > 50 
+                        ? 'w-9 h-9' 
+                        : members.length > 30 
+                          ? 'w-10 h-10' 
+                          : 'w-12 h-12';
+                      const emojiSize = members.length > 50
+                        ? 'text-base'
+                        : members.length > 30
+                          ? 'text-lg'
+                          : 'text-xl';
+                      const cardWidth = members.length > 50 
+                        ? 'w-12' 
+                        : members.length > 30 
+                          ? 'w-14' 
+                          : 'w-16';
+                      const textSize = members.length > 50 
+                        ? 'text-[8px]' 
+                        : 'text-[10px]';
+                      const gapClass = members.length > 50 
+                        ? 'gap-3.5' 
+                        : 'gap-5';
+
+                      return (
+                        <div className="mt-8 pt-6 border-t border-slate-800/80 text-right" dir="rtl">
+                          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 text-center">
+                            משתתפי החידון המשפחתי:
+                          </h4>
+                          <div className={`flex flex-wrap justify-center ${gapClass} py-2 px-1`}>
+                            {members.map(m => (
+                              <div key={m.id} className={`flex flex-col items-center space-y-1.5 ${cardWidth} group`}>
+                                <div className="relative">
+                                  <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
+                                  <div className={`relative ${avatarSize} rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md`}>
+                                    {m.image ? (
+                                      <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center ${emojiSize} select-none`}>
+                                        {m.gender === 'female' ? '👩' : '👨'}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <span className={`${textSize} font-bold text-slate-355 truncate w-full text-center group-hover:text-emerald-450 transition-colors`} title={m.name}>
+                                  {m.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
+                </>
+              )
+              
+              className="text-xs text-slate-500 mt-6">
                 <strong className="font-black text-amber-400">{hostLabel}</strong> יכול להתחיל מחדש את המשחק ממסך הניהול
               </div>
             </motion.div>

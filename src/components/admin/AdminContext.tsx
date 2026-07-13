@@ -151,6 +151,8 @@ interface AdminContextType {
   setWizardQuestionTimer: React.Dispatch<React.SetStateAction<number | null>>;
   wizardShowNameBank: boolean;
   setWizardShowNameBank: React.Dispatch<React.SetStateAction<boolean>>;
+  wizardShowDetailedGalleryPage: boolean;
+  setWizardShowDetailedGalleryPage: React.Dispatch<React.SetStateAction<boolean>>;
   wizardNextQuestionDelay: 'manual' | number;
   setWizardNextQuestionDelay: React.Dispatch<React.SetStateAction<'manual' | number>>;
   wizardContestants: Array<{ id: string; name: string; image: string | null; gender?: 'male' | 'female' }>;
@@ -201,7 +203,8 @@ interface AdminContextType {
     questionOrder: 'sequential' | 'random',
     step: number,
     showNameBankVal?: boolean,
-    nextQuestionDelayVal?: 'manual' | number
+    nextQuestionDelayVal?: 'manual' | number,
+    showDetailedGalleryPageVal?: boolean
   ) => void;
 }
 
@@ -243,17 +246,13 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const connectedRef = ref(rtdb, ".info/connected");
       let unsubscribeConnected: (() => void) | null = null;
       
-      // Only set controller status if room exists to avoid creating data for non-existent rooms
-      get(roomRef).then((snapshot) => {
-        if (snapshot.exists()) {
-          unsubscribeConnected = onValue(connectedRef, (snap) => {
-            if (snap.val() === true) {
-              set(controllerStatusRef, true);
-              onDisconnect(controllerStatusRef).set(false);
-            }
-          });
+      // Set controller status directly to register connection presence instantly
+      unsubscribeConnected = onValue(connectedRef, (snap) => {
+        if (snap.val() === true) {
+          set(controllerStatusRef, true);
+          onDisconnect(controllerStatusRef).set(false);
         }
-      }).catch(err => console.error("Error checking room existence:", err));
+      });
 
       // Broadcast controller connection locally for instant tab-to-tab sync
       sync.sendMessage({ type: 'CONTROLLER_CONNECTED', roomCode });
@@ -302,6 +301,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [wizardContestantCount, setWizardContestantCount] = useState(2);
   const [wizardQuestionTimer, setWizardQuestionTimer] = useState<number | null>(null);
   const [wizardShowNameBank, setWizardShowNameBank] = useState<boolean>(false);
+  const [wizardShowDetailedGalleryPage, setWizardShowDetailedGalleryPage] = useState<boolean>(false);
   const [wizardNextQuestionDelay, setWizardNextQuestionDelay] = useState<'manual' | number>('manual');
   const [wizardContestants, setWizardContestants] = useState<Array<{ id: string; name: string; image: string | null; gender?: 'male' | 'female' }>>([]);
   const [wizardStepLocal, setWizardStepLocal] = useState<number | null>(null);
@@ -336,6 +336,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardContestantCount(draft.contestantCount || 2);
         setWizardQuestionTimer(draft.questionTimer !== undefined ? draft.questionTimer : (settings.questionTimer || null));
         setWizardShowNameBank(draft.showNameBank !== undefined ? draft.showNameBank : (settings.showNameBank || false));
+        setWizardShowDetailedGalleryPage(draft.showDetailedGalleryPage !== undefined ? draft.showDetailedGalleryPage : (settings.showDetailedGalleryPage || false));
         setWizardNextQuestionDelay(draft.nextQuestionDelay !== undefined ? draft.nextQuestionDelay : (settings.nextQuestionDelay || 'manual'));
         setWizardStepLocal(draft.wizardStep || settings.wizardStep || 1);
         
@@ -357,6 +358,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardContestantCount(settings.contestants?.length || 2);
         setWizardQuestionTimer(settings.questionTimer !== undefined ? settings.questionTimer : null);
         setWizardShowNameBank(settings.showNameBank || false);
+        setWizardShowDetailedGalleryPage(settings.showDetailedGalleryPage || false);
         setWizardNextQuestionDelay(settings.nextQuestionDelay !== undefined ? settings.nextQuestionDelay : 'manual');
         setWizardStepLocal(settings.wizardStep || 1);
         
@@ -465,7 +467,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     questionOrder: 'sequential' | 'random',
     step: number,
     showNameBankVal?: boolean,
-    nextQuestionDelayVal?: 'manual' | number
+    nextQuestionDelayVal?: 'manual' | number,
+    showDetailedGalleryPageVal?: boolean
   ) => {
     const rCode = sync.getRoomCode();
     if (!rCode) return;
@@ -478,6 +481,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         questionOrder,
         showNameBank: showNameBankVal !== undefined ? showNameBankVal : wizardShowNameBank,
         nextQuestionDelay: nextQuestionDelayVal !== undefined ? nextQuestionDelayVal : wizardNextQuestionDelay,
+        showDetailedGalleryPage: showDetailedGalleryPageVal !== undefined ? showDetailedGalleryPageVal : wizardShowDetailedGalleryPage,
         wizardStep: step
       }));
     } catch (e: any) {
@@ -1165,6 +1169,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setWizardQuestionTimer,
       wizardShowNameBank,
       setWizardShowNameBank,
+      wizardShowDetailedGalleryPage,
+      setWizardShowDetailedGalleryPage,
       wizardNextQuestionDelay,
       setWizardNextQuestionDelay,
       wizardContestants,
