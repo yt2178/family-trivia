@@ -1630,22 +1630,22 @@ export const GameView: React.FC = React.memo(() => {
               </motion.div>
             )}
 
-            {/* Giant Animated Number or Growing Text */}
+            {/* Giant Animated Number or Growing Text - simplified clean transition without lag or rotation */}
             <div className="h-96 flex items-center justify-center z-10 select-none">
-              <AnimatePresence mode="wait">
-                {startCountdownValue > 0 ? (
-                  <motion.div
-                    key={startCountdownValue}
-                    initial={{ scale: 0.1, opacity: 0, rotate: -20 }}
-                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                    exit={{ scale: 1.8, opacity: 0, rotate: 10 }}
-                    transition={{ type: "spring", stiffness: 150, damping: 10 }}
-                    className="text-9xl md:text-[14rem] font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_80px_rgba(16,185,129,0.3)]"
-                  >
-                    {startCountdownValue}
-                  </motion.div>
-                ) : (
+              {startCountdownValue > 0 ? (
+                <motion.div
+                  key={startCountdownValue}
+                  initial={{ scale: 0.7, opacity: 0.3 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="text-9xl md:text-[14rem] font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_80px_rgba(16,185,129,0.35)]"
+                >
+                  {startCountdownValue}
+                </motion.div>
+              ) : (
+                <AnimatePresence>
                   <motion.h1
+                    key="start-go"
                     initial={{ scale: 0.2, opacity: 0 }}
                     animate={{ scale: [0.2, 1.3, 3.0], opacity: [0, 1, 0] }}
                     transition={{ duration: 2.2, ease: "easeInOut" }}
@@ -1653,8 +1653,8 @@ export const GameView: React.FC = React.memo(() => {
                   >
                     מתחילים! 🚀
                   </motion.h1>
-                )}
-              </AnimatePresence>
+                </AnimatePresence>
+              )}
             </div>
           </motion.div>
         )}
