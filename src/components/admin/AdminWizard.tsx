@@ -634,13 +634,13 @@ export const AdminWizard: React.FC = () => {
 
                         <div className="flex-grow">
                           <label className={`text-[10px] font-black ${theme.text} block mb-0.5`}>
-                            קבוצה {idx + 1} ({theme.name}):
+                            קבוצה {idx + 1}:
                           </label>
                           <input
                             type="text"
                             value={c.name}
                             onChange={(e) => handleWizardContestantNameChange(idx, e.target.value)}
-                            placeholder={`שם מתמודד (למשל: ${theme.name})`}
+                            placeholder="שם מתמודד"
                             className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-100 placeholder-slate-650 focus:outline-none focus:border-emerald-500 text-xs font-bold"
                           />
                           <div className="flex items-center gap-2 mt-1.5" dir="rtl">

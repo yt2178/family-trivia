@@ -742,7 +742,6 @@ export const GameView: React.FC = React.memo(() => {
                     )}
                   </div>
                   <h2 className="text-lg font-bold text-slate-100 truncate truncate-name max-w-[120px]">{c.name}</h2>
-                  <span className={`text-[9px] ${colors.text} font-semibold tracking-wider uppercase mt-0.5`}>{colors.glow}</span>
                 </div>
 
                 <div className="my-2 flex flex-col items-center">
@@ -782,7 +781,6 @@ export const GameView: React.FC = React.memo(() => {
                   )}
                 </div>
                 <h2 className="text-2xl font-bold text-slate-100 truncate truncate-name max-w-[180px]" title={c.name}>{c.name}</h2>
-                <span className={`text-xs ${colors.text} font-semibold tracking-wider uppercase mt-1`}>{colors.glow}</span>
               </div>
 
               <div className="my-6 flex flex-col items-center">
