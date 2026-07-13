@@ -1491,7 +1491,7 @@ export const GameView: React.FC = React.memo(() => {
               {/* Confetti decoration */}
               <div className="absolute -top-16 -left-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
               {winnerRevealTimer === 0 && (
-                <div {galleryTransitionTimer === 0 ? (
+                galleryTransitionTimer === 0 ? (
                 // Phase 2: Full Screen Festive Gallery Page
                 <div className="py-6 space-y-8 animate-fade-in text-center">
                   <h2 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.2)]">
@@ -1643,7 +1643,7 @@ export const GameView: React.FC = React.memo(() => {
                     );
                   })()}
                 </>
-              )}
+              ))}
 
               <div className="text-xs text-slate-500 mt-6">
                 <strong className="font-black text-amber-400">{hostLabel}</strong> יכול להתחיל מחדש את המשחק ממסך הניהול
