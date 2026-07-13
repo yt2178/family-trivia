@@ -1493,35 +1493,59 @@ export const GameView: React.FC = React.memo(() => {
                 })()}
               </div>
 
-              {/* Family Members / Participants Gallery */}
-              {winnerRevealTimer === 0 && members.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-slate-800/80 text-right" dir="rtl">
-                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 text-center">
-                    משתתפי החידון המשפחתי:
-                  </h4>
-                  <div className="flex flex-wrap justify-center gap-5 max-h-[180px] overflow-y-auto py-2 px-3 custom-scrollbar">
-                    {members.map(m => (
-                      <div key={m.id} className="flex flex-col items-center space-y-1.5 w-16 group">
-                        <div className="relative">
-                          <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
-                          <div className="relative w-12 h-12 rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md">
-                            {m.image ? (
-                              <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xl select-none">
-                                {m.gender === 'female' ? '👩' : '👨'}
-                              </div>
-                            )}
+              {/* Family Members / Participants Gallery - scrollbar removed, size adjusts dynamically to fit up to 80+ members on screen */}
+              {winnerRevealTimer === 0 && members.length > 0 && (() => {
+                const avatarSize = members.length > 50 
+                  ? 'w-9 h-9' 
+                  : members.length > 30 
+                    ? 'w-10 h-10' 
+                    : 'w-12 h-12';
+                const emojiSize = members.length > 50
+                  ? 'text-base'
+                  : members.length > 30
+                    ? 'text-lg'
+                    : 'text-xl';
+                const cardWidth = members.length > 50 
+                  ? 'w-12' 
+                  : members.length > 30 
+                    ? 'w-14' 
+                    : 'w-16';
+                const textSize = members.length > 50 
+                  ? 'text-[8px]' 
+                  : 'text-[10px]';
+                const gapClass = members.length > 50 
+                  ? 'gap-3.5' 
+                  : 'gap-5';
+
+                return (
+                  <div className="mt-8 pt-6 border-t border-slate-800/80 text-right" dir="rtl">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 text-center">
+                      משתתפי החידון המשפחתי:
+                    </h4>
+                    <div className={`flex flex-wrap justify-center ${gapClass} py-2 px-1`}>
+                      {members.map(m => (
+                        <div key={m.id} className={`flex flex-col items-center space-y-1.5 ${cardWidth} group`}>
+                          <div className="relative">
+                            <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
+                            <div className={`relative ${avatarSize} rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md`}>
+                              {m.image ? (
+                                <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center ${emojiSize} select-none`}>
+                                  {m.gender === 'female' ? '👩' : '👨'}
+                                </div>
+                              )}
+                            </div>
                           </div>
+                          <span className={`${textSize} font-bold text-slate-355 truncate w-full text-center group-hover:text-emerald-450 transition-colors`} title={m.name}>
+                            {m.name}
+                          </span>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-355 truncate w-full text-center group-hover:text-emerald-450 transition-colors" title={m.name}>
-                          {m.name}
-                        </span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               <div className="text-xs text-slate-500 mt-6">
                 <strong className="font-black text-amber-400">{hostLabel}</strong> יכול להתחיל מחדש את המשחק ממסך הניהול
