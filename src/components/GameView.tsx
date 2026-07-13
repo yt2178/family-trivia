@@ -1077,25 +1077,68 @@ export const GameView: React.FC = React.memo(() => {
       <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
 
       {/* Floating Paused Overlay */}
-      {settings.setupComplete === false && (
-        <div className="fixed inset-0 z-[90] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-          <div className="max-w-md w-full glass-panel p-8 rounded-3xl border border-amber-500/20 shadow-2xl relative overflow-hidden space-y-6">
-            <div className="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-            <div className="text-center space-y-3">
-              <div className="inline-flex items-center justify-center p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-3xl animate-bounce">
-                <span className="text-4xl">⏸️</span>
+      {settings.setupComplete === false && (() => {
+        const step = settings.wizardStep || 1;
+        const stepNames: Record<number, { label: string; icon: string }> = {
+          1: { label: 'פרטי חדר ומנחה',        icon: '🏠' },
+          2: { label: 'הגדרת מתמודדים',         icon: '🏆' },
+          3: { label: 'הוספת בני משפחה',        icon: '👨‍👩‍👧‍👦' },
+          4: { label: 'שאלות וציטוטים',          icon: '💬' },
+          5: { label: 'הגדרות טיימר',           icon: '⏱️' },
+          6: { label: 'סיכום ואישור',           icon: '✅' },
+        };
+        const totalSteps = 6;
+        const current = stepNames[step] || { label: 'עריכת פרטים', icon: '✏️' };
+        return (
+          <div className="fixed inset-0 z-[90] bg-slate-950/85 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+            <div className="max-w-lg w-full glass-panel p-10 rounded-3xl border border-amber-500/25 shadow-2xl relative overflow-hidden space-y-7">
+              {/* Glow blobs */}
+              <div className="absolute -top-20 -left-20 w-56 h-56 bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+              <div className="absolute -bottom-20 -right-20 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+
+              {/* Host badge */}
+              <div className="relative z-10 flex flex-col items-center gap-3">
+                <div className="inline-flex items-center justify-center p-4 bg-amber-500/10 border border-amber-500/25 rounded-3xl">
+                  <span className="text-5xl">{current.icon}</span>
+                </div>
+                <h2 className="text-2xl font-black text-amber-400">⏸️ המשחק מושהה זמנית</h2>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  <strong className="font-black text-amber-400">{hostLabel}</strong> חוזר לשדרג את ההגדרות — המשחק יימשך בעוד רגע!
+                </p>
               </div>
-              <h2 className="text-2xl font-black text-amber-400">המשחק מושהה זמנית</h2>
-              <p className="text-slate-300 text-sm leading-relaxed font-semibold">
-                <strong className="font-black text-amber-400">{hostLabel}</strong> עורך כעת את פרטי המשחק. המשחק יימשך ברגע שהוא יסיים את העריכה.
-              </p>
-              <p className="text-emerald-400 text-xs font-black animate-bounce mt-2">
-                המסך ימשיך אוטומטית ברגע שהעריכה תושלם! 🚀
-              </p>
+
+              {/* Current step display */}
+              <div className="relative z-10 bg-slate-900/70 border border-slate-800 rounded-2xl px-5 py-4 space-y-2">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">שלב נוכחי בעריכה</span>
+                <div className="flex items-center justify-center gap-2 mt-1">
+                  <span className="text-2xl">{current.icon}</span>
+                  <span className="text-lg font-black text-slate-100">שלב {step}: {current.label}</span>
+                </div>
+              </div>
+
+              {/* Progress bar across all steps */}
+              <div className="relative z-10 space-y-2">
+                <div className="flex justify-between text-[9px] text-slate-600 font-bold px-0.5">
+                  {Array.from({ length: totalSteps }, (_, i) => (
+                    <span key={i} className={i + 1 <= step ? 'text-amber-400' : 'text-slate-700'}>
+                      {i + 1}
+                    </span>
+                  ))}
+                </div>
+                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-750">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${(step / totalSteps) * 100}%` }}
+                  />
+                </div>
+                <p className="text-emerald-400 text-xs font-black animate-bounce mt-1">
+                  המסך יחזור אוטומטית ברגע שהעריכה תושלם! 🚀
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Header */}
       <header className="flex justify-between items-center mb-6 z-10">
