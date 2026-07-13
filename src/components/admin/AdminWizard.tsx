@@ -60,6 +60,7 @@ export const AdminWizard: React.FC = () => {
     handleStartEdit,
     handleSaveEdit,
     handleCancelEdit,
+    handleMemberImageUpload,
     handleAddQuestion,
     handleDeleteQuestion,
     handleImportMembersExcel,
@@ -789,7 +790,56 @@ export const AdminWizard: React.FC = () => {
                   </div>
                 </div>
 
-
+                {/* Image upload */}
+                <div className="flex items-center gap-3">
+                  <label className="text-[10px] font-bold text-slate-400 shrink-0">תמונה (אופציונלי):</label>
+                  <div className="flex items-center gap-2">
+                    {newMember.image ? (
+                      <div className="relative group">
+                        <img
+                          src={newMember.image}
+                          alt="תצוגה מקדימה"
+                          className="w-10 h-10 rounded-full object-cover border-2 border-emerald-500/50 cursor-pointer"
+                          onClick={() => {
+                            const inp = document.getElementById('member-image-upload') as HTMLInputElement;
+                            inp?.click();
+                          }}
+                          title="לחץ להחלפה"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setNewMember({ ...newMember, image: null })}
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full text-white flex items-center justify-center text-[9px] hover:bg-rose-400 transition-colors"
+                          title="הסר תמונה"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const inp = document.getElementById('member-image-upload') as HTMLInputElement;
+                          inp?.click();
+                        }}
+                        className="w-10 h-10 rounded-full border-2 border-dashed border-slate-600 hover:border-emerald-500 flex items-center justify-center text-slate-500 hover:text-emerald-400 transition-colors"
+                        title="הוסף תמונה"
+                      >
+                        📷
+                      </button>
+                    )}
+                    <input
+                      id="member-image-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleMemberImageUpload}
+                    />
+                    <span className="text-[9px] text-slate-500">
+                      {newMember.image ? 'לחץ על התמונה להחלפה' : 'JPG/PNG עד 2MB'}
+                    </span>
+                  </div>
+                </div>
 
                 <div className="flex justify-end pt-1 gap-2">
                   {editingMemberId && (
@@ -823,9 +873,12 @@ export const AdminWizard: React.FC = () => {
                       return (
                         <div key={m.id} className={`flex justify-between items-center border p-2 rounded-xl text-xs ${isBeingEdited ? 'bg-amber-950/30 border-amber-500/30' : 'bg-slate-950/70 border-slate-850'}`}>
                           <div className="flex items-center gap-2">
-                            <span className="text-base">{m.gender === 'female' ? '👩' : '👨'}</span>
+                            {m.image ? (
+                              <img src={m.image} alt={m.name} className="w-7 h-7 rounded-full object-cover border border-slate-700" />
+                            ) : (
+                              <span className="text-base">{m.gender === 'female' ? '👩' : '👨'}</span>
+                            )}
                             <span className="font-bold text-slate-200">{m.name}</span>
-
                           </div>
                           <div className="flex items-center gap-1">
                             <button

@@ -28,8 +28,9 @@ export class AudioHelper {
     this.winAudio = new Audio('https://raw.githubusercontent.com/techieshruti/Quiz-App-with-Timer/main/sounds/clapping.mp3');
     this.winAudio.volume = 0.75;
 
-    // KBC final-answer suspense jingle for winner reveal countdown
-    this.suspenseAudio = new Audio('https://raw.githubusercontent.com/atanu20/react-quiz-app-with-beautiful-sound-system/master/src/music/KbcBackground.mp3');
+    // Kevin MacLeod "Volatile Reaction" — dramatic orchestral suspense for winner reveal countdown
+    // License: CC BY 4.0 (incompetech.com)
+    this.suspenseAudio = new Audio('https://incompetech.com/music/royalty-free/mp3-royaltyfree/Volatile%20Reaction.mp3');
     this.suspenseAudio.loop = true;
     this.suspenseAudio.volume = 0.7;
 
