@@ -1338,7 +1338,9 @@ export const GameView: React.FC = React.memo(() => {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="glass-panel p-10 max-w-2xl w-full rounded-3xl border border-slate-800 text-center shadow-2xl relative overflow-hidden"
+              className={`glass-panel p-10 w-full rounded-3xl border border-slate-800 text-center shadow-2xl relative overflow-hidden transition-all duration-500 ${
+                winnerRevealTimer === 0 ? 'max-w-3xl' : 'max-w-2xl'
+              }`}
             >
               {/* Confetti decoration */}
               <div className="absolute -top-16 -left-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -1371,8 +1373,11 @@ export const GameView: React.FC = React.memo(() => {
                 {winnerRevealTimer > 0 ? (
                   // Suspense timer countdown
                   <div className="py-6 text-center space-y-4">
-                    <h3 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent flex items-center justify-center gap-2 animate-pulse">
-                      המנצח הוא??!!!! 🥁🤔
+                    <h3 className="text-4xl md:text-5xl font-black flex items-center justify-center gap-4 animate-pulse text-amber-400">
+                      <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent py-1 leading-normal">
+                        המנצח הוא??!!!!
+                      </span>
+                      <span className="text-slate-100 font-normal select-none">🥁🤔</span>
                     </h3>
                     <div className="text-6xl font-extrabold text-emerald-400 animate-bounce">
                       {winnerRevealTimer}
@@ -1405,7 +1410,37 @@ export const GameView: React.FC = React.memo(() => {
                 })()}
               </div>
 
-              <div className="text-xs text-slate-500">
+              {/* Family Members / Participants Gallery */}
+              {winnerRevealTimer === 0 && members.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-slate-800/80 text-right" dir="rtl">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 text-center">
+                    משתתפי החידון המשפחתי:
+                  </h4>
+                  <div className="flex flex-wrap justify-center gap-5 max-h-[180px] overflow-y-auto py-2 px-3 custom-scrollbar">
+                    {members.map(m => (
+                      <div key={m.id} className="flex flex-col items-center space-y-1.5 w-16 group">
+                        <div className="relative">
+                          <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
+                          <div className="relative w-12 h-12 rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md">
+                            {m.image ? (
+                              <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xl select-none">
+                                {m.gender === 'female' ? '👩' : '👨'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-355 truncate w-full text-center group-hover:text-emerald-450 transition-colors" title={m.name}>
+                          {m.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="text-xs text-slate-500 mt-6">
                 <strong className="font-black text-amber-400">{hostLabel}</strong> יכול להתחיל מחדש את המשחק ממסך הניהול
               </div>
             </motion.div>
