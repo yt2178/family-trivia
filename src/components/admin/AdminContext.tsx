@@ -241,7 +241,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
       const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
       const connectedRef = ref(rtdb, ".info/connected");
-      let unsubscribeConnected = null;
+      let unsubscribeConnected: (() => void) | null = null;
       
       // Only set controller status if room exists to avoid creating data for non-existent rooms
       get(roomRef).then((snapshot) => {

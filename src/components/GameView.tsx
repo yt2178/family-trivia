@@ -334,7 +334,7 @@ export const GameView: React.FC = React.memo(() => {
       const statusRef = ref(rtdb, `rooms/${roomCode}/gameScreenConnected`);
       const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
       const connectedRef = ref(rtdb, ".info/connected");
-      let unsubscribeConnected = null;
+      let unsubscribeConnected: (() => void) | null = null;
       
       // Only set if room exists to avoid creating data for non-existent rooms
       get(roomRef).then((snapshot) => {
