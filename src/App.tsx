@@ -609,7 +609,7 @@ function App() {
               }}
               className={`w-full py-4 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 cursor-pointer ${
                 joinedRoomMembersCount === 0 || joinedRoomQuestionsCount === 0
-                  ? 'bg-slate-850 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50'
+                  ? 'bg-slate-850 text-slate-500 border border-slate-800 cursor-pointer opacity-50'
                   : 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950'
               }`}
             >
@@ -629,6 +629,44 @@ function App() {
           </div>
         </motion.div>
         <ConnectionStatusBadge />
+
+        {/* Custom Premium Validation Modal for Admin Join Check */}
+        {validationAlert && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[150] flex items-center justify-center p-4 animate-fade-in" dir="rtl">
+            <div className="max-w-md w-full bg-slate-900/95 border border-rose-500/20 p-8 rounded-3xl space-y-6 shadow-2xl relative overflow-hidden text-right">
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="text-center space-y-4">
+                <div className="inline-flex items-center justify-center p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-full animate-bounce">
+                  <span className="text-3xl">⚠️</span>
+                </div>
+                <h2 className="text-2xl font-black text-rose-400">{validationAlert.title}</h2>
+              </div>
+
+              <div className="bg-slate-950/40 border border-slate-800/80 p-5 rounded-2xl space-y-3">
+                {validationAlert.bullets.map((bullet, i) => (
+                  <div key={i} className="flex items-start gap-2.5 text-slate-200 text-sm font-semibold">
+                    <span className="text-rose-500 text-lg leading-none">🔸</span>
+                    <span>{bullet}</span>
+                  </div>
+                ))}
+              </div>
+
+              {validationAlert.footer && (
+                <p className="text-slate-400 text-xs leading-relaxed text-center font-medium">
+                  {validationAlert.footer}
+                </p>
+              )}
+
+              <button
+                onClick={() => setValidationAlert(null)}
+                className="w-full py-3 bg-gradient-to-r from-rose-500/20 to-pink-500/20 hover:from-rose-500/30 hover:to-pink-500/30 border border-rose-500/30 hover:border-rose-500/40 text-rose-300 font-black rounded-xl transition-all cursor-pointer shadow-lg shadow-rose-950/20"
+              >
+                אישור
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -800,10 +800,7 @@ export const AdminWizard: React.FC = () => {
               <form onSubmit={editingMemberId ? handleSaveEdit : handleAddMember} className="bg-slate-950/60 p-4 border border-slate-850 rounded-2xl space-y-3 text-right">
                 {editingMemberId && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-amber-400">✏️ עורך שחקן קיים...</span>
-                    <button type="button" onClick={handleCancelEdit} className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-1">
-                      <X size={10} /> ביטול עריכה
-                    </button>
+                    <span className="text-[10px] font-bold text-emerald-400">✏️ עורך שחקן קיים...</span>
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-3">
@@ -929,7 +926,7 @@ export const AdminWizard: React.FC = () => {
                     members.map(m => {
                       const isBeingEdited = editingMemberId === m.id;
                       return (
-                        <div key={m.id} className={`flex justify-between items-center border p-2 rounded-xl text-xs ${isBeingEdited ? 'bg-amber-950/30 border-amber-500/30' : 'bg-slate-950/70 border-slate-850'}`}>
+                        <div key={m.id} className={`flex justify-between items-center border p-2 rounded-xl text-xs ${isBeingEdited ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-slate-950/70 border-slate-850'}`}>
                           <div className="flex items-center gap-2">
                             {m.image ? (
                               <img src={m.image} alt={m.name} className="w-7 h-7 rounded-full object-cover border border-slate-700" />
