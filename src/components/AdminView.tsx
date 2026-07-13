@@ -153,19 +153,7 @@ const AdminViewInner: React.FC = () => {
                 </span>
               </div>
 
-              {/* Open projector screen */}
-              <button
-                onClick={() => {
-                  const roomCode = new URLSearchParams(window.location.search).get('room') || '';
-                  const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}&host=${encodeURIComponent(settings.hostName || '')}`;
-                  window.open(url, '_blank');
-                }}
-                className="px-3 py-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-[10px] font-bold rounded-xl transition-colors flex items-center gap-1.5"
-                title="פתח מסך הקרנה בחלון חדש"
-              >
-                <Tv size={12} />
-                <span className="hidden sm:block">📺 הקרנה</span>
-              </button>
+              
 
               {/* Go to edit mode */}
               <button
@@ -249,19 +237,7 @@ const AdminViewInner: React.FC = () => {
               </span>
             </div>
 
-            {/* Open projector screen */}
-            <button
-              onClick={() => {
-                const roomCode = new URLSearchParams(window.location.search).get('room') || '';
-                const url = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}&host=${encodeURIComponent(settings.hostName || '')}`;
-                window.open(url, '_blank');
-              }}
-              className="px-3 py-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-[10px] font-bold rounded-xl transition-colors flex items-center gap-1.5"
-              title="פתח מסך הקרנה בחלון חדש"
-            >
-              <Tv size={12} />
-              <span className="hidden sm:block">📺 הקרנה</span>
-            </button>
+            
 
             {/* Go to controller mode */}
             <button

@@ -91,7 +91,7 @@ export const ControlTab: React.FC = () => {
                 ) : (
                   <>
                     <span className="inline-block w-2 h-2 bg-rose-500 rounded-full animate-ping" />
-                    <span>עצור משחק ⏸️</span>
+                    <span>עצור משחק</span>
                   </>
                 )}
               </button>

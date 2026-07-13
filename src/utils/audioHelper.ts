@@ -6,6 +6,7 @@ export class AudioHelper {
   private suspenseAudio: HTMLAudioElement | null = null;
   private pauseAudio: HTMLAudioElement | null = null;
   private introAudio: HTMLAudioElement | null = null;
+  private boomAudio: HTMLAudioElement | null = null;
   private ctx: AudioContext | null = null;
   private isBgPlaying = false;
   private isMuted = false;
@@ -51,6 +52,10 @@ export class AudioHelper {
     this.introAudio = new Audio('https://raw.githubusercontent.com/UniPiSSL/quiz-game-demo/main/sounds/lets_play.mp3');
     this.introAudio.volume = 0.65;
 
+    // Gong / Cinematic boom sound for start of game (replaces synthesized sawtooth wave)
+    this.boomAudio = new Audio('https://raw.githubusercontent.com/QuickBirdEng/survey_kit/main/assets/gong.mp3');
+    this.boomAudio.volume = 0.70;
+
     // Synthesizer context for zero-latency ticking & start-boom
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (AudioContextClass) {
@@ -94,6 +99,7 @@ export class AudioHelper {
     if (this.suspenseAudio) this.suspenseAudio.muted = mute;
     if (this.pauseAudio) this.pauseAudio.muted = mute;
     if (this.introAudio) this.introAudio.muted = mute;
+    if (this.boomAudio) this.boomAudio.muted = mute;
 
     // If unmuting, play the active track if it was paused
     if (!mute && this.currentActiveTrack && this.currentActiveTrack.paused) {
@@ -227,7 +233,7 @@ export class AudioHelper {
     if (this.currentActiveTrack === this.introAudio) {
       this.fadeTo(null, 0);
     }
-  }  }
+  }
   
   // ─── Helper method to check if intro is declared ──────────────────────────────
   hasIntroAudio() {
@@ -258,7 +264,11 @@ export class AudioHelper {
     } else if (type === 'countdown-tick') {
       this.playTick();
     } else if (type === 'game-start-boom') {
-      this.playBoom();
+      if (this.boomAudio) {
+        this.boomAudio.currentTime = 0;
+        this.boomAudio.muted = this.isMuted;
+        this.boomAudio.play().catch(e => console.log('Boom sound failed:', e));
+      }
     }
   }
 
@@ -282,38 +292,7 @@ export class AudioHelper {
     }
   }
 
-  private playBoom() {
-    if (!this.ctx) return;
-    try {
-      const t = this.ctx.currentTime;
 
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(140, t);
-      osc.frequency.exponentialRampToValueAtTime(30, t + 0.7);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      gain.gain.setValueAtTime(0.35, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
-      osc.start(t);
-      osc.stop(t + 0.9);
-
-      const sizzle = this.ctx.createOscillator();
-      const sizzleGain = this.ctx.createGain();
-      sizzle.type = 'triangle';
-      sizzle.frequency.setValueAtTime(6000, t);
-      sizzle.frequency.exponentialRampToValueAtTime(3000, t + 0.3);
-      sizzle.connect(sizzleGain);
-      sizzleGain.connect(this.ctx.destination);
-      sizzleGain.gain.setValueAtTime(0.18, t);
-      sizzleGain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-      sizzle.start(t);
-      sizzle.stop(t + 0.4);
-    } catch (e) {
-      console.warn('Synthesized boom failed:', e);
-    }
-  }
 }
 
 export const audioHelper = new AudioHelper();
