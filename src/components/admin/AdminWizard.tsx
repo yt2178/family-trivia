@@ -79,6 +79,7 @@ export const AdminWizard: React.FC = () => {
 
   const [wizardQuestionOrder, setWizardQuestionOrder] = useState<'sequential' | 'random'>(settings.questionOrder || 'random');
   const [validationAlert, setValidationAlert] = useState<{ title: string; bullets: string[]; footer: string } | null>(null);
+  const [memberSearchQuery, setMemberSearchQuery] = useState<string>('');
   const [showSkipConfirmModal, setShowSkipConfirmModal] = useState<boolean>(false);
 
   const roomCode = sync.getRoomCode() || '';
@@ -448,6 +449,18 @@ export const AdminWizard: React.FC = () => {
             <button
               type="button"
               onClick={() => {
+                if (!gameScreenConnected || members.length === 0 || questions.length === 0) {
+                  setValidationAlert({
+                    title: 'אי אפשר להפעיל את המשחק',
+                    bullets: [
+                      !gameScreenConnected ? 'יש לפתוח ולחבר את מסך ההקרנה תחילה! 📺' : '',
+                      members.length === 0 ? 'לא מולא אף משתתף בחידון 👥' : '',
+                      questions.length === 0 ? 'לא מולאה אף שאלה בחידון ❓' : ''
+                    ].filter(Boolean),
+                    footer: 'אנא ודא שמסך ההקרנה פתוח ומחובר ושהזנת את כל הפרטים הנצרכים.'
+                  });
+                  return;
+                }
                 setShowSuccessScreen(false);
                 setAdminSubMode('controller');
                 setActiveTab('control');
@@ -455,14 +468,11 @@ export const AdminWizard: React.FC = () => {
                 if (rCode) {
                   window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}?mode=admin&room=${rCode}&host=${encodeURIComponent(wizardHostName)}`);
                 }
-                // Automatically initialize and launch game state
-                if (!gameScreenConnected) return; // Safety
                 handleStartGame();
               }}
-              disabled={!gameScreenConnected || members.length === 0 || questions.length === 0}
-              className={`w-full py-3.5 font-black text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 ${
+              className={`w-full py-3.5 font-black text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 cursor-pointer ${
                 (!gameScreenConnected || members.length === 0 || questions.length === 0)
-                  ? 'bg-slate-850 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50 pointer-events-none'
+                  ? 'bg-slate-850 text-slate-500 border border-slate-800 opacity-50'
                   : 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-emerald-950/20'
               }`}
             >
@@ -536,17 +546,19 @@ export const AdminWizard: React.FC = () => {
               <span>ביטול וחזרה לשלט ◀️</span>
             </button>
           )}
-          <button
-            type="button"
-            onClick={handleSkip}
-            className={`text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1 shadow-md ${
-              members.length === 0 || questions.length === 0
-                ? 'bg-slate-850 text-slate-500 border-slate-800 cursor-not-allowed opacity-50 pointer-events-none'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-emerald-500/30 shadow-emerald-900/20 active:scale-95 transition-all'
-            }`}
-          >
-            <span>דילוג אל שלט המשחק</span>
-          </button>
+          {settings.setupComplete && (
+            <button
+              type="button"
+              onClick={handleSkip}
+              className={`text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1 shadow-md ${
+                members.length === 0 || questions.length === 0
+                  ? 'bg-slate-850 text-slate-500 border-slate-800 cursor-not-allowed opacity-50 pointer-events-none'
+                  : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-emerald-500/30 shadow-emerald-900/20 active:scale-95 transition-all'
+              }`}
+            >
+              <span>דילוג אל שלט המשחק</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -918,12 +930,25 @@ export const AdminWizard: React.FC = () => {
               </form>
 
               <div>
-                <h4 className="text-[10px] font-black text-slate-400 mb-1.5">שחקנים שהוספו ({members.length}):</h4>
+                <div className="flex justify-between items-center mb-1.5">
+                  <h4 className="text-[10px] font-black text-slate-400">שחקנים שהוספו ({members.length}):</h4>
+                  <input
+                    type="text"
+                    value={memberSearchQuery}
+                    onChange={e => setMemberSearchQuery(e.target.value)}
+                    placeholder="🔍 חיפוש שחקן..."
+                    className="bg-slate-950 border border-slate-850 rounded-lg px-2 py-1 text-[10px] text-slate-200 font-bold focus:outline-none focus:border-emerald-500 w-32 placeholder-slate-600 transition-colors"
+                  />
+                </div>
                 <div className="max-h-[220px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
                   {members.length === 0 ? (
                     <p className="text-[10px] text-slate-650 text-center py-4">טרם הוספו שחקנים. הוסף שחקן למעלה או העלה קובץ Excel.</p>
-                  ) : (
-                    members.map(m => {
+                  ) : (() => {
+                    const filtered = members.filter(m => m.name.toLowerCase().includes(memberSearchQuery.toLowerCase()));
+                    if (filtered.length === 0) {
+                      return <p className="text-[10px] text-slate-650 text-center py-4">לא נמצאו שחקנים התואמים לחיפוש...</p>;
+                    }
+                    return filtered.map(m => {
                       const isBeingEdited = editingMemberId === m.id;
                       return (
                         <div key={m.id} className={`flex justify-between items-center border p-2 rounded-xl text-xs ${isBeingEdited ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-slate-950/70 border-slate-850'}`}>
@@ -948,14 +973,15 @@ export const AdminWizard: React.FC = () => {
                               type="button"
                               onClick={() => handleDeleteMember(m.id)}
                               className="text-rose-400 hover:bg-rose-500/10 p-1 rounded transition-colors"
+                              title="מחק שחקן"
                             >
                               <Trash2 size={12} />
                             </button>
                           </div>
                         </div>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </div>
               </div>
             </div>
@@ -1189,7 +1215,7 @@ export const AdminWizard: React.FC = () => {
                   <div className="flex items-center justify-between bg-slate-900 border border-slate-850 p-4 rounded-xl">
                     <div className="text-right">
                       <span className="text-sm font-bold text-slate-200 block">מעבר אוטומטי למסך תמונות חגיגי בסיום</span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">במסך המנצח יוצגו השמות בלבד, ולאחר 10 שניות יופיע מסך מלא עם תמונות כל המשתתפים וכותרת "כל הכבוד לכל המשתתפים!"</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">במסך המנצח יוצגו השמות עם התמונות בקטן, ולאחר 10 שניות יופיע מסך מלא עם תמונות כל המשתתפים בגדול וכותרת "כל הכבוד לכל המשתתפים!"</span>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input

@@ -30,6 +30,7 @@ function App() {
   const [inputRoomCode, setInputRoomCode] = useState<string>('');
   const [joinedRoomMembersCount, setJoinedRoomMembersCount] = useState<number>(-1);
   const [joinedRoomQuestionsCount, setJoinedRoomQuestionsCount] = useState<number>(-1);
+  const [joinedRoomGameScreenConnected, setJoinedRoomGameScreenConnected] = useState<boolean>(false);
   const [lastRoomCode, setLastRoomCode] = useState<string | null>(null);
   const [joinSelectionRoom, setJoinSelectionRoom] = useState<string | null>(null);
   const [validationAlert, setValidationAlert] = useState<{ title: string; bullets: string[]; footer: string } | null>(null);
@@ -176,6 +177,19 @@ function App() {
       unsubscribe();
     };
   }, [mode, roomCode]);
+
+  // Listen to gameScreenConnected in real-time on selection view
+  useEffect(() => {
+    if (mode === 'admin-sub-selection' && joinSelectionRoom) {
+      const screenRef = ref(rtdb, `rooms/${joinSelectionRoom}/gameScreenConnected`);
+      const unsubscribe = onValue(screenRef, (snap) => {
+        setJoinedRoomGameScreenConnected(!!snap.val());
+      });
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [mode, joinSelectionRoom]);
 
   const launchCloudGame = () => {
     if (!roomCode) return;
@@ -368,12 +382,16 @@ function App() {
     setJoinError(null);
     setIsCheckingRoom(true);
     try {
-      const snap = await get(ref(rtdb, `rooms/${cleanCode}/database`));
+      const snap = await get(ref(rtdb, `rooms/${cleanCode}`));
       if (!snap.exists()) {
         setJoinError('❌ אין חדר כזה — בדוק את המספר ונסה שוב');
         return { ok: false };
       }
-      const data = snap.val();
+      const roomData = snap.val();
+      const data = roomData?.database;
+      const gameScreenConnectedVal = !!roomData?.gameScreenConnected;
+      setJoinedRoomGameScreenConnected(gameScreenConnectedVal);
+
       const dbMembers = data?.db?.members || [];
       const dbQuestions = data?.db?.questions || [];
       const membersCount = Array.isArray(dbMembers) ? dbMembers.length : Object.keys(dbMembers || {}).length;
@@ -594,21 +612,22 @@ function App() {
                 } catch (e) {
                   console.error("Failed to sync room data to localStorage", e);
                 }
-                if (joinedRoomMembersCount === 0 || joinedRoomQuestionsCount === 0) {
+                if (!joinedRoomGameScreenConnected || joinedRoomMembersCount === 0 || joinedRoomQuestionsCount === 0) {
                   setValidationAlert({
                     title: 'אי אפשר להפעיל את שלט המנחה',
                     bullets: [
-                      joinedRoomMembersCount === 0 ? 'לא מולא אף משתתף בחידון' : '',
-                      joinedRoomQuestionsCount === 0 ? 'לא מולאה אף שאלה בחידון' : ''
+                      !joinedRoomGameScreenConnected ? 'יש לפתוח ולחבר את מסך ההקרנה תחילה! 📺' : '',
+                      joinedRoomMembersCount === 0 ? 'לא מולא אף משתתף בחידון 👥' : '',
+                      joinedRoomQuestionsCount === 0 ? 'לא מולאה אף שאלה בחידון ❓' : ''
                     ].filter(Boolean),
-                    footer: 'אנא היכנס לערוך את ההגדרות והמשתתפים תחילה.'
+                    footer: 'אנא ודא שמסך ההקרנה פתוח ומחובר ושהזנת את כל הפרטים הנצרכים.'
                   });
                   return;
                 }
                 window.location.href = `${window.location.origin}${window.location.pathname}?mode=admin&room=${joinSelectionRoom}&controller=true&host=${encodeURIComponent(joinHostName)}`;
               }}
               className={`w-full py-4 font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 cursor-pointer ${
-                joinedRoomMembersCount === 0 || joinedRoomQuestionsCount === 0
+                (!joinedRoomGameScreenConnected || joinedRoomMembersCount === 0 || joinedRoomQuestionsCount === 0)
                   ? 'bg-slate-850 text-slate-500 border border-slate-800 cursor-pointer opacity-50'
                   : 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950'
               }`}

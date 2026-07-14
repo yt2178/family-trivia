@@ -51,6 +51,7 @@ export class AudioHelper {
     // Who Wants to Be a Millionaire — Let's Play intro music for start countdown
     this.introAudio = new Audio('https://raw.githubusercontent.com/UniPiSSL/quiz-game-demo/main/sounds/lets_play.mp3');
     this.introAudio.volume = 0.65;
+    this.introAudio.loop = true;
 
     // Gong / Cinematic boom sound for start of game (replaces synthesized sawtooth wave)
     this.boomAudio = new Audio('https://raw.githubusercontent.com/QuickBirdEng/survey_kit/main/assets/gong.mp3');

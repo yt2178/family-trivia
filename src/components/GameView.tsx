@@ -422,12 +422,7 @@ export const GameView: React.FC = React.memo(() => {
       
       return () => {
         if (unsubscribeConnected) unsubscribeConnected();
-        const roomRef = ref(rtdb, `rooms/${roomCode}/database`);
-        get(roomRef).then((snapshot) => {
-          if (snapshot.exists()) {
-            set(statusRef, false);
-          }
-        }).catch(err => console.error("Error checking room existence:", err));
+        set(statusRef, false);
       };
     }
   }, []);
@@ -969,7 +964,7 @@ export const GameView: React.FC = React.memo(() => {
     );
   }
 
-  const isInitialSetup = (settings?.setupComplete === false || totalQuestions === 0 || !gameState.isPlaying) && gameState.currentQuestionIndex === 0;
+  const isInitialSetup = (settings?.setupComplete === false || totalQuestions === 0 || !gameState.isPlaying);
 
   // Pause screen when host is away
   if (gameState.isPaused && !isInitialSetup) {

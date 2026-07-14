@@ -264,11 +264,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       return () => {
         if (unsubscribeConnected) unsubscribeConnected();
-        get(roomRef).then((snapshot) => {
-          if (snapshot.exists()) {
-            set(controllerStatusRef, false);
-          }
-        }).catch(err => console.error("Error checking room existence:", err));
+        set(controllerStatusRef, false);
         off(statusRef);
       };
     }
