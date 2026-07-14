@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAdmin } from './AdminContext';
 import { excelHelper } from '../../utils/excelHelper';
 import { sync } from '../../utils/sync';
-import { fileToBase64, compressImage } from '../../utils/imageHelper';
+import { fileToBase64, compressImage, cropImage } from '../../utils/imageHelper';
 import {
   Settings,
   Play,
@@ -112,16 +112,15 @@ export const AdminWizard: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const base64 = await fileToBase64(file);
-        const compressed = await compressImage(base64);
+        const cropped = await cropImage(file);
         const updated = [...wizardContestants];
         if (updated[index]) {
-          updated[index] = { ...updated[index], image: compressed };
+          updated[index] = { ...updated[index], image: cropped };
           setWizardContestants(updated);
           saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
         }
       } catch (err) {
-        console.error(err);
+        console.error("Image crop cancelled or failed:", err);
       }
     }
   };

@@ -5,7 +5,7 @@ import { excelHelper } from '../../utils/excelHelper';
 import { audioHelper } from '../../utils/audioHelper';
 import { rtdb } from '../../utils/firebase';
 import { ref, onValue, off, set, remove, get, onDisconnect } from 'firebase/database';
-import { fileToBase64, compressImage } from '../../utils/imageHelper';
+import { fileToBase64, compressImage, cropImage } from '../../utils/imageHelper';
 
 export const CONTESTANT_COLORS = [
   {
@@ -933,9 +933,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const handleMemberImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const base64 = await fileToBase64(file);
-      const compressed = await compressImage(base64);
-      setNewMember(prev => ({ ...prev, image: compressed }));
+      try {
+        const cropped = await cropImage(file);
+        setNewMember(prev => ({ ...prev, image: cropped }));
+      } catch (err) {
+        console.log("Image crop cancelled or failed:", err);
+      }
     }
   };
 
@@ -1090,17 +1093,19 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const handleSettingsImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, contestantId: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      const base64 = await fileToBase64(file);
-      const compressed = await compressImage(base64);
-      
-      const updatedContestants = (settings.contestants || []).map(c => 
-        c.id === contestantId ? { ...c, image: compressed } : c
-      );
+      try {
+        const cropped = await cropImage(file);
+        const updatedContestants = (settings.contestants || []).map(c => 
+          c.id === contestantId ? { ...c, image: cropped } : c
+        );
 
-      updateSettings({ 
-        ...settings, 
-        contestants: updatedContestants
-      });
+        updateSettings({ 
+          ...settings, 
+          contestants: updatedContestants
+        });
+      } catch (err) {
+        console.error("Image crop cancelled or failed:", err);
+      }
     }
   };
 
