@@ -88,6 +88,10 @@ export const AdminWizard: React.FC = () => {
   const handleWizardContestantCountChange = (count: number) => {
     setWizardContestantCount(count);
     saveDraftToLocalStorage(wizardHostName, count, wizardContestants, wizardQuestionTimer, wizardQuestionOrder, currentStep);
+    updateSettings({
+      ...settings,
+      contestants: wizardContestants.slice(0, count)
+    });
   };
 
   const handleWizardContestantNameChange = (index: number, name: string) => {
@@ -96,6 +100,10 @@ export const AdminWizard: React.FC = () => {
       updated[index] = { ...updated[index], name };
       setWizardContestants(updated);
       saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep, wizardShowNameBank, wizardNextQuestionDelay);
+      updateSettings({
+        ...settings,
+        contestants: updated.slice(0, wizardContestantCount)
+      });
     }
   };
 
@@ -105,6 +113,10 @@ export const AdminWizard: React.FC = () => {
       updated[index] = { ...updated[index], gender };
       setWizardContestants(updated);
       saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep, wizardShowNameBank, wizardNextQuestionDelay);
+      updateSettings({
+        ...settings,
+        contestants: updated.slice(0, wizardContestantCount)
+      });
     }
   };
 
@@ -118,6 +130,10 @@ export const AdminWizard: React.FC = () => {
           updated[index] = { ...updated[index], image: cropped };
           setWizardContestants(updated);
           saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
+          updateSettings({
+            ...settings,
+            contestants: updated.slice(0, wizardContestantCount)
+          });
         }
       } catch (err) {
         console.error("Image crop cancelled or failed:", err);
@@ -131,6 +147,10 @@ export const AdminWizard: React.FC = () => {
       updated[index] = { ...updated[index], image: null };
       setWizardContestants(updated);
       saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
+      updateSettings({
+        ...settings,
+        contestants: updated.slice(0, wizardContestantCount)
+      });
     }
   };
 

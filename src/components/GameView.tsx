@@ -1519,7 +1519,7 @@ export const GameView: React.FC = React.memo(() => {
                     })}
                   </div>
 
-                  <div className="flex flex-wrap justify-center gap-6 py-4 px-6 max-w-5xl mx-auto max-h-[350px] overflow-y-auto custom-scrollbar">
+                  <div className="flex flex-wrap justify-center gap-6 py-4 px-6 max-w-5xl mx-auto">
                     {members.map(m => (
                       <div key={m.id} className="flex flex-col items-center space-y-2 w-20 group">
                         <div className="relative">
