@@ -190,7 +190,7 @@ interface AdminContextType {
   handleExcelTemplateDownload: () => void;
   handleImportMembersExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleImportQuestionsExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleAbsoluteReset: () => Promise<void>;
+  handleAbsoluteReset: () => void;
   handleSettingsImageUpload: (e: React.ChangeEvent<HTMLInputElement>, contestantId: string) => Promise<void>;
   handleTogglePause: () => void;
   showSuccess: (msg: string) => void;
@@ -680,20 +680,26 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const handleStartGame = () => {
-    // If sequential order is selected, show contestant order modal first
-    if (settings.questionOrder === 'sequential') {
-      setShowContestantOrderModal(true);
-      return;
-    }
+    setWizardConfirmModal({
+      message: "⚠️ האם אתה בטוח שברצונך לאפס את הניקוד ולהתחיל את המשחק מחדש?\n\nכל הניקוד הנוכחי של המתחרים יימחק!",
+      onConfirm: () => {
+        setWizardConfirmModal(null);
+        // If sequential order is selected, show contestant order modal first
+        if (settings.questionOrder === 'sequential') {
+          setShowContestantOrderModal(true);
+          return;
+        }
 
-    const freshState = db.resetGame();
-    updateGameState(freshState);
-    const newSettings = { ...settings, setupComplete: true };
-    db.saveSettings(newSettings);
-    setSettings(newSettings);
-    sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
-    sync.sendMessage({ type: 'START_GAME_COUNTDOWN' });
-    showSuccess('המשחק אותחל וערבוב השאלות הושלם בהצלחה!');
+        const freshState = db.resetGame();
+        updateGameState(freshState);
+        const newSettings = { ...settings, setupComplete: true };
+        db.saveSettings(newSettings);
+        setSettings(newSettings);
+        sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
+        sync.sendMessage({ type: 'START_GAME_COUNTDOWN' });
+        showSuccess('המשחק אותחל וערבוב השאלות הושלם בהצלחה!');
+      }
+    });
   };
 
   const handleStartGameAfterContestantOrder = () => {
@@ -869,11 +875,19 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const handleDeleteMember = (id: string) => {
-    const updated = members.filter(m => m.id !== id);
-    setMembers(updated);
-    db.saveMembers(updated);
-    sync.sendMessage({ type: 'DATABASE_SYNC', members: updated, questions, settings });
-    showSuccess('בן המשפחה נמחק.');
+    const member = members.find(m => m.id === id);
+    const memberName = member?.name || 'משתתף זה';
+    setWizardConfirmModal({
+      message: `האם אתה בטוח שברצונך למחוק את המשתתף "${memberName}"?\n\nלא ניתן יהיה לשחזר פעולה זו.`,
+      onConfirm: () => {
+        const updated = members.filter(m => m.id !== id);
+        setMembers(updated);
+        db.saveMembers(updated);
+        sync.sendMessage({ type: 'DATABASE_SYNC', members: updated, questions, settings });
+        setWizardConfirmModal(null);
+        showSuccess('בן המשפחה נמחק.');
+      }
+    });
   };
 
   const handleStartEdit = (m: FamilyMember) => {
@@ -989,11 +1003,19 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const handleDeleteQuestion = (id: string) => {
-    const updated = questions.filter(q => q.id !== id);
-    setQuestions(updated);
-    db.saveQuestions(updated);
-    sync.sendMessage({ type: 'DATABASE_SYNC', members, questions: updated, settings });
-    showSuccess('השאלה נמחקה.');
+    const question = questions.find(q => q.id === id);
+    const textSnippet = question?.text ? `"${question.text.substring(0, 35)}..."` : 'שאלה זו';
+    setWizardConfirmModal({
+      message: `האם אתה בטוח שברצונך למחוק את השאלה:\n${textSnippet}?\n\nלא ניתן יהיה לשחזר פעולה זו.`,
+      onConfirm: () => {
+        const updated = questions.filter(q => q.id !== id);
+        setQuestions(updated);
+        db.saveQuestions(updated);
+        sync.sendMessage({ type: 'DATABASE_SYNC', members, questions: updated, settings });
+        setWizardConfirmModal(null);
+        showSuccess('השאלה נמחקה.');
+      }
+    });
   };
 
   const handleExcelTemplateDownload = () => {
@@ -1044,49 +1066,47 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const handleAbsoluteReset = async () => {
-    const confirmed = window.confirm(
-      "⚠️ איפוס מוחלט של החדר!\n\nפעולה זו תמחק את כל הנתונים של החדר מהענן ותנקה את הדפדפן. לא ניתן לשחזר!\n\nהאם אתה בטוח?"
-    );
-    if (!confirmed) return;
-    
-    try {
-      const roomCode = sync.getRoomCode();
-      // Delete Firebase room data
-      if (roomCode) {
-        const roomRef = ref(rtdb, `rooms/${roomCode}`);
-        const isPausedRef = ref(rtdb, `rooms/${roomCode}/database/state/isPaused`);
-        const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
+  const handleAbsoluteReset = () => {
+    setWizardConfirmModal({
+      message: "⚠️ איפוס מוחלט של החדר!\n\nפעולה זו תמחק את כל הנתונים של החדר מהענן ותנקה את הדפדפן. לא ניתן לשחזר!\n\nהאם אתה בטוח שברצונך לאפס?",
+      onConfirm: async () => {
+        setWizardConfirmModal(null);
+        try {
+          const roomCode = sync.getRoomCode();
+          if (roomCode) {
+            const roomRef = ref(rtdb, `rooms/${roomCode}`);
+            const isPausedRef = ref(rtdb, `rooms/${roomCode}/database/state/isPaused`);
+            const controllerStatusRef = ref(rtdb, `rooms/${roomCode}/controllerConnected`);
+            
+            try {
+              await onDisconnect(isPausedRef).cancel();
+            } catch (_) {}
+            try {
+              await onDisconnect(controllerStatusRef).cancel();
+            } catch (_) {}
+            
+            await remove(roomRef);
+          }
+        } catch (e) {
+          console.error('Failed to delete Firebase room', e);
+        }
         
         try {
-          await onDisconnect(isPausedRef).cancel();
-        } catch (_) {}
-        try {
-          await onDisconnect(controllerStatusRef).cancel();
-        } catch (_) {}
+          localStorage.removeItem('family_game_members');
+          localStorage.removeItem('family_game_questions');
+          localStorage.removeItem('family_game_settings');
+          localStorage.removeItem('family_game_state');
+          const roomCode = sync.getRoomCode();
+          if (roomCode) {
+            localStorage.removeItem(`wizard_draft_${roomCode}`);
+          }
+        } catch (e) {
+          console.error('Failed to clear localStorage', e);
+        }
         
-        await remove(roomRef);
+        window.location.href = window.location.origin + window.location.pathname;
       }
-    } catch (e) {
-      console.error('Failed to delete Firebase room', e);
-    }
-    
-    // Clear all local storage room keys
-    try {
-      localStorage.removeItem('family_game_members');
-      localStorage.removeItem('family_game_questions');
-      localStorage.removeItem('family_game_settings');
-      localStorage.removeItem('family_game_state');
-      const roomCode = sync.getRoomCode();
-      if (roomCode) {
-        localStorage.removeItem(`wizard_draft_${roomCode}`);
-      }
-    } catch (e) {
-      console.error('Failed to clear localStorage', e);
-    }
-    
-    // Redirect to home page
-    window.location.href = window.location.origin + window.location.pathname;
+    });
   };
 
 

@@ -142,16 +142,24 @@ export const AdminWizard: React.FC = () => {
   };
 
   const handleRemoveContestantImage = (index: number) => {
-    const updated = [...wizardContestants];
-    if (updated[index]) {
-      updated[index] = { ...updated[index], image: null };
-      setWizardContestants(updated);
-      saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
-      updateSettings({
-        ...settings,
-        contestants: updated.slice(0, wizardContestantCount)
-      });
-    }
+    const contestantName = wizardContestants[index]?.name || 'מתחרה זה';
+    setWizardConfirmModal({
+      message: `האם אתה בטוח שברצונך למחוק את התמונה של ${contestantName}?`,
+      onConfirm: () => {
+        const updated = [...wizardContestants];
+        if (updated[index]) {
+          updated[index] = { ...updated[index], image: null };
+          setWizardContestants(updated);
+          saveDraftToLocalStorage(wizardHostName, wizardContestantCount, updated, wizardQuestionTimer, wizardQuestionOrder, currentStep);
+          updateSettings({
+            ...settings,
+            contestants: updated.slice(0, wizardContestantCount)
+          });
+        }
+        setWizardConfirmModal(null);
+        showSuccess('תמונת המתחרה נמחקה.');
+      }
+    });
   };
 
   // Use context handlers directly for Excel import in wizard steps

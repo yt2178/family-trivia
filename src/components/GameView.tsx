@@ -1485,7 +1485,26 @@ export const GameView: React.FC = React.memo(() => {
             >
               {/* Confetti decoration */}
               <div className="absolute -top-16 -left-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-              {winnerRevealTimer === 0 && (
+              {winnerRevealTimer > 0 ? (
+                // High-Drama Suspense Countdown Screen
+                <div className="py-12 flex flex-col items-center justify-center space-y-8 animate-fade-in">
+                  <h2 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent animate-pulse drop-shadow leading-normal">
+                    המנצח הוא??!!!! 🥁🤔
+                  </h2>
+                  <motion.div
+                    key={winnerRevealTimer}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: [1, 1.25, 1], opacity: 1 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="text-8xl md:text-9xl font-black text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.4)] select-none font-mono"
+                  >
+                    {winnerRevealTimer}
+                  </motion.div>
+                  <p className="text-slate-400 text-sm font-semibold tracking-wider">
+                    המתנה קצרה... מי אמר את הכי הרבה ציטוטים נכון?
+                  </p>
+                </div>
+              ) : (
                 galleryTransitionTimer === 0 ? (
                 // Phase 2: Full Screen Festive Gallery Page
                 (() => {
@@ -1592,20 +1611,7 @@ export const GameView: React.FC = React.memo(() => {
                   </div>
 
                   <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl mb-8">
-                    {winnerRevealTimer > 0 ? (
-                      <div className="py-6 text-center space-y-4">
-                        <h3 className="text-4xl md:text-5xl font-black flex items-center justify-center gap-4 animate-pulse text-amber-400">
-                          <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent py-1 leading-normal">
-                            המנצח הוא??!!!!
-                          </span>
-                          <span className="text-slate-100 font-normal select-none">🥁🤔</span>
-                        </h3>
-                        <div className="text-6xl font-extrabold text-emerald-400 animate-bounce">
-                          {winnerRevealTimer}
-                        </div>
-                        <p className="text-sm text-slate-400">המתנה קצרה... מי אמר את הכי הרבה ציטוטים נכונה?</p>
-                      </div>
-                    ) : getGameWinner() === 'tie' ? (
+                    {getGameWinner() === 'tie' ? (
                       <div>
                         <h3 className="text-2xl font-bold text-amber-400 flex items-center justify-center gap-2">
                           תיקו דרמטי! המשחק הסתיים בשוויון!

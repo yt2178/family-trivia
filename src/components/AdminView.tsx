@@ -23,7 +23,9 @@ const AdminViewInner: React.FC = () => {
     countdown,
     successMsg,
     gameScreenConnected,
-    updateSettings
+    updateSettings,
+    wizardConfirmModal,
+    setWizardConfirmModal
   } = useAdmin();
 
   // ── Loading screen ──
@@ -151,6 +153,37 @@ const AdminViewInner: React.FC = () => {
       <main className="max-w-7xl mx-auto p-4 md:p-6">
         <ControlTab />
       </main>
+
+      {/* Top-level Confirmation Modal for active remote control view */}
+      {wizardConfirmModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 text-right animate-fade-in" dir="rtl">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-10 -left-10 w-24 h-24 bg-amber-500/5 rounded-full blur-xl" />
+            <h4 className="text-sm font-black text-amber-400 flex items-center gap-1.5">
+              <span>⚠️ שימו לב</span>
+            </h4>
+            <p className="text-xs text-slate-350 leading-relaxed font-medium whitespace-pre-line">
+              {wizardConfirmModal.message}
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={wizardConfirmModal.onConfirm}
+                className="flex-[2] py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all active:scale-95 cursor-pointer"
+              >
+                אישור והמשך
+              </button>
+              <button
+                type="button"
+                onClick={() => setWizardConfirmModal(null)}
+                className="flex-1 py-2 bg-slate-950 border border-slate-850 hover:bg-slate-900 text-slate-400 text-xs font-black rounded-xl transition-all active:scale-95 cursor-pointer"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
