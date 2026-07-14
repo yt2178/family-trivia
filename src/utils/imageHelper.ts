@@ -109,45 +109,24 @@ export const cropImage = (file: File): Promise<string> => {
         overlay.setAttribute('dir', 'rtl');
 
         overlay.innerHTML = `
-          <div style="max-width: 400px; width: 100%; background-color: #0f172a; border: 1px solid #1e293b; padding: 24px; border-radius: 24px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); relative: true; overflow: hidden; text-align: right; font-family: system-ui, -apple-system, sans-serif;">
+          <div style="max-width: 400px; width: 100%; background-color: #0f172a; border: 1px solid #1e293b; padding: 24px; border-radius: 24px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); position: relative; overflow: hidden; text-align: right; font-family: system-ui, -apple-system, sans-serif;">
             <div style="position: absolute; top: -96px; left: -96px; width: 192px; height: 192px; background-color: rgba(16, 185, 129, 0.1); border-radius: 9999px; filter: blur(48px); pointer-events: none;"></div>
             
-            <div style="text-align: center; display: flex; flex-direction: column; gap: 8px;">
+            <div style="text-align: center; display: flex; flex-direction: column; gap: 6px;">
               <h2 style="font-size: 20px; font-weight: 900; color: #10b981; margin: 0;">✂️ התאמת תמונה לעיגול</h2>
-              <p style="font-size: 12px; color: #94a3b8; margin: 0; line-height: 1.5;">הזז את המכוונים מטה כדי למקם את הפנים בתוך העיגול (מה שמוצג בעיגול זה מה שיוצג במשחק)</p>
+              <p style="font-size: 11px; color: #94a3b8; margin: 0; line-height: 1.6;">
+                גרירת התמונה להזזה ↕️↔️<br>
+                שינוי זום בעזרת גלגלת העכבר 🖱️ או צביטה בטאץ' 📱
+              </p>
             </div>
 
-            <!-- Canvas Preview -->
-            <div style="display: flex; justify-content: center; background-color: rgba(2, 6, 23, 0.4); padding: 16px; border-radius: 16px; border: 1px solid #1e293b;">
-              <canvas id="crop-canvas" width="300" height="300" style="border-radius: 12px; border: 1px solid #334155; background-color: #020617; width: 300px; height: 300px; display: block; margin: 0 auto;"></canvas>
+            <!-- Canvas Viewport -->
+            <div style="display: flex; justify-content: center; background-color: rgba(2, 6, 23, 0.4); padding: 16px; border-radius: 16px; border: 1px solid #1e293b; touch-action: none;">
+              <canvas id="crop-canvas" width="300" height="300" style="border-radius: 12px; border: 1px solid #334155; background-color: #020617; width: 300px; height: 300px; display: block; margin: 0 auto; cursor: grab;"></canvas>
             </div>
 
-            <!-- Sliders -->
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-              <!-- Scale Slider -->
-              <div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; color: #94a3b8; margin-bottom: 4px;">
-                  <span>🔍 זום (הגדלה):</span>
-                  <span id="zoom-val">100%</span>
-                </div>
-                <input type="range" id="zoom-slider" min="100" max="300" value="100" style="width: 100%; height: 4px; border-radius: 9999px; cursor: pointer; accent-color: #10b981; background-color: #1e293b; outline: none; border: none;">
-              </div>
-
-              <!-- X Offset Slider -->
-              <div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; color: #94a3b8; margin-bottom: 4px;">
-                  <span>↔️ הזזה אופקית (ימינה / שמאלה):</span>
-                </div>
-                <input type="range" id="pan-x-slider" min="-100" max="100" value="0" style="width: 100%; height: 4px; border-radius: 9999px; cursor: pointer; accent-color: #10b981; background-color: #1e293b; outline: none; border: none;">
-              </div>
-
-              <!-- Y Offset Slider -->
-              <div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; color: #94a3b8; margin-bottom: 4px;">
-                  <span>↕️ הזזה אנכית (למעלה / למטה):</span>
-                </div>
-                <input type="range" id="pan-y-slider" min="-100" max="100" value="0" style="width: 100%; height: 4px; border-radius: 9999px; cursor: pointer; accent-color: #10b981; background-color: #1e293b; outline: none; border: none;">
-              </div>
+            <div style="text-align: center; font-size: 11px; font-weight: bold; color: #64748b;">
+              זום נוכחי: <span id="zoom-text">100%</span>
             </div>
 
             <!-- Buttons -->
@@ -166,102 +145,176 @@ export const cropImage = (file: File): Promise<string> => {
 
         const canvas = overlay.querySelector('#crop-canvas') as HTMLCanvasElement;
         const ctx = canvas.getContext('2d')!;
-
-        const zoomSlider = overlay.querySelector('#zoom-slider') as HTMLInputElement;
-        const panXSlider = overlay.querySelector('#pan-x-slider') as HTMLInputElement;
-        const panYSlider = overlay.querySelector('#pan-y-slider') as HTMLInputElement;
-        const zoomVal = overlay.querySelector('#zoom-val') as HTMLSpanElement;
+        const zoomText = overlay.querySelector('#zoom-text') as HTMLSpanElement;
 
         const btnCancel = overlay.querySelector('#btn-cancel') as HTMLButtonElement;
         const btnSave = overlay.querySelector('#btn-save') as HTMLButtonElement;
 
-        // Hover effect helper
         btnCancel.onmouseenter = () => { btnCancel.style.backgroundColor = '#334155'; };
         btnCancel.onmouseleave = () => { btnCancel.style.backgroundColor = '#1e293b'; };
 
-        // Math configurations
+        // Crop viewport settings
         const cropSize = 200;
         const cropRadius = 100;
         const canvasCenter = 150;
 
-        // Initial image fit to cover crop viewport
+        // Fit image minimum dimension to crop container (200px)
         const initScale = cropSize / Math.min(img.width, img.height);
         const baseW = img.width * initScale;
         const baseH = img.height * initScale;
 
+        // Dynamic State
+        let zoom = 1.0;
+        const minZoom = 1.0;
+        const maxZoom = 10.0;
+        let dx = 0; // translation X
+        let dy = 0; // translation Y
+
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let lastTouchDist = 0;
+
+        const limitTranslation = () => {
+          const w = baseW * zoom;
+          const h = baseH * zoom;
+          const maxDx = (w - cropSize) / 2;
+          const maxDy = (h - cropSize) / 2;
+          dx = Math.max(-maxDx, Math.min(maxDx, dx));
+          dy = Math.max(-maxDy, Math.min(maxDy, dy));
+        };
+
         const draw = () => {
-          const zoom = parseInt(zoomSlider.value) / 100;
-          zoomVal.innerText = `${Math.round(zoom * 100)}%`;
+          zoomText.innerText = `${Math.round(zoom * 100)}%`;
 
           const w = baseW * zoom;
           const h = baseH * zoom;
-
-          const panXFactor = parseInt(panXSlider.value) / 100;
-          const panYFactor = parseInt(panYSlider.value) / 100;
-
-          // Limit offsets to keep the circle covered by image content
-          const maxDx = (w - cropSize) / 2;
-          const maxDy = (h - cropSize) / 2;
-          const dx = panXFactor * maxDx;
-          const dy = panYFactor * maxDy;
-
           const x = canvasCenter - w / 2 + dx;
           const y = canvasCenter - h / 2 + dy;
 
-          // Clear and draw image
+          // Clear
           ctx.clearRect(0, 0, 300, 300);
+
+          // 1. Draw image
           ctx.drawImage(img, x, y, w, h);
 
-          // Draw mask
+          // 2. Draw Donut Mask (leaving the center 100% transparent)
           ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
-          ctx.globalCompositeOperation = 'source-over';
-          
           ctx.beginPath();
+          // Outer rectangle clockwise
           ctx.rect(0, 0, 300, 300);
+          // Inner circle counter-clockwise
+          ctx.arc(canvasCenter, canvasCenter, cropRadius, 0, Math.PI * 2, true);
           ctx.fill();
 
-          // Cut circular preview hole
-          ctx.globalCompositeOperation = 'destination-out';
-          ctx.beginPath();
-          ctx.arc(canvasCenter, canvasCenter, cropRadius, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Reset composite operation to draw the border stroke on top
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.strokeStyle = 'rgba(16, 185, 129, 0.9)'; // glowing emerald
+          // 3. Draw border outline
+          ctx.strokeStyle = 'rgba(16, 185, 129, 0.9)'; // emerald glow
           ctx.lineWidth = 3;
           ctx.beginPath();
           ctx.arc(canvasCenter, canvasCenter, cropRadius, 0, Math.PI * 2);
           ctx.stroke();
         };
 
-        zoomSlider.oninput = draw;
-        panXSlider.oninput = draw;
-        panYSlider.oninput = draw;
+        // --- Mouse & Touch Listeners ---
 
+        // Mouse Dragging
+        canvas.onmousedown = (e) => {
+          isDragging = true;
+          dragStartX = e.clientX - dx;
+          dragStartY = e.clientY - dy;
+          canvas.style.cursor = 'grabbing';
+        };
+
+        window.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          dx = e.clientX - dragStartX;
+          dy = e.clientY - dragStartY;
+          limitTranslation();
+          draw();
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (isDragging) {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+          }
+        });
+
+        // Mouse Wheel Zoom
+        canvas.onwheel = (e) => {
+          e.preventDefault();
+          const zoomSpeed = 0.08;
+          let newZoom = zoom;
+          if (e.deltaY < 0) {
+            newZoom = Math.min(zoom + zoomSpeed, maxZoom);
+          } else {
+            newZoom = Math.max(zoom - zoomSpeed, minZoom);
+          }
+          zoom = newZoom;
+          limitTranslation();
+          draw();
+        };
+
+        // Touch Interaction (Pan and Pinch Zoom)
+        canvas.ontouchstart = (e) => {
+          if (e.touches.length === 1) {
+            isDragging = true;
+            dragStartX = e.touches[0].clientX - dx;
+            dragStartY = e.touches[0].clientY - dy;
+          } else if (e.touches.length === 2) {
+            isDragging = false;
+            lastTouchDist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+          }
+        };
+
+        canvas.ontouchmove = (e) => {
+          e.preventDefault(); // Prevent scrolling page while cropping
+          if (e.touches.length === 1 && isDragging) {
+            dx = e.touches[0].clientX - dragStartX;
+            dy = e.touches[0].clientY - dragStartY;
+            limitTranslation();
+            draw();
+          } else if (e.touches.length === 2) {
+            const dist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            if (lastTouchDist > 0) {
+              const scaleFactor = dist / lastTouchDist;
+              // Smooth pinch zoom
+              const nextZoom = zoom * (1 + (scaleFactor - 1) * 0.5);
+              zoom = Math.max(minZoom, Math.min(nextZoom, maxZoom));
+              limitTranslation();
+              draw();
+            }
+            lastTouchDist = dist;
+          }
+        };
+
+        canvas.ontouchend = () => {
+          isDragging = false;
+          lastTouchDist = 0;
+        };
+
+        // Draw initial frame
         draw();
 
+        // Handle buttons
         btnCancel.onclick = () => {
           document.body.removeChild(overlay);
           reject(new Error('User cancelled crop'));
         };
 
         btnSave.onclick = () => {
-          const zoom = parseInt(zoomSlider.value) / 100;
           const w = baseW * zoom;
           const h = baseH * zoom;
-          const panXFactor = parseInt(panXSlider.value) / 100;
-          const panYFactor = parseInt(panYSlider.value) / 100;
-
-          const maxDx = (w - cropSize) / 2;
-          const maxDy = (h - cropSize) / 2;
-          const dx = panXFactor * maxDx;
-          const dy = panYFactor * maxDy;
-
           const x = canvasCenter - w / 2 + dx;
           const y = canvasCenter - h / 2 + dy;
 
-          // Create output canvas at 256x256 (optimized compression size)
+          // Create export canvas at 256x256
           const exportCanvas = document.createElement('canvas');
           exportCanvas.width = 256;
           exportCanvas.height = 256;
