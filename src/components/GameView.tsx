@@ -254,6 +254,63 @@ export const GameView: React.FC = React.memo(() => {
   
   const [galleryTransitionTimer, setGalleryTransitionTimer] = useState<number | null>(null);
   const galleryIntervalRef = useRef<any>(null);
+  const galleryScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll effect for the final gallery screen
+  useEffect(() => {
+    // Only run when Phase 2 detailed gallery is active
+    if (galleryTransitionTimer !== 0) return;
+
+    const container = galleryScrollRef.current;
+    if (!container) return;
+
+    let scrollSpeed = 0.5; // Smooth slow scroll speed
+    let scrollPos = 0;
+    let animationFrameId: number;
+    let isPaused = false;
+    let pauseTimeout: any;
+
+    const step = () => {
+      if (isPaused) {
+        animationFrameId = requestAnimationFrame(step);
+        return;
+      }
+
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      if (maxScroll <= 0) return; // If content fits, no scrolling needed
+
+      scrollPos += scrollSpeed;
+      if (scrollPos >= maxScroll) {
+        scrollPos = maxScroll;
+        container.scrollTop = maxScroll;
+
+        // Pause at the bottom for 3 seconds, then return to top smoothly
+        isPaused = true;
+        pauseTimeout = setTimeout(() => {
+          container.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(() => {
+            scrollPos = 0;
+            isPaused = false;
+          }, 1200); // Wait for smooth scroll up animation to finish
+        }, 3000);
+      } else {
+        container.scrollTop = scrollPos;
+      }
+
+      animationFrameId = requestAnimationFrame(step);
+    };
+
+    // Wait 3.5 seconds before starting the initial scroll
+    const startTimeout = setTimeout(() => {
+      animationFrameId = requestAnimationFrame(step);
+    }, 3500);
+
+    return () => {
+      clearTimeout(startTimeout);
+      clearTimeout(pauseTimeout);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [members, galleryTransitionTimer]);
 
   // Suspense timer for winner reveal - Trigger Check
   useEffect(() => {
@@ -1498,20 +1555,20 @@ export const GameView: React.FC = React.memo(() => {
                     {(settings.contestants || []).map((c, index) => {
                       const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
                       return (
-                        <div key={c.id} className="flex flex-col items-center space-y-2 w-24 group">
+                        <div key={c.id} className="flex flex-col items-center space-y-2 w-32 group">
                           <div className="relative">
                             <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient || 'from-emerald-500 to-teal-400'} rounded-full blur opacity-55 group-hover:opacity-90 transition-opacity duration-300`} />
-                            <div className="relative w-18 h-18 rounded-full border-3 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-xl">
+                            <div className="relative w-24 h-24 rounded-full border-3 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-xl">
                               {c.image ? (
                                 <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
                               ) : (
-                                <div className={`w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-3xl font-black ${colors.text}`}>
+                                <div className={`w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-4xl font-black ${colors.text}`}>
                                   🏆
                                 </div>
                               )}
                             </div>
                           </div>
-                          <span className={`text-xs font-black ${colors.text} truncate w-full text-center`} title={c.name}>
+                          <span className={`text-sm font-black ${colors.text} truncate w-full text-center`} title={c.name}>
                             {c.name} (מתחרה)
                           </span>
                         </div>
@@ -1519,22 +1576,25 @@ export const GameView: React.FC = React.memo(() => {
                     })}
                   </div>
 
-                  <div className="flex flex-wrap justify-center gap-6 py-4 px-6 max-w-5xl mx-auto">
+                  <div 
+                    ref={galleryScrollRef} 
+                    className="flex flex-wrap justify-center gap-6 py-4 px-6 max-w-5xl mx-auto max-h-[380px] overflow-y-auto no-scrollbar scroll-smooth"
+                  >
                     {members.map(m => (
-                      <div key={m.id} className="flex flex-col items-center space-y-2 w-20 group">
+                      <div key={m.id} className="flex flex-col items-center space-y-2 w-28 group">
                         <div className="relative">
                           <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
-                          <div className="relative w-14 h-14 rounded-full border-2 border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
+                          <div className="relative w-20 h-20 rounded-full border-2 border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
                             {m.image ? (
                               <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xl select-none">
+                              <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-3xl select-none">
                                 {m.gender === 'female' ? '👩' : '👨'}
                               </div>
                             )}
                           </div>
                         </div>
-                        <span className="text-[11px] font-bold text-slate-300 truncate w-full text-center group-hover:text-emerald-450 transition-colors" title={m.name}>
+                        <span className="text-xs font-black text-slate-300 truncate w-full text-center group-hover:text-emerald-450 transition-colors" title={m.name}>
                           {m.name}
                         </span>
                       </div>
