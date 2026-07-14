@@ -80,6 +80,7 @@ export const AdminWizard: React.FC = () => {
   const [wizardQuestionOrder, setWizardQuestionOrder] = useState<'sequential' | 'random'>(settings.questionOrder || 'random');
   const [validationAlert, setValidationAlert] = useState<{ title: string; bullets: string[]; footer: string } | null>(null);
   const [memberSearchQuery, setMemberSearchQuery] = useState<string>('');
+  const [copiedProjectorLink, setCopiedProjectorLink] = useState<boolean>(false);
   const [showSkipConfirmModal, setShowSkipConfirmModal] = useState<boolean>(false);
 
   const roomCode = sync.getRoomCode() || '';
@@ -1490,6 +1491,39 @@ export const AdminWizard: React.FC = () => {
                 </div>
               ))}
             </div>
+
+            {validationAlert.bullets.some(b => b.includes('הקרנה')) && (() => {
+              const projectorUrl = `${window.location.origin}${window.location.pathname}?mode=game&room=${roomCode}&host=${encodeURIComponent(wizardHostName)}`;
+              return (
+                <div className="bg-slate-950/60 border border-emerald-500/20 p-4 rounded-2xl space-y-3 mt-2 text-right animate-fade-in">
+                  <p className="text-[10px] text-slate-400 font-bold block mb-1">📋 קישור למסך ההקרנה הראשי (יש לפתוח במחשב/מקרן):</p>
+                  <div className="bg-slate-900 border border-slate-850 p-2 rounded-xl text-[10px] font-mono text-emerald-400 break-all select-all select-none">
+                    {projectorUrl}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        window.open(projectorUrl, '_blank');
+                      }}
+                      className="flex-1 py-2 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs rounded-lg transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    >
+                      <Tv size={14} />
+                      <span>פתח מסך 📺</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(projectorUrl);
+                        setCopiedProjectorLink(true);
+                        setTimeout(() => setCopiedProjectorLink(false), 2000);
+                      }}
+                      className="flex-1 py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-xs rounded-lg border border-slate-750 transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    >
+                      <span>{copiedProjectorLink ? 'הועתק! 👍' : 'העתק קישור 📋'}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
 
             {validationAlert.footer && (
               <p className="text-slate-400 text-xs leading-relaxed text-center font-medium">
