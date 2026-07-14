@@ -830,11 +830,11 @@ export const GameView: React.FC = React.memo(() => {
                 <div className={`absolute -top-12 -right-12 w-24 h-24 ${colors.accentGlow} rounded-full blur-2xl pointer-events-none`} />
                 
                 <div className="flex flex-col items-center text-center">
-                  <div className={`relative w-16 h-16 rounded-2xl border-2 ${colors.border}/45 p-0.5 bg-slate-900/60 shadow-xl overflow-hidden mb-2 flex items-center justify-center`}>
+                  <div className={`relative w-16 h-16 rounded-full border-2 ${colors.border}/45 p-0.5 bg-slate-900/60 shadow-xl overflow-hidden mb-2 flex items-center justify-center`}>
                     {c.image ? (
-                      <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-xl" />
+                      <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-full" />
                     ) : (
-                      <div className={`w-full h-full ${colors.imageFallbackBg} flex items-center justify-center ${colors.text} rounded-xl`}>
+                      <div className={`w-full h-full ${colors.imageFallbackBg} flex items-center justify-center ${colors.text} rounded-full`}>
                         <Award size={28} className="opacity-80" />
                       </div>
                     )}
@@ -869,11 +869,11 @@ export const GameView: React.FC = React.memo(() => {
               <div className={`absolute -top-12 -right-12 w-32 h-32 ${colors.accentGlow} rounded-full blur-3xl pointer-events-none`} />
 
               <div className="flex flex-col items-center text-center">
-                <div className={`relative w-24 h-24 rounded-3xl border-2 ${colors.border}/40 p-1 bg-slate-900/60 shadow-xl overflow-hidden mb-4 flex items-center justify-center`}>
+                <div className={`relative w-24 h-24 rounded-full border-2 ${colors.border}/40 p-1 bg-slate-900/60 shadow-xl overflow-hidden mb-4 flex items-center justify-center`}>
                   {c.image ? (
-                    <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-2xl" />
+                    <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-full" />
                   ) : (
-                    <div className={`w-full h-full ${colors.imageFallbackBg} flex items-center justify-center ${colors.text} rounded-2xl`}>
+                    <div className={`w-full h-full ${colors.imageFallbackBg} flex items-center justify-center ${colors.text} rounded-full`}>
                       <Award size={48} className="opacity-80" />
                     </div>
                   )}
@@ -1493,22 +1493,48 @@ export const GameView: React.FC = React.memo(() => {
                     כל הכבוד לכל המשתתפים!
                   </h2>
                   
-                  <div className="flex flex-wrap justify-center gap-6 py-4 px-6 max-w-5xl mx-auto max-h-[480px] overflow-y-auto custom-scrollbar">
+                  {/* Contestants Row (Slightly larger, highlighted circular gallery) */}
+                  <div className="flex flex-wrap justify-center gap-8 pb-5 border-b border-slate-800/50 max-w-4xl mx-auto">
+                    {(settings.contestants || []).map((c, index) => {
+                      const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
+                      return (
+                        <div key={c.id} className="flex flex-col items-center space-y-2 w-24 group">
+                          <div className="relative">
+                            <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient || 'from-emerald-500 to-teal-400'} rounded-full blur opacity-55 group-hover:opacity-90 transition-opacity duration-300`} />
+                            <div className="relative w-18 h-18 rounded-full border-3 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-xl">
+                              {c.image ? (
+                                <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className={`w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-3xl font-black ${colors.text}`}>
+                                  🏆
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-xs font-black ${colors.text} truncate w-full text-center`} title={c.name}>
+                            {c.name} (מתחרה)
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-6 py-4 px-6 max-w-5xl mx-auto max-h-[350px] overflow-y-auto custom-scrollbar">
                     {members.map(m => (
                       <div key={m.id} className="flex flex-col items-center space-y-2 w-20 group">
                         <div className="relative">
                           <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
-                          <div className="relative w-16 h-16 rounded-full border-2 border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
+                          <div className="relative w-14 h-14 rounded-full border-2 border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
                             {m.image ? (
                               <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-2xl select-none">
+                              <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xl select-none">
                                 {m.gender === 'female' ? '👩' : '👨'}
                               </div>
                             )}
                           </div>
                         </div>
-                        <span className="text-xs font-bold text-slate-300 truncate w-full text-center group-hover:text-emerald-450 transition-colors" title={m.name}>
+                        <span className="text-[11px] font-bold text-slate-300 truncate w-full text-center group-hover:text-emerald-450 transition-colors" title={m.name}>
                           {m.name}
                         </span>
                       </div>
