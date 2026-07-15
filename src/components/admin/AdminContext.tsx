@@ -187,6 +187,7 @@ interface AdminContextType {
   handleMemberImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleAddQuestion: (e: React.FormEvent) => void;
   handleDeleteQuestion: (id: string) => void;
+  handleReorderQuestions: (startIndex: number, endIndex: number) => void;
   handleExcelTemplateDownload: () => void;
   handleImportMembersExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleImportQuestionsExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
@@ -1018,6 +1019,19 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const handleReorderQuestions = (startIndex: number, endIndex: number) => {
+    if (startIndex < 0 || startIndex >= questions.length || endIndex < 0 || endIndex >= questions.length || startIndex === endIndex) {
+      return;
+    }
+    const result = Array.from(questions);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    
+    setQuestions(result);
+    db.saveQuestions(result);
+    sync.sendMessage({ type: 'DATABASE_SYNC', members, questions: result, settings });
+  };
+
   const handleExcelTemplateDownload = () => {
     excelHelper.downloadTemplate();
   };
@@ -1225,6 +1239,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       handleMemberImageUpload,
       handleAddQuestion,
       handleDeleteQuestion,
+      handleReorderQuestions,
       handleExcelTemplateDownload,
       handleImportMembersExcel,
       handleImportQuestionsExcel,

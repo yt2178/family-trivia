@@ -261,7 +261,11 @@ export const GameView: React.FC = React.memo(() => {
     const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
     
     if (isGameOver) {
-      if (!hasTriggeredWinnerReveal && winnerRevealTimer === 0) {
+      if (gameState.winnerRevealed) {
+        setWinnerRevealTimer(0);
+        setGalleryTransitionTimer(0);
+        setHasTriggeredWinnerReveal(true);
+      } else if (!hasTriggeredWinnerReveal && winnerRevealTimer === 0) {
         setWinnerRevealTimer(10); // 10 second suspense timer for maximum drama
         setHasTriggeredWinnerReveal(true);
       }
@@ -271,7 +275,7 @@ export const GameView: React.FC = React.memo(() => {
         setWinnerRevealTimer(0);
       }
     }
-  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, hasTriggeredWinnerReveal]);
+  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, hasTriggeredWinnerReveal, gameState.winnerRevealed]);
 
   // Suspense timer for winner reveal - Tick Down - robust interval implementation using useRef to prevent resetting when state changes
   useEffect(() => {
@@ -290,6 +294,17 @@ export const GameView: React.FC = React.memo(() => {
             winnerIntervalRef.current = null;
             audioHelper.stopSuspenseMusic();
             audioHelper.play('victory');
+            
+            // Countdown finished! Set winnerRevealed to true in Firebase DB
+            const roomCode = sync.getRoomCode();
+            if (roomCode) {
+              const stateRef = ref(rtdb, `rooms/${roomCode}/database/state`);
+              set(stateRef, {
+                ...gameState,
+                winnerRevealed: true
+              }).catch(err => console.error("Failed to update winnerRevealed in DB:", err));
+            }
+
             return 0;
           }
           audioHelper.play('countdown-tick');
@@ -304,7 +319,7 @@ export const GameView: React.FC = React.memo(() => {
         winnerIntervalRef.current = null;
       }
     };
-  }, [winnerRevealTimer]);
+  }, [winnerRevealTimer, gameState]);
 
   // Trigger secondary transition for detailed gallery page
   useEffect(() => {
@@ -312,7 +327,9 @@ export const GameView: React.FC = React.memo(() => {
     const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
     
     if (isGameOver && winnerRevealTimer === 0 && settings.showDetailedGalleryPage) {
-      if (galleryTransitionTimer === null) {
+      if (gameState.winnerRevealed) {
+        setGalleryTransitionTimer(0);
+      } else if (galleryTransitionTimer === null) {
         setGalleryTransitionTimer(10); // Start 10 seconds transition timer
       }
     } else {
@@ -320,7 +337,7 @@ export const GameView: React.FC = React.memo(() => {
         setGalleryTransitionTimer(null);
       }
     }
-  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, winnerRevealTimer, settings.showDetailedGalleryPage]);
+  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, winnerRevealTimer, settings.showDetailedGalleryPage, gameState.winnerRevealed]);
 
   // Tick down transition timer for detailed gallery page
   useEffect(() => {
@@ -1487,8 +1504,10 @@ export const GameView: React.FC = React.memo(() => {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className={`glass-panel p-10 w-full rounded-3xl border border-slate-800 text-center shadow-2xl relative overflow-hidden transition-all duration-500 ${
-                winnerRevealTimer === 0 ? 'max-w-6xl' : 'max-w-2xl'
+              className={`glass-panel w-full rounded-3xl border border-slate-800 text-center shadow-2xl relative overflow-hidden transition-all duration-500 ${
+                winnerRevealTimer === 0
+                  ? 'max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh] flex flex-col justify-between p-4 md:p-6'
+                  : 'max-w-2xl p-10'
               }`}
             >
               {/* Confetti decoration */}
@@ -1496,8 +1515,11 @@ export const GameView: React.FC = React.memo(() => {
               {winnerRevealTimer > 0 ? (
                 // High-Drama Suspense Countdown Screen
                 <div className="py-12 flex flex-col items-center justify-center space-y-8 animate-fade-in">
-                  <h2 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent animate-pulse drop-shadow leading-normal">
-                    המנצח הוא??!!!! 🥁🤔
+                  <h2 className="text-4xl md:text-5xl font-black leading-normal flex items-center justify-center gap-2 select-none">
+                    <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent animate-pulse drop-shadow">
+                      המנצח הוא??!!!!
+                    </span>
+                    <span className="animate-pulse">🥁🤔</span>
                   </h2>
                   <motion.div
                     key={winnerRevealTimer}
@@ -1517,31 +1539,31 @@ export const GameView: React.FC = React.memo(() => {
                 // Phase 2: Full Screen Festive Gallery Page
                 (() => {
                   const count = members.length;
-                  let cSize = { cardWidth: 'w-32', imgSize: 'w-24 h-24', textSize: 'text-sm' };
-                  let mSize = { cardWidth: 'w-28', imgSize: 'w-20 h-20', textSize: 'text-xs', gapClass: 'gap-6', emojiSize: 'text-3xl' };
+                  let cSize = { cardWidth: 'w-48', imgSize: 'w-36 h-36', textSize: 'text-lg' };
+                  let mSize = { cardWidth: 'w-36', imgSize: 'w-28 h-28', textSize: 'text-base', gapClass: 'gap-6', emojiSize: 'text-5xl' };
 
                   if (count > 64) {
-                    cSize = { cardWidth: 'w-16', imgSize: 'w-12 h-12', textSize: 'text-[10px]' };
-                    mSize = { cardWidth: 'w-12', imgSize: 'w-8 h-8', textSize: 'text-[8px]', gapClass: 'gap-2', emojiSize: 'text-lg' };
+                    cSize = { cardWidth: 'w-40', imgSize: 'w-28 h-28', textSize: 'text-sm' };
+                    mSize = { cardWidth: 'w-24', imgSize: 'w-18 h-18', textSize: 'text-xs', gapClass: 'gap-3.5', emojiSize: 'text-2xl' };
                   } else if (count > 40) {
-                    cSize = { cardWidth: 'w-20', imgSize: 'w-14 h-14', textSize: 'text-xs' };
-                    mSize = { cardWidth: 'w-16', imgSize: 'w-11 h-11', textSize: 'text-[10px]', gapClass: 'gap-3', emojiSize: 'text-xl' };
+                    cSize = { cardWidth: 'w-44', imgSize: 'w-32 h-32', textSize: 'text-base' };
+                    mSize = { cardWidth: 'w-28', imgSize: 'w-22 h-22', textSize: 'text-xs', gapClass: 'gap-4', emojiSize: 'text-3xl' };
                   } else if (count > 24) {
-                    cSize = { cardWidth: 'w-24', imgSize: 'w-18 h-18', textSize: 'text-xs' };
-                    mSize = { cardWidth: 'w-20', imgSize: 'w-14 h-14', textSize: 'text-[11px]', gapClass: 'gap-4', emojiSize: 'text-2xl' };
+                    cSize = { cardWidth: 'w-48', imgSize: 'w-36 h-36', textSize: 'text-lg' };
+                    mSize = { cardWidth: 'w-32', imgSize: 'w-24 h-24', textSize: 'text-sm', gapClass: 'gap-5', emojiSize: 'text-4xl' };
                   } else if (count > 12) {
-                    cSize = { cardWidth: 'w-28', imgSize: 'w-20 h-20', textSize: 'text-sm' };
-                    mSize = { cardWidth: 'w-24', imgSize: 'w-16 h-16', textSize: 'text-xs', gapClass: 'gap-5', emojiSize: 'text-2xl' };
+                    cSize = { cardWidth: 'w-52', imgSize: 'w-40 h-40', textSize: 'text-xl' };
+                    mSize = { cardWidth: 'w-36', imgSize: 'w-28 h-28', textSize: 'text-base', gapClass: 'gap-6', emojiSize: 'text-5xl' };
                   }
 
                   return (
-                    <div className="py-6 space-y-6 animate-fade-in text-center">
-                      <h2 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                    <div className="flex-grow flex flex-col justify-between py-2 space-y-4 animate-fade-in text-center overflow-hidden h-full">
+                      <h2 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.2)] py-1 shrink-0">
                         כל הכבוד לכל המשתתפים!
                       </h2>
                       
                       {/* Contestants Row (Slightly larger, highlighted circular gallery) */}
-                      <div className="flex flex-wrap justify-center gap-8 pb-5 border-b border-slate-800/50 max-w-4xl mx-auto">
+                      <div className="flex flex-wrap justify-center gap-6 pb-3 border-b border-slate-800/50 max-w-7xl mx-auto shrink-0">
                         {(settings.contestants || []).map((c, index) => {
                           const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
                           return (
@@ -1566,7 +1588,7 @@ export const GameView: React.FC = React.memo(() => {
                         })}
                       </div>
 
-                      <div className={`flex flex-wrap justify-center ${mSize.gapClass} py-4 px-6 max-w-5xl mx-auto`}>
+                      <div className={`flex-grow flex flex-wrap justify-center overflow-y-auto ${mSize.gapClass} py-3 px-4 max-w-7xl mx-auto`}>
                         {members.map(m => (
                           <div key={m.id} className={`flex flex-col items-center space-y-2 ${mSize.cardWidth} group`}>
                             <div className="relative">
@@ -1702,9 +1724,7 @@ export const GameView: React.FC = React.memo(() => {
                 </>
               ))}
 
-              <div className="text-xs text-slate-500 mt-6">
-                <strong className="font-black text-amber-400">{hostLabel}</strong> יכול להתחיל מחדש את המשחק ממסך הניהול
-              </div>
+
             </motion.div>
           </motion.div>
         )}
@@ -1783,7 +1803,7 @@ export const GameView: React.FC = React.memo(() => {
                     transition={{ duration: 2.2, ease: "easeInOut" }}
                     className="text-7xl md:text-9xl font-black text-emerald-400 font-sans tracking-widest drop-shadow-[0_0_60px_rgba(16,185,129,0.6)] text-center whitespace-nowrap"
                   >
-                    מתחילים! 🚀
+                    מתחילים!
                   </motion.h1>
                 </AnimatePresence>
               )}

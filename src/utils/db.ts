@@ -41,6 +41,7 @@ export interface GameState {
   isRevealed: boolean;
   isPlaying: boolean;
   isPaused: boolean; // Whether game is paused (host disconnected)
+  winnerRevealed?: boolean;
 }
 
 const STORAGE_KEYS = {
@@ -58,9 +59,10 @@ const DEFAULT_QUESTIONS: TriviaQuestion[] = [];
 const DEFAULT_SETTINGS: GameSettings = {
 
   contestants: [
-    { id: 'contestant_1', name: 'כחול', image: null },
-    { id: 'contestant_2', name: 'סגול', image: null }
+    { id: 'contestant_1', name: 'מתמודד 1', gender: 'male', image: null },
+    { id: 'contestant_2', name: 'מתמודד 2', gender: 'male', image: null },
   ],
+  showNameBank: true,
   hostName: '',
   questionTimer: null,
   wizardStep: 1,
@@ -77,6 +79,7 @@ const DEFAULT_GAME_STATE: GameState = {
   isRevealed: false,
   isPlaying: false,
   isPaused: false,
+  winnerRevealed: false,
 };
 
 export function ensureArray<T>(val: any): T[] {
@@ -135,6 +138,14 @@ export const healGameState = (s: any, settings?: GameSettings): GameState => {
   
   if (typeof parsed.isPlaying !== 'boolean') {
     parsed.isPlaying = false;
+  }
+
+  if (typeof parsed.isPaused !== 'boolean') {
+    parsed.isPaused = false;
+  }
+
+  if (typeof parsed.winnerRevealed !== 'boolean') {
+    parsed.winnerRevealed = false;
   }
   
   // Ensure all contestants have scores
@@ -329,6 +340,7 @@ export const db = {
       isRevealed: false,
       isPlaying: true,
       isPaused: false,
+      winnerRevealed: false,
     };
     
     this.saveGameState(newState);

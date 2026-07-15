@@ -16,7 +16,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Tv,
-  Pencil
+  Pencil,
+  ArrowUp,
+  ArrowDown,
+  GripVertical
 } from 'lucide-react';
 
 export const AdminWizard: React.FC = () => {
@@ -65,6 +68,7 @@ export const AdminWizard: React.FC = () => {
     handleMemberImageUpload,
     handleAddQuestion,
     handleDeleteQuestion,
+    handleReorderQuestions,
     handleImportMembersExcel,
     handleImportQuestionsExcel,
     handleAbsoluteReset,
@@ -1107,28 +1111,68 @@ export const AdminWizard: React.FC = () => {
 
               <div>
                 <h4 className="text-[10px] font-black text-slate-400 mb-1.5">שאלות שהוספו ({questions.length}):</h4>
-                <div className="max-h-[110px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
+                <div className="max-h-[220px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
                   {questions.length === 0 ? (
                     <p className="text-[10px] text-slate-650 text-center py-4">טרם הוספו שאלות. הוסף שאלה למעלה או העלה קובץ Excel.</p>
                   ) : (
                     questions.map((q, idx) => {
                       const speaker = members.find(m => m.id === q.speakerId);
                       return (
-                        <div key={q.id} className="flex justify-between items-center bg-slate-950/70 border border-slate-850 p-2 rounded-xl text-xs">
-                          <div className="flex items-center gap-2 truncate max-w-[90%]">
-                            <span className="font-black text-emerald-400">#{idx + 1}</span>
+                        <div 
+                          key={q.id} 
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', idx.toString());
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                          }}
+                          onDrop={(e) => {
+                            const dragIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                            if (!isNaN(dragIndex)) {
+                              handleReorderQuestions(dragIndex, idx);
+                            }
+                          }}
+                          className="flex justify-between items-center bg-slate-950/70 border border-slate-850 p-2 rounded-xl text-xs hover:border-slate-700 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 truncate max-w-[70%]">
+                            <span className="cursor-move text-slate-650 hover:text-slate-450 p-0.5 rounded transition-colors shrink-0" title="גרור לשינוי סדר">
+                              <GripVertical size={12} />
+                            </span>
+                            <span className="font-black text-emerald-400 shrink-0">#{idx + 1}</span>
                             <span className="text-slate-200 truncate font-semibold">“{q.text}”</span>
                             <span className="text-[9px] bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-bold shrink-0">
                               {speaker ? `אמר/ה: ${speaker.name}` : 'שאלה כללית'}
                             </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteQuestion(q.id)}
-                            className="text-rose-400 hover:bg-rose-500/10 p-1 rounded transition-colors"
-                          >
-                            <Trash2 size={12} />
-                          </button>
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleReorderQuestions(idx, idx - 1)}
+                              className="text-slate-450 hover:bg-slate-800 hover:text-slate-200 p-1 rounded transition-colors disabled:opacity-20 disabled:pointer-events-none"
+                              title="העבר למעלה"
+                            >
+                              <ArrowUp size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === questions.length - 1}
+                              onClick={() => handleReorderQuestions(idx, idx + 1)}
+                              className="text-slate-450 hover:bg-slate-800 hover:text-slate-200 p-1 rounded transition-colors disabled:opacity-20 disabled:pointer-events-none"
+                              title="העבר למטה"
+                            >
+                              <ArrowDown size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteQuestion(q.id)}
+                              className="text-rose-450 hover:bg-rose-500/10 p-1 rounded transition-colors ml-0.5"
+                              title="מחק שאלה"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
                       );
                     })
@@ -1232,8 +1276,8 @@ export const AdminWizard: React.FC = () => {
                       <span className="text-[9px] text-slate-500 font-normal">השאלות יופיעו לפי סדר ההכנסה</span>
                     </button>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-2 bg-slate-950/30 p-3 rounded-lg leading-relaxed">
-                    💡 בחר סדר אקראי למשחק מהנה יותר, או סדר הכנסה לשליטה מלאה בסדר השאלות.
+                  <p className="text-[10px] text-slate-400 mt-2 bg-slate-900 border border-slate-800 p-3 rounded-lg leading-relaxed">
+                    💡 <strong>שים לב:</strong> סדר השאלות משפיע ישירות על סדר השחקנים המוקראים. אם תבחר ב<strong>סדר הכנסה</strong>, בני המשפחה ייחשפו על מסך ההקרנה בדיוק לפי סדר השאלות והציטוטים שהזנת בשלב 4.
                   </p>
                 </div>
 
@@ -1383,12 +1427,7 @@ export const AdminWizard: React.FC = () => {
           )}
         </div>
 
-        {/* Tip Footer Message */}
-        <div className="text-center mt-4">
-          <span className="text-[10px] text-slate-500 font-bold block bg-slate-950/20 py-1.5 px-3 rounded-lg border border-slate-950">
-            💡 אל דאגה! תוכלו לערוך ולשנות את כל הפרטים הללו גם בהמשך דרך מסך העריכה.
-          </span>
-        </div>
+
 
         {/* Custom Confirmation Modal */}
         {wizardConfirmModal && (
