@@ -1372,53 +1372,51 @@ export const GameView: React.FC = React.memo(() => {
                     </p>
                   </motion.div>
                 ) : (
-                  <motion.div
-                    key="revealed"
-                    initial={{ opacity: 0, scale: 0.85 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.85 }}
-                    transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                    className="flex flex-col items-center text-center relative z-10 space-y-6"
-                  >
-                    {(() => {
-                      const liveSpeakerId = gameState.revealedSpeakers?.[currentQuestion?.id || ''] as string;
-                      const resolvedSpeakerId = liveSpeakerId || (
-                        currentQuestion?.speakerId === 'general' ? undefined : currentQuestion?.speakerId
-                      );
-                      const speaker = members.find(m => m.id === resolvedSpeakerId);
-                      const speakerName = speaker ? speaker.name : 'פלוני אלמוני';
-                      return (
-                        <>
-                          <span className="text-emerald-400 text-sm font-bold uppercase tracking-widest px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                            הדובר נחשף! 🎉
-                          </span>
+                  (() => {
+                    const liveSpeakerId = gameState.revealedSpeakers?.[currentQuestion?.id || ''] as string;
+                    const resolvedSpeakerId = liveSpeakerId || (
+                      currentQuestion?.speakerId === 'general' ? undefined : currentQuestion?.speakerId
+                    );
+                    const speaker = members.find(m => m.id === resolvedSpeakerId);
+                    const speakerName = speaker ? speaker.name : 'פלוני אלמוני';
+                    return (
+                      <motion.div
+                        key={`revealed-${resolvedSpeakerId || 'unknown'}`}
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.85 }}
+                        transition={{ type: "spring", stiffness: 100, damping: 15 }}
+                        className="flex flex-col items-center text-center relative z-10 space-y-6"
+                      >
+                        <span className="text-emerald-400 text-sm font-bold uppercase tracking-widest px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                          הדובר נחשף! 🎉
+                        </span>
 
-                          <div className="relative">
-                            <div className="absolute -inset-2 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full blur opacity-70 animate-pulse" />
-                            <div className="relative w-44 h-44 rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden shadow-2xl flex items-center justify-center">
-                              {speaker?.image ? (
-                                <img src={speaker.image} alt={speakerName} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-8xl select-none">
-                                  {speaker ? (speaker.gender === 'female' ? '👩' : '👨') : '❓'}
-                                </div>
-                              )}
-                            </div>
+                        <div className="relative">
+                          <div className="absolute -inset-2 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full blur opacity-70 animate-pulse" />
+                          <div className="relative w-44 h-44 rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden shadow-2xl flex items-center justify-center">
+                            {speaker?.image ? (
+                              <img src={speaker.image} alt={speakerName} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-8xl select-none">
+                                {speaker ? (speaker.gender === 'female' ? '👩' : '👨') : '❓'}
+                              </div>
+                            )}
                           </div>
+                        </div>
 
-                          <div className="space-y-1">
-                            <h2 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-md">
-                              {speakerName}
-                            </h2>
-                          </div>
+                        <div className="space-y-1">
+                          <h2 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-md">
+                            {speakerName}
+                          </h2>
+                        </div>
 
-                          <p className="text-slate-400 text-sm max-w-sm italic">
-                            ״אמר/ה את הציטוט בהתרגשות רבה!״
-                          </p>
-                        </>
-                      );
-                    })()}
-                  </motion.div>
+                        <p className="text-slate-400 text-sm max-w-sm italic">
+                          ״אמר/ה את הציטוט בהתרגשות רבה!״
+                        </p>
+                      </motion.div>
+                    );
+                  })()
                 )}
               </AnimatePresence>
             </div>

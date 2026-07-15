@@ -195,7 +195,7 @@ export const ControlTab: React.FC = () => {
                         updateGameState({
                           ...gameState,
                           revealedSpeakers: newRevealed,
-                          isRevealed: false, // Never expose the answer just by selecting a speaker
+                          // Keep the current reveal state: if already revealed, keep showing; otherwise don't auto-reveal
                         });
                       }}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 text-xs font-bold"
