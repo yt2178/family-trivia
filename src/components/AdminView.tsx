@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sync } from '../utils/sync';
 
@@ -27,6 +27,16 @@ const AdminViewInner: React.FC = () => {
     wizardConfirmModal,
     setWizardConfirmModal
   } = useAdmin();
+
+  const [dismissedDisconnectAlert, setDismissedDisconnectAlert] = useState(false);
+  const prevConnectedRef = useRef(gameScreenConnected);
+
+  useEffect(() => {
+    if (prevConnectedRef.current && !gameScreenConnected) {
+      setDismissedDisconnectAlert(false);
+    }
+    prevConnectedRef.current = gameScreenConnected;
+  }, [gameScreenConnected]);
 
   // ── Loading screen ──
   if (isLoading) {
@@ -129,9 +139,9 @@ const AdminViewInner: React.FC = () => {
           {/* Connection indicator + actions */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${gameScreenConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
-              <span className="text-[10px] text-slate-400">
-                {gameScreenConnected ? 'מסך המשחק מחובר' : 'ממתין לחיבור מסך'}
+              <div className={`w-2 h-2 rounded-full ${gameScreenConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500 animate-pulse'}`} />
+              <span className={`text-[10px] font-bold ${gameScreenConnected ? 'text-slate-400' : 'text-rose-450'}`}>
+                {gameScreenConnected ? 'מסך המשחק מחובר' : 'מסך ההקרנה התנתק ❌'}
               </span>
             </div>
 
@@ -179,6 +189,35 @@ const AdminViewInner: React.FC = () => {
                 className="flex-1 py-2 bg-slate-950 border border-slate-850 hover:bg-slate-900 text-slate-400 text-xs font-black rounded-xl transition-all active:scale-95 cursor-pointer"
               >
                 ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Top-level Disconnection Warning Modal */}
+      {!gameScreenConnected && !dismissedDisconnectAlert && adminSubMode === 'controller' && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 text-right" dir="rtl">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-10 -left-10 w-24 h-24 bg-rose-500/5 rounded-full blur-xl pointer-events-none" />
+            <div className="text-center space-y-2">
+              <span className="text-3xl">📡❌</span>
+              <h4 className="text-base font-black text-rose-400">
+                מסך ההקרנה התנתק
+              </h4>
+            </div>
+            <p className="text-xs text-slate-350 leading-relaxed text-center font-medium">
+              נראה שמסך ההקרנה (המקרן) של המשחק אינו מחובר לחדר כעת.
+            </p>
+            <p className="text-[11px] text-slate-400 leading-relaxed text-center">
+              ודא שהמקרן פתוח בכתובת המשחק עם קוד החדר: <strong className="font-mono text-emerald-400">{sync.getRoomCode()}</strong> כדי שהמשתתפים יוכלו לראות את המשחק.
+            </p>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setDismissedDisconnectAlert(true)}
+                className="w-full py-2.5 bg-rose-500 hover:bg-rose-455 text-slate-950 font-black text-xs rounded-xl transition-all active:scale-95 cursor-pointer shadow-lg shadow-rose-950/20"
+              >
+                אישור והמשך לשלט 👍
               </button>
             </div>
           </div>

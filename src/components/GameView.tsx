@@ -1381,9 +1381,10 @@ export const GameView: React.FC = React.memo(() => {
                     className="flex flex-col items-center text-center relative z-10 space-y-6"
                   >
                     {(() => {
-                      const resolvedSpeakerId = (currentQuestion?.speakerId === 'general' || !currentQuestion?.speakerId)
-                        ? (gameState.revealedSpeakers?.[currentQuestion?.id || ''] as string)
-                        : currentQuestion?.speakerId;
+                      const liveSpeakerId = gameState.revealedSpeakers?.[currentQuestion?.id || ''] as string;
+                      const resolvedSpeakerId = liveSpeakerId || (
+                        currentQuestion?.speakerId === 'general' ? undefined : currentQuestion?.speakerId
+                      );
                       const speaker = members.find(m => m.id === resolvedSpeakerId);
                       const speakerName = speaker ? speaker.name : 'פלוני אלמוני';
                       return (
@@ -1429,15 +1430,18 @@ export const GameView: React.FC = React.memo(() => {
               <span className="text-[10px] text-slate-500 block mb-2 font-bold">בנק השמות של המשפחה:</span>
               <div className={`flex flex-wrap ${members.length > 40 ? 'gap-1.5' : 'gap-2'} justify-center`}>
                 {members.map(m => {
+                  const currentLiveSpeakerId = currentQuestion ? gameState.revealedSpeakers?.[currentQuestion.id] : undefined;
                   const isCurrentCorrect = currentQuestion && gameState.isRevealed && (
-                    currentQuestion.speakerId === m.id || 
-                    ((currentQuestion.speakerId === 'general' || !currentQuestion.speakerId) && gameState.revealedSpeakers?.[currentQuestion.id] === m.id)
+                    currentLiveSpeakerId
+                      ? currentLiveSpeakerId === m.id
+                      : (currentQuestion.speakerId === 'general' ? false : currentQuestion.speakerId === m.id)
                   );
                   
                   const wasSolvedInPast = Object.entries(gameState.solvedQuestions || {}).some(([qId, winnerId]) => {
                     const q = questions.find(question => question.id === qId);
                     if (!q) return false;
-                    const speakerId = q.speakerId === 'general' || !q.speakerId ? gameState.revealedSpeakers?.[qId] : q.speakerId;
+                    const qLiveSpeakerId = gameState.revealedSpeakers?.[qId];
+                    const speakerId = qLiveSpeakerId || (q.speakerId === 'general' ? undefined : q.speakerId);
                     return speakerId === m.id;
                   });
 

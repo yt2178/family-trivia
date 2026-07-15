@@ -43,9 +43,10 @@ export const ControlTab: React.FC = () => {
   const isGameLoaded = shuffledIds.length > 0;
   const activeQuestionId = shuffledIds[gameState.currentQuestionIndex];
   const activeQuestion = questions.find(q => q.id === activeQuestionId);
-  const activeSpeakerId = activeQuestion?.speakerId === 'general' || !activeQuestion?.speakerId
-    ? gameState.revealedSpeakers?.[activeQuestionId]
-    : activeQuestion?.speakerId;
+  const liveSpeakerId = activeQuestion ? gameState.revealedSpeakers?.[activeQuestion.id] : undefined;
+  const activeSpeakerId = liveSpeakerId || (
+    activeQuestion?.speakerId === 'general' ? undefined : activeQuestion?.speakerId
+  );
   const activeSpeaker = activeSpeakerId ? members.find(m => m.id === activeSpeakerId) : null;
 
   // Get next speakers for preview
@@ -180,17 +181,17 @@ export const ControlTab: React.FC = () => {
 
                 </div>
 
-                {/* Live Speaker Selection for General Questions */}
-                {(activeQuestion?.speakerId === 'general' || !activeQuestion?.speakerId) && (
+                {/* Live Speaker Selection for All Questions */}
+                {activeQuestion && (
                   <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl mb-6 text-right relative z-20">
                     <span className="text-xs text-amber-400 block mb-2 font-bold flex items-center gap-1.5">
-                      <span>🎯 שאלה כללית - בחר מי אמר את הציטוט בלייב:</span>
+                      <span>🎯 בחר/שנה את מי שאמר את הציטוט בלייב (אופציונלי):</span>
                     </span>
                     <select
-                      value={(gameState.revealedSpeakers?.[activeQuestion?.id || ''] as string) || ''}
+                      value={liveSpeakerId || ''}
                       onChange={e => {
                         const mId = e.target.value;
-                        const newRevealed = { ...(gameState.revealedSpeakers || {}), [activeQuestionId]: mId };
+                        const newRevealed = { ...(gameState.revealedSpeakers || {}), [activeQuestion.id]: mId };
                         updateGameState({
                           ...gameState,
                           revealedSpeakers: newRevealed,
@@ -199,7 +200,11 @@ export const ControlTab: React.FC = () => {
                       }}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 text-xs font-bold"
                     >
-                      <option value="">-- בחר בן משפחה מהרשימה --</option>
+                      <option value="">
+                        {activeQuestion.speakerId && activeQuestion.speakerId !== 'general'
+                          ? `-- ברירת מחדל: ${members.find(m => m.id === activeQuestion.speakerId)?.name || 'לא ידוע'} --`
+                          : '-- בחר בן משפחה מהרשימה --'}
+                      </option>
                       {members.map(m => (
                         <option key={m.id} value={m.id}>{m.name}</option>
                       ))}

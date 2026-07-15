@@ -82,6 +82,7 @@ export const AdminWizard: React.FC = () => {
   const [memberSearchQuery, setMemberSearchQuery] = useState<string>('');
   const [copiedProjectorLink, setCopiedProjectorLink] = useState<boolean>(false);
   const [showSkipConfirmModal, setShowSkipConfirmModal] = useState<boolean>(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const roomCode = sync.getRoomCode() || '';
 
@@ -714,7 +715,13 @@ export const AdminWizard: React.FC = () => {
                         <div className="relative">
                           <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-800 bg-slate-900 flex items-center justify-center">
                             {c.image ? (
-                              <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+                              <img
+                                src={c.image}
+                                alt={c.name}
+                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                                onClick={() => setPreviewImageUrl(c.image)}
+                                title="לחץ להגדלה 🔍"
+                              />
                             ) : (
                               <ImageIcon className="text-slate-600" size={20} />
                             )}
@@ -890,24 +897,33 @@ export const AdminWizard: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-400 shrink-0">תמונה (אופציונלי):</label>
                   <div className="flex items-center gap-2">
                     {newMember.image ? (
-                      <div className="relative group">
-                        <img
-                          src={newMember.image}
-                          alt="תצוגה מקדימה"
-                          className="w-10 h-10 rounded-full object-cover border-2 border-emerald-500/50 cursor-pointer"
+                      <div className="flex items-center gap-2">
+                        <div className="relative group">
+                          <img
+                            src={newMember.image}
+                            alt="תצוגה מקדימה"
+                            className="w-10 h-10 rounded-full object-cover border-2 border-emerald-500/50 cursor-pointer hover:scale-105 transition-transform"
+                            onClick={() => setPreviewImageUrl(newMember.image)}
+                            title="לחץ להגדלה 🔍"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setNewMember({ ...newMember, image: null })}
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full text-white flex items-center justify-center text-[9px] hover:bg-rose-400 transition-colors"
+                            title="הסר תמונה"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <button
+                          type="button"
                           onClick={() => {
                             const inp = document.getElementById('member-image-upload') as HTMLInputElement;
                             inp?.click();
                           }}
-                          title="לחץ להחלפה"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setNewMember({ ...newMember, image: null })}
-                          className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full text-white flex items-center justify-center text-[9px] hover:bg-rose-400 transition-colors"
-                          title="הסר תמונה"
+                          className="px-2.5 py-1 bg-slate-900 border border-slate-800 hover:border-emerald-500 text-[10px] text-slate-350 rounded-lg font-bold transition-all"
                         >
-                          ✕
+                          החלף 🔄
                         </button>
                       </div>
                     ) : (
@@ -982,7 +998,13 @@ export const AdminWizard: React.FC = () => {
                         <div key={m.id} className={`flex justify-between items-center border p-2 rounded-xl text-xs ${isBeingEdited ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-slate-950/70 border-slate-850'}`}>
                           <div className="flex items-center gap-2">
                             {m.image ? (
-                              <img src={m.image} alt={m.name} className="w-7 h-7 rounded-full object-cover border border-slate-700" />
+                              <img
+                                src={m.image}
+                                alt={m.name}
+                                className="w-7 h-7 rounded-full object-cover border border-slate-700 cursor-pointer hover:scale-105 transition-transform"
+                                onClick={() => setPreviewImageUrl(m.image)}
+                                title="לחץ להגדלה 🔍"
+                              />
                             ) : (
                               <span className="text-base">{m.gender === 'female' ? '👩' : '👨'}</span>
                             )}
@@ -1568,6 +1590,37 @@ export const AdminWizard: React.FC = () => {
         </div>
       )}
 
+      {/* Zoom Preview Modal for Uploaded Images */}
+      {previewImageUrl && (
+        <div 
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[99999] flex flex-col items-center justify-center p-4 text-right animate-fade-in"
+          onClick={() => setPreviewImageUrl(null)}
+          dir="rtl"
+        >
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl max-w-xs w-full space-y-4 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <span className="text-xs font-bold text-slate-400">תצוגה מקדימה מוגדלת 🔍</span>
+              <button 
+                type="button" 
+                onClick={() => setPreviewImageUrl(null)} 
+                className="text-slate-400 hover:text-white font-bold text-xs"
+              >
+                ✕ סגור
+              </button>
+            </div>
+            <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-slate-850 bg-slate-950 flex items-center justify-center">
+              <img src={previewImageUrl} alt="תצוגה מקדימה מוגדלת" className="w-full h-full object-cover animate-fade-in" />
+            </div>
+            <button
+              type="button"
+              onClick={() => setPreviewImageUrl(null)}
+              className="w-full py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-bold rounded-xl transition-all"
+            >
+              סגור
+            </button>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
