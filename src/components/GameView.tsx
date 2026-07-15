@@ -1425,9 +1425,9 @@ export const GameView: React.FC = React.memo(() => {
 
           {/* Name Bank */}
           {settings.showNameBank && !isGameOver && (
-            <div className="glass-panel p-4 rounded-2xl border border-slate-800/80 shadow-lg text-right">
+            <div className={`glass-panel ${members.length > 40 ? 'p-3' : 'p-4'} rounded-2xl border border-slate-800/80 shadow-lg text-right`}>
               <span className="text-[10px] text-slate-500 block mb-2 font-bold">בנק השמות של המשפחה:</span>
-              <div className="flex flex-wrap gap-2 justify-center">
+              <div className={`flex flex-wrap ${members.length > 40 ? 'gap-1.5' : 'gap-2'} justify-center`}>
                 {members.map(m => {
                   const isCurrentCorrect = currentQuestion && gameState.isRevealed && (
                     currentQuestion.speakerId === m.id || 
@@ -1442,11 +1442,17 @@ export const GameView: React.FC = React.memo(() => {
                   });
 
                   const isHighlighted = isCurrentCorrect || wasSolvedInPast;
+                  const count = members.length;
+                  const itemStyleClass = count > 60
+                    ? 'px-1.5 py-0.5 text-[9px] rounded-md'
+                    : count > 30
+                      ? 'px-2 py-0.5 text-[10px] rounded-md'
+                      : 'px-2.5 py-1 text-xs rounded-lg';
 
                   return (
                     <span
                       key={m.id}
-                      className={`px-2.5 py-1 text-xs rounded-lg border font-bold transition-all ${
+                      className={`${itemStyleClass} border font-bold transition-all ${
                         isHighlighted
                           ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.25)]'
                           : 'bg-slate-900/60 text-slate-500 border-slate-850'
