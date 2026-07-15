@@ -1158,7 +1158,7 @@ export const GameView: React.FC = React.memo(() => {
   const females = members.filter(m => m.gender === 'female').length;
 
   return (
-    <div className="relative w-full min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-100 flex flex-col p-6 overflow-hidden">
+    <div className="relative w-full h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-100 flex flex-col p-6 overflow-hidden">
       {/* Canvas for Confetti */}
       <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
 
@@ -1334,14 +1334,14 @@ export const GameView: React.FC = React.memo(() => {
 
           {/* Dynamic Family Tree, Speaker Reveal or Question Placeholder */}
           {isGameOver ? (
-            <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl bg-slate-950/40 p-8">
+            <div className="flex-grow min-h-[250px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl bg-slate-950/40 p-8">
               <div className="text-center space-y-4">
                 <h3 className="text-4xl font-extrabold text-amber-400">המשחק הסתיים! 🏆</h3>
                 <p className="text-slate-400 text-sm">מיד נדע מי ניצח במשפחה...</p>
               </div>
             </div>
           ) : (
-            <div className="flex-grow min-h-[500px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40 p-8">
+            <div className="flex-grow min-h-[250px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40 p-8">
               {/* Blur decoration always present for rich aesthetics */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -1427,7 +1427,7 @@ export const GameView: React.FC = React.memo(() => {
           {/* Name Bank */}
           {settings.showNameBank && !isGameOver && (
             <div className={`glass-panel ${members.length > 40 ? 'p-3' : 'p-4'} rounded-2xl border border-slate-800/80 shadow-lg text-right`}>
-              <span className="text-[10px] text-slate-500 block mb-2 font-bold">בנק השמות של המשפחה:</span>
+              <span className="text-[10px] text-slate-500 block mb-2 font-bold">בנק השמות:</span>
               <div className={`flex flex-wrap ${members.length > 40 ? 'gap-1.5' : 'gap-2'} justify-center`}>
                 {members.map(m => {
                   const currentLiveSpeakerId = currentQuestion ? gameState.revealedSpeakers?.[currentQuestion.id] : undefined;
