@@ -180,6 +180,9 @@ const healSettings = (s: any): GameSettings => {
   if (parsed.showNameBank === undefined) {
     parsed.showNameBank = false;
   }
+  if (parsed.showDetailedGalleryPage === undefined) {
+    parsed.showDetailedGalleryPage = true;
+  }
   return parsed;
 };
 
@@ -1629,115 +1632,106 @@ export const GameView: React.FC = React.memo(() => {
                 })()
 
               ) : (
-                // Phase 1 (Scoreboard and plain list of names below)
-                <>
-                  <div className={`grid gap-4 mb-8 ${(settings.contestants?.length || 0) <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
-                    {(settings.contestants || []).map((c, index) => {
-                      const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
+                // Phase 1: High-Celebration Winner Alone Screen (No secondary contestant, no score grids, no family gallery)
+                (() => {
+                  const winnerId = getGameWinner();
+                  if (winnerId === 'tie') {
+                    // Find all tied contestants with max score
+                    let maxScore = -1;
+                    (settings.contestants || []).forEach(c => {
                       const score = gameState.scores[c.id] || 0;
-                      return (
-                        <div key={c.id} className="glass-panel p-6 rounded-3xl border border-slate-800 text-center relative overflow-hidden">
-                          <div className={`absolute -top-12 -right-12 w-24 h-24 ${colors.accentGlow} opacity-50 rounded-full blur-2xl`} />
-                          <div className={`w-16 h-16 rounded-2xl border-2 ${colors.border}/30 mx-auto mb-3 overflow-hidden flex items-center justify-center p-0.5`}>
-                            {c.image ? (
-                              <img src={c.image} alt={c.name} className="w-full h-full object-cover rounded-xl" />
-                            ) : (
-                              <div className={`w-full h-full flex items-center justify-center ${colors.text}`}>
-                                <Award size={24} />
-                              </div>
-                            )}
-                          </div>
-                          <span className={`text-[10px] font-black uppercase tracking-widest ${colors.text} px-2 py-0.5 bg-slate-900/50 rounded-md border border-slate-800/50`}>
-                            {c.name}
-                          </span>
-                          <div className="mt-2 text-2xl font-black text-slate-100">{score}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl mb-8">
-                    {getGameWinner() === 'tie' ? (
-                      <div>
-                        <h3 className="text-2xl font-bold text-amber-400 flex items-center justify-center gap-2">
-                          תיקו דרמטי! המשחק הסתיים בשוויון!
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-2">כל הכבוד למנצחים! הפרש קטן, כולם שיחקו בצורה מדהימה!</p>
-                      </div>
-                    ) : (() => {
-                      const winnerContestant = (settings.contestants || []).find(c => c.id === getGameWinner());
-                      const winnerIndex = (settings.contestants || []).findIndex(c => c.id === getGameWinner());
-                      const colors = CONTESTANT_COLORS[winnerIndex % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
-                      const name = winnerContestant?.name || '';
-                      const gender = winnerContestant?.gender || 'male';
-                      const pronoun = gender === 'female' ? 'הזוכה היא' : 'הזוכה הוא';
-                      const greeting = gender === 'female' ? 'ברכות לזוכה המאושרת ששיחקה כמו אלופה!' : 'ברכות למנצח הגדול ששיחק בכישרון יוצא דופן!';
-                      return (
-                        <div>
-                          <h3 className={`text-2xl font-bold ${colors.text} flex items-center justify-center gap-2`}>
-                            🏆 {name} {gender === 'female' ? 'ניצחה!' : 'ניצח!'} {pronoun} המנצח!
-                          </h3>
-                          <p className="text-xs text-slate-400 mt-2">{greeting}</p>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Family Members / Participants Gallery */}
-                  {winnerRevealTimer === 0 && members.length > 0 && (() => {
-                    // Normal gallery (always show photos in small size during Phase 1)
-                    const avatarSize = members.length > 50 
-                      ? 'w-9 h-9' 
-                      : members.length > 30 
-                        ? 'w-10 h-10' 
-                        : 'w-12 h-12';
-                    const emojiSize = members.length > 50
-                      ? 'text-base'
-                      : members.length > 30
-                        ? 'text-lg'
-                        : 'text-xl';
-                    const cardWidth = members.length > 50 
-                      ? 'w-12' 
-                      : members.length > 30 
-                        ? 'w-14' 
-                        : 'w-16';
-                    const textSize = members.length > 50 
-                      ? 'text-[8px]' 
-                      : 'text-[10px]';
-                    const gapClass = members.length > 50 
-                      ? 'gap-3.5' 
-                      : 'gap-5';
+                      if (score > maxScore) maxScore = score;
+                    });
+                    const tiedContestants = (settings.contestants || []).filter(c => (gameState.scores[c.id] || 0) === maxScore);
 
                     return (
-                      <div className="mt-8 pt-6 border-t border-slate-800/80 text-right animate-fade-in" dir="rtl">
-                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 text-center">
-                          משתתפי החידון המשפחתי:
-                        </h4>
-                        <div className={`flex flex-wrap justify-center ${gapClass} py-2 px-1`}>
-                          {members.map(m => (
-                            <div key={m.id} className={`flex flex-col items-center space-y-1.5 ${cardWidth} group`}>
-                              <div className="relative">
-                                <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
-                                <div className={`relative ${avatarSize} rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md`}>
-                                  {m.image ? (
-                                    <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center ${emojiSize} select-none`}>
-                                      {m.gender === 'female' ? '👩' : '👨'}
-                                    </div>
-                                  )}
+                      <div className="flex flex-col items-center justify-center space-y-10 py-8 animate-fade-in text-center h-full">
+                        <h2 className="text-4xl md:text-6xl font-black bg-gradient-to-r from-amber-400 via-yellow-350 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
+                          תיקו דרמטי! 🏆
+                        </h2>
+                        <div className="flex justify-center gap-10 items-center flex-wrap">
+                          {tiedContestants.map((c, idx) => {
+                            const originalIdx = (settings.contestants || []).findIndex(x => x.id === c.id);
+                            const colors = CONTESTANT_COLORS[originalIdx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
+                            return (
+                              <div key={c.id} className="flex flex-col items-center space-y-4">
+                                <div className="relative">
+                                  <div className={`absolute -inset-2 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-75`} />
+                                  <div className="relative w-36 h-36 md:w-56 md:h-56 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden flex items-center justify-center shadow-2xl">
+                                    {c.image ? (
+                                      <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-4xl md:text-6xl font-black ${colors.text}`}>
+                                        🏆
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
+                                <span className={`text-2xl md:text-4xl font-black ${colors.text}`}>{c.name}</span>
+                                <span className="text-lg md:text-2xl font-bold text-slate-350 bg-slate-900/60 px-4 py-1 rounded-full border border-slate-800">
+                                  ניקוד: {maxScore}
+                                </span>
                               </div>
-                              <span className={`${textSize} font-bold text-slate-355 truncate w-full text-center group-hover:text-emerald-450 transition-colors`} title={m.name}>
-                                {m.name}
-                              </span>
+                            );
+                          })}
+                        </div>
+                        <p className="text-slate-400 text-sm md:text-base font-bold animate-pulse tracking-wider">
+                          איזה משחק צמוד! מיד נעלה את גלריית כל המשתתפים... 🌟
+                        </p>
+                      </div>
+                    );
+                  } else {
+                    // Single Winner Celebration Screen
+                    const winnerContestant = (settings.contestants || []).find(c => c.id === winnerId);
+                    const winnerIndex = (settings.contestants || []).findIndex(c => c.id === winnerId);
+                    const colors = CONTESTANT_COLORS[winnerIndex % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
+                    const score = gameState.scores[winnerId] || 0;
+                    const name = winnerContestant?.name || '';
+                    const gender = winnerContestant?.gender || 'male';
+                    const pronoun = gender === 'female' ? 'הזוכה היא' : 'הזוכה הוא';
+                    const greeting = gender === 'female' 
+                      ? 'ברכות לזוכה המאושרת ששיחקה כמו אלופה! 👑' 
+                      : 'ברכות למנצח הגדול ששיחק בכישרון יוצא דופן! 👑';
+
+                    return (
+                      <div className="flex flex-col items-center justify-center space-y-12 py-10 animate-fade-in text-center h-full">
+                        <h2 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-amber-400 via-yellow-350 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(245,158,11,0.35)] select-none">
+                          {pronoun}... 🎉
+                        </h2>
+                        
+                        <div className="flex flex-col items-center space-y-6">
+                          <div className="relative">
+                            <div className={`absolute -inset-4 bg-gradient-to-tr ${colors.gradient} rounded-full blur-xl opacity-80 animate-pulse`} />
+                            <div className="relative w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden flex items-center justify-center shadow-2xl">
+                              {winnerContestant?.image ? (
+                                <img src={winnerContestant.image} alt={name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-5xl md:text-7xl font-black ${colors.text}`}>
+                                  🏆
+                                </div>
+                              )}
                             </div>
-                          ))}
+                          </div>
+                          <span className={`text-4xl md:text-7xl font-black ${colors.text} tracking-wide drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]`}>
+                            {name}
+                          </span>
+                          <span className="text-xl md:text-3xl font-black text-amber-300 bg-slate-900/60 px-6 py-1.5 rounded-full border border-slate-800/80">
+                            המנצח הגדול עם {score} נקודות! 🏆
+                          </span>
+                        </div>
+
+                        <div className="space-y-3">
+                          <p className="text-xl md:text-2xl font-black text-slate-200">
+                            {greeting}
+                          </p>
+                          <p className="text-xs text-slate-500 tracking-widest animate-pulse font-semibold">
+                            מיד תעלה גלריית כל המשתתפים... 🌟
+                          </p>
                         </div>
                       </div>
                     );
-                  })()}
-                </>
+                  }
+                })()
               ))}
 
 
@@ -1782,35 +1776,114 @@ export const GameView: React.FC = React.memo(() => {
               <div className="absolute w-[600px] h-[600px] rounded-full bg-emerald-500/5 blur-3xl animate-pulse pointer-events-none" />
             )}
             
-            {startCountdownValue > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="text-center space-y-2 z-10 select-none"
+            {startCountdownValue >= 6 ? (
+              // Stage 1 (Seconds 10 to 6): Welcome the contestants (Text only, NO photos)
+              <motion.div 
+                key="welcome-stage"
+                initial={{ opacity: 0, scale: 0.9 }} 
+                animate={{ opacity: 1, scale: 1 }} 
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center space-y-12 z-10 select-none text-center"
               >
-                <h2 className="text-2xl md:text-3xl font-black text-slate-400 uppercase tracking-widest">
-                  המשחק מתחיל! 🎮
-                </h2>
-                <p className="text-lg md:text-xl font-bold text-emerald-400">
-                  כולם מוכנים? 🤔
+                <motion.h2 
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] tracking-wider"
+                >
+                  קבלו את המתמודדים הבאים! 🎙️
+                </motion.h2>
+                <div className="flex items-center justify-center gap-8 md:gap-16 flex-wrap px-6">
+                  {(settings.contestants || []).map((c, idx) => {
+                    const colors = CONTESTANT_COLORS[idx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
+                    return (
+                      <React.Fragment key={c.id}>
+                        {idx > 0 && (
+                          <motion.span 
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            className="text-3xl md:text-5xl font-black text-slate-500"
+                          >
+                            🆚
+                          </motion.span>
+                        )}
+                        <motion.span 
+                          initial={{ x: idx === 0 ? -50 : 50, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ type: "spring", stiffness: 70, delay: 0.2 + idx * 0.15 }}
+                          className={`text-5xl md:text-8xl font-black ${colors.text} drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]`}
+                        >
+                          {c.name}
+                        </motion.span>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+                <p className="text-slate-400 text-lg md:text-xl font-bold animate-pulse">
+                  המשחק מוכן! כולם להכין את הניחושים... 🤔
                 </p>
               </motion.div>
-            )}
+            ) : startCountdownValue > 0 ? (
+              // Stage 2 (Seconds 5 to 1): Growing/Rising photos and Giant Countdown Number
+              <motion.div 
+                key="photos-stage"
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center space-y-8 z-10 select-none text-center"
+              >
+                <h2 className="text-2xl md:text-3xl font-black text-slate-400 uppercase tracking-widest animate-pulse">
+                  המשחק מתחיל בעוד...
+                </h2>
+                
+                <div className="flex items-center justify-center gap-10 md:gap-20">
+                  {(settings.contestants || []).map((c, idx) => {
+                    const colors = CONTESTANT_COLORS[idx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
+                    return (
+                      <motion.div
+                        key={c.id}
+                        initial={{ y: 250, opacity: 0, scale: 0.5 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 85, damping: 15 }}
+                        className="flex flex-col items-center space-y-3"
+                      >
+                        <div className="relative">
+                          <div className={`absolute -inset-2 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-65`} />
+                          <div className="relative w-32 h-32 md:w-52 md:h-52 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden flex items-center justify-center shadow-2xl">
+                            {c.image ? (
+                              <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className={`w-full h-full flex items-center justify-center text-4xl md:text-6xl font-black ${colors.text}`}>
+                                🏆
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className={`text-2xl md:text-4xl font-black ${colors.text} drop-shadow`}>
+                          {c.name}
+                        </span>
+                      </motion.div>
+                    );
+                  })}
+                </div>
 
-            {/* Giant Animated Number or Growing Text - simplified clean transition without lag or rotation */}
-            <div className="h-96 flex items-center justify-center z-10 select-none">
-              {startCountdownValue > 0 ? (
-                <motion.div
-                  key={startCountdownValue}
-                  initial={{ scale: 0.7, opacity: 0.3 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="text-9xl md:text-[14rem] font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_80px_rgba(16,185,129,0.35)]"
-                >
-                  {startCountdownValue}
-                </motion.div>
-              ) : (
+                {/* Giant animated countdown number */}
+                <div className="h-44 flex items-center justify-center">
+                  <motion.div
+                    key={startCountdownValue}
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="text-8xl md:text-[10rem] font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_80px_rgba(16,185,129,0.45)]"
+                  >
+                    {startCountdownValue}
+                  </motion.div>
+                </div>
+              </motion.div>
+            ) : (
+              // Start go signal ("מתחילים!")
+              <div className="h-96 flex items-center justify-center z-10 select-none">
                 <AnimatePresence>
                   <motion.h1
                     key="start-go"
@@ -1822,8 +1895,8 @@ export const GameView: React.FC = React.memo(() => {
                     מתחילים!
                   </motion.h1>
                 </AnimatePresence>
-              )}
-            </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

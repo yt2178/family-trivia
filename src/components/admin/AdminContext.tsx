@@ -334,7 +334,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardContestantCount(draft.contestantCount || 2);
         setWizardQuestionTimer(draft.questionTimer !== undefined ? draft.questionTimer : (settings.questionTimer || null));
         setWizardShowNameBank(draft.showNameBank !== undefined ? draft.showNameBank : (settings.showNameBank || false));
-        setWizardShowDetailedGalleryPage(draft.showDetailedGalleryPage !== undefined ? draft.showDetailedGalleryPage : (settings.showDetailedGalleryPage || false));
+        setWizardShowDetailedGalleryPage(draft.showDetailedGalleryPage !== undefined ? draft.showDetailedGalleryPage : (settings.showDetailedGalleryPage !== undefined ? settings.showDetailedGalleryPage : true));
         setWizardNextQuestionDelay(draft.nextQuestionDelay !== undefined ? draft.nextQuestionDelay : (settings.nextQuestionDelay || 'manual'));
         setWizardStepLocal(draft.wizardStep || settings.wizardStep || 1);
         
@@ -356,7 +356,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardContestantCount(settings.contestants?.length || 2);
         setWizardQuestionTimer(settings.questionTimer !== undefined ? settings.questionTimer : null);
         setWizardShowNameBank(settings.showNameBank || false);
-        setWizardShowDetailedGalleryPage(settings.showDetailedGalleryPage || false);
+        setWizardShowDetailedGalleryPage(settings.showDetailedGalleryPage !== undefined ? settings.showDetailedGalleryPage : true);
         setWizardNextQuestionDelay(settings.nextQuestionDelay !== undefined ? settings.nextQuestionDelay : 'manual');
         setWizardStepLocal(settings.wizardStep || 1);
         
