@@ -62,6 +62,7 @@ export const AdminWizard: React.FC = () => {
     updateSettings,
     handleAddMember,
     handleDeleteMember,
+    handleReorderMembers,
     handleStartEdit,
     handleSaveEdit,
     handleCancelEdit,
@@ -87,6 +88,7 @@ export const AdminWizard: React.FC = () => {
   const [copiedProjectorLink, setCopiedProjectorLink] = useState<boolean>(false);
   const [showSkipConfirmModal, setShowSkipConfirmModal] = useState<boolean>(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [memberDragIndex, setMemberDragIndex] = useState<number | null>(null);
 
   const roomCode = sync.getRoomCode() || '';
 
@@ -988,19 +990,48 @@ export const AdminWizard: React.FC = () => {
                     className="bg-slate-950 border border-slate-850 rounded-lg px-2 py-1 text-[10px] text-slate-200 font-bold focus:outline-none focus:border-emerald-500 w-32 placeholder-slate-600 transition-colors"
                   />
                 </div>
-                <div className="max-h-[220px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
+                 <div className="max-h-[220px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
                   {members.length === 0 ? (
                     <p className="text-[10px] text-slate-650 text-center py-4">טרם הוספו שחקנים. הוסף שחקן למעלה או העלה קובץ Excel.</p>
                   ) : (() => {
-                    const filtered = members.filter(m => m.name.toLowerCase().includes(memberSearchQuery.toLowerCase()));
+                    const filtered = memberSearchQuery
+                      ? members.filter(m => m.name.toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                      : members;
                     if (filtered.length === 0) {
                       return <p className="text-[10px] text-slate-650 text-center py-4">לא נמצאו שחקנים התואמים לחיפוש...</p>;
                     }
-                    return filtered.map(m => {
+                    return filtered.map((m, idx) => {
+                      const realIdx = members.findIndex(mem => mem.id === m.id);
                       const isBeingEdited = editingMemberId === m.id;
                       return (
-                        <div key={m.id} className={`flex justify-between items-center border p-2 rounded-xl text-xs ${isBeingEdited ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-slate-950/70 border-slate-850'}`}>
-                          <div className="flex items-center gap-2">
+                        <div
+                          key={m.id}
+                          draggable={!memberSearchQuery}
+                          onDragStart={() => setMemberDragIndex(realIdx)}
+                          onDragOver={e => { e.preventDefault(); }}
+                          onDrop={() => {
+                            if (memberDragIndex !== null) {
+                              handleReorderMembers(memberDragIndex, realIdx);
+                              setMemberDragIndex(null);
+                            }
+                          }}
+                          onDragEnd={() => setMemberDragIndex(null)}
+                          className={`flex justify-between items-center border p-2 rounded-xl text-xs transition-all ${
+                            memberDragIndex === realIdx
+                              ? 'opacity-50 border-emerald-500/40'
+                              : isBeingEdited
+                                ? 'bg-emerald-950/30 border-emerald-500/30'
+                                : 'bg-slate-950/70 border-slate-850'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            {/* Drag Handle */}
+                            {!memberSearchQuery && (
+                              <span
+                                className="text-slate-600 cursor-grab active:cursor-grabbing select-none text-base leading-none px-0.5"
+                                title="גרור לשינוי סדר"
+                              >⠿</span>
+                            )}
                             {m.image ? (
                               <img
                                 src={m.image}
@@ -1015,6 +1046,29 @@ export const AdminWizard: React.FC = () => {
                             <span className="font-bold text-slate-200">{m.name}</span>
                           </div>
                           <div className="flex items-center gap-1">
+                            {/* Arrow Reorder Buttons */}
+                            {!memberSearchQuery && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={realIdx === 0}
+                                  onClick={() => handleReorderMembers(realIdx, realIdx - 1)}
+                                  className="text-slate-400 hover:text-emerald-400 disabled:opacity-20 p-0.5 rounded transition-colors"
+                                  title="הזז למעלה"
+                                >
+                                  <ArrowUp size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={realIdx === members.length - 1}
+                                  onClick={() => handleReorderMembers(realIdx, realIdx + 1)}
+                                  className="text-slate-400 hover:text-emerald-400 disabled:opacity-20 p-0.5 rounded transition-colors"
+                                  title="הזז למטה"
+                                >
+                                  <ArrowDown size={12} />
+                                </button>
+                              </>
+                            )}
                             <button
                               type="button"
                               onClick={() => handleStartEdit(m)}

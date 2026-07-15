@@ -1539,48 +1539,53 @@ export const GameView: React.FC = React.memo(() => {
                 // Phase 2: Full Screen Festive Gallery Page
                 (() => {
                   const count = members.length;
-                  let cSize = { cardWidth: 'w-48', imgSize: 'w-36 h-36', textSize: 'text-lg' };
-                  let mSize = { cardWidth: 'w-36', imgSize: 'w-28 h-28', textSize: 'text-base', gapClass: 'gap-6', emojiSize: 'text-5xl' };
+                  const contestantCount = (settings.contestants || []).length;
 
-                  if (count > 64) {
-                    cSize = { cardWidth: 'w-40', imgSize: 'w-28 h-28', textSize: 'text-sm' };
-                    mSize = { cardWidth: 'w-24', imgSize: 'w-18 h-18', textSize: 'text-xs', gapClass: 'gap-3.5', emojiSize: 'text-2xl' };
-                  } else if (count > 40) {
-                    cSize = { cardWidth: 'w-44', imgSize: 'w-32 h-32', textSize: 'text-base' };
-                    mSize = { cardWidth: 'w-28', imgSize: 'w-22 h-22', textSize: 'text-xs', gapClass: 'gap-4', emojiSize: 'text-3xl' };
-                  } else if (count > 24) {
-                    cSize = { cardWidth: 'w-48', imgSize: 'w-36 h-36', textSize: 'text-lg' };
-                    mSize = { cardWidth: 'w-32', imgSize: 'w-24 h-24', textSize: 'text-sm', gapClass: 'gap-5', emojiSize: 'text-4xl' };
-                  } else if (count > 12) {
-                    cSize = { cardWidth: 'w-52', imgSize: 'w-40 h-40', textSize: 'text-xl' };
-                    mSize = { cardWidth: 'w-36', imgSize: 'w-28 h-28', textSize: 'text-base', gapClass: 'gap-6', emojiSize: 'text-5xl' };
-                  }
+                  // Determine grid columns for members based on count
+                  // Goal: fill the screen in rows without scrolling
+                  let cols: number;
+                  if (count > 120) cols = 20;
+                  else if (count > 90) cols = 18;
+                  else if (count > 70) cols = 15;
+                  else if (count > 55) cols = 13;
+                  else if (count > 40) cols = 11;
+                  else if (count > 28) cols = 9;
+                  else if (count > 18) cols = 7;
+                  else if (count > 10) cols = 6;
+                  else if (count > 6) cols = 5;
+                  else cols = 4;
+
+                  // Contestant row sizes (bigger, always visible)
+                  let cImgSize: string;
+                  if (contestantCount > 6) cImgSize = 'w-14 h-14';
+                  else if (contestantCount > 4) cImgSize = 'w-20 h-20';
+                  else cImgSize = 'w-28 h-28';
 
                   return (
-                    <div className="flex-grow flex flex-col justify-between py-2 space-y-4 animate-fade-in text-center overflow-hidden h-full">
-                      <h2 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.2)] py-1 shrink-0">
+                    <div className="flex-grow flex flex-col h-full min-h-0 animate-fade-in text-center overflow-hidden" style={{ gap: '0.4rem' }}>
+                      <h2 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.2)] shrink-0 leading-tight py-0.5">
                         כל הכבוד לכל המשתתפים!
                       </h2>
-                      
-                      {/* Contestants Row (Slightly larger, highlighted circular gallery) */}
-                      <div className="flex flex-wrap justify-center gap-6 pb-3 border-b border-slate-800/50 max-w-7xl mx-auto shrink-0">
+
+                      {/* Contestants Row – always prominent */}
+                      <div className="flex flex-wrap justify-center gap-4 pb-2 border-b border-slate-800/50 max-w-7xl mx-auto shrink-0">
                         {(settings.contestants || []).map((c, index) => {
                           const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
                           return (
-                            <div key={c.id} className={`flex flex-col items-center space-y-2 ${cSize.cardWidth} group`}>
+                            <div key={c.id} className="flex flex-col items-center gap-1.5 group">
                               <div className="relative">
                                 <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient || 'from-emerald-500 to-teal-400'} rounded-full blur opacity-55 group-hover:opacity-90 transition-opacity duration-300`} />
-                                <div className={`relative ${cSize.imgSize} rounded-full border-3 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-xl`}>
+                                <div className={`relative ${cImgSize} rounded-full border-2 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-xl`}>
                                   {c.image ? (
                                     <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
                                   ) : (
-                                    <div className={`w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-2xl font-black ${colors.text}`}>
+                                    <div className={`w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-xl font-black ${colors.text}`}>
                                       🏆
                                     </div>
                                   )}
                                 </div>
                               </div>
-                              <span className={`${cSize.textSize} font-black ${colors.text} truncate w-full text-center`} title={c.name}>
+                              <span className={`text-sm font-black ${colors.text} truncate max-w-[5rem] text-center`} title={c.name}>
                                 {c.name}
                               </span>
                             </div>
@@ -1588,22 +1593,32 @@ export const GameView: React.FC = React.memo(() => {
                         })}
                       </div>
 
-                      <div className={`flex-grow flex flex-wrap justify-center overflow-y-auto ${mSize.gapClass} py-3 px-4 max-w-7xl mx-auto`}>
+                      {/* Members Grid – fills remaining space, no scroll */}
+                      <div
+                        className="flex-grow min-h-0 w-full max-w-[100%] mx-auto"
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                          gap: '0.25rem',
+                          alignContent: 'center',
+                          overflow: 'hidden',
+                        }}
+                      >
                         {members.map(m => (
-                          <div key={m.id} className={`flex flex-col items-center space-y-2 ${mSize.cardWidth} group`}>
-                            <div className="relative">
+                          <div key={m.id} className="flex flex-col items-center gap-0.5 group min-w-0">
+                            <div className="relative w-full aspect-square">
                               <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
-                              <div className={`relative ${mSize.imgSize} rounded-full border-2 border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg`}>
+                              <div className="relative w-full h-full rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md">
                                 {m.image ? (
                                   <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
                                 ) : (
-                                  <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center ${mSize.emojiSize} select-none`}>
+                                  <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-[70%] select-none">
                                     {m.gender === 'female' ? '👩' : '👨'}
                                   </div>
                                 )}
                               </div>
                             </div>
-                            <span className={`${mSize.textSize} font-black text-slate-300 truncate w-full text-center group-hover:text-emerald-450 transition-colors`} title={m.name}>
+                            <span className="text-[0.5rem] leading-tight font-bold text-slate-300 truncate w-full text-center group-hover:text-emerald-400 transition-colors" title={m.name}>
                               {m.name}
                             </span>
                           </div>
@@ -1612,6 +1627,7 @@ export const GameView: React.FC = React.memo(() => {
                     </div>
                   );
                 })()
+
               ) : (
                 // Phase 1 (Scoreboard and plain list of names below)
                 <>

@@ -181,6 +181,7 @@ interface AdminContextType {
   handleAssignPoints: (winner: string) => void;
   handleAddMember: (e: React.FormEvent) => Promise<void>;
   handleDeleteMember: (id: string) => void;
+  handleReorderMembers: (startIndex: number, endIndex: number) => void;
   handleStartEdit: (m: FamilyMember) => void;
   handleSaveEdit: (e: React.FormEvent) => void;
   handleCancelEdit: () => void;
@@ -891,6 +892,18 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const handleReorderMembers = (startIndex: number, endIndex: number) => {
+    if (startIndex < 0 || startIndex >= members.length || endIndex < 0 || endIndex >= members.length || startIndex === endIndex) {
+      return;
+    }
+    const result = Array.from(members);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    setMembers(result);
+    db.saveMembers(result);
+    sync.sendMessage({ type: 'DATABASE_SYNC', members: result, questions, settings });
+  };
+
   const handleStartEdit = (m: FamilyMember) => {
     setEditingMemberId(m.id);
     setNewMember({
@@ -1233,6 +1246,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       handleAssignPoints,
       handleAddMember,
       handleDeleteMember,
+      handleReorderMembers,
       handleStartEdit,
       handleSaveEdit,
       handleCancelEdit,
