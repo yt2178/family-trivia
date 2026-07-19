@@ -990,7 +990,7 @@ export const AdminWizard: React.FC = () => {
                     className="bg-slate-950 border border-slate-850 rounded-lg px-2 py-1 text-[10px] text-slate-200 font-bold focus:outline-none focus:border-emerald-500 w-32 placeholder-slate-600 transition-colors"
                   />
                 </div>
-                 <div className="max-h-[220px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
+                 <div className="max-h-[350px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
                   {members.length === 0 ? (
                     <p className="text-[10px] text-slate-650 text-center py-4">טרם הוספו שחקנים. הוסף שחקן למעלה או העלה קובץ Excel.</p>
                   ) : (() => {
@@ -1165,7 +1165,7 @@ export const AdminWizard: React.FC = () => {
 
               <div>
                 <h4 className="text-[10px] font-black text-slate-400 mb-1.5">שאלות שהוספו ({questions.length}):</h4>
-                <div className="max-h-[220px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
+                <div className="max-h-[350px] overflow-y-auto border border-slate-850 bg-slate-950/20 rounded-xl p-2 space-y-1.5">
                   {questions.length === 0 ? (
                     <p className="text-[10px] text-slate-650 text-center py-4">טרם הוספו שאלות. הוסף שאלה למעלה או העלה קובץ Excel.</p>
                   ) : (
@@ -1310,7 +1310,7 @@ export const AdminWizard: React.FC = () => {
                     >
                       <span className="text-xl">🎲</span>
                       <span className="font-black">סדר אקראי</span>
-                      <span className="text-[9px] text-slate-500 font-normal">השאלות יופיעו בסדר מעורבב</span>
+                      <span className="text-[9px] text-slate-500 font-normal">השאלות והמשתתפים יופיעו בסדר מעורבב</span>
                     </button>
 
                     <button
@@ -1327,11 +1327,11 @@ export const AdminWizard: React.FC = () => {
                     >
                       <span className="text-xl">📋</span>
                       <span className="font-black">סדר הכנסה</span>
-                      <span className="text-[9px] text-slate-500 font-normal">השאלות יופיעו לפי סדר ההכנסה</span>
+                      <span className="text-[9px] text-slate-500 font-normal">לפי סדר הזנת השאלות והמשתתפים</span>
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-2 bg-slate-900 border border-slate-800 p-3 rounded-lg leading-relaxed">
-                    💡 <strong>שים לב:</strong> סדר השאלות משפיע ישירות על סדר השחקנים המוקראים. אם תבחר ב<strong>סדר הכנסה</strong>, בני המשפחה ייחשפו על מסך ההקרנה בדיוק לפי סדר השאלות והציטוטים שהזנת בשלב 4.
+                    💡 <strong>שים לב:</strong> בחירת סדר המשחק קובעת גם את סדר השאלות וגם את סדר חשיפת השחקנים/בני המשפחה על מסך ההקרנה (לפי סדר השאלות שהזנתם בשלב 4).
                   </p>
                 </div>
 
