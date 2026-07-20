@@ -392,12 +392,6 @@ export const GameView: React.FC = React.memo(() => {
             const fbSettings = data.settings || data.db?.settings || {};
             const fbState = data.state || data.db?.state || {};
 
-            const storedHost = (fbSettings.hostName || '').trim();
-            const urlHost = new URLSearchParams(window.location.search).get('host') || '';
-            if (storedHost && urlHost.trim().toLowerCase() !== storedHost.toLowerCase()) {
-              setSecurityError(true);
-            }
-
             db.saveMembers(fbMembers);
             db.saveQuestions(fbQuestions);
             
@@ -969,6 +963,7 @@ export const GameView: React.FC = React.memo(() => {
           </div>
           <button
             onClick={() => {
+              localStorage.removeItem('last_connected_room');
               window.location.href = `${window.location.origin}${window.location.pathname}`;
             }}
             className="w-full py-3 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-350 font-bold text-sm rounded-xl transition-all cursor-pointer"

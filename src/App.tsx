@@ -492,10 +492,13 @@ function App() {
 
             <button
               onClick={() => {
-                setMode('welcome');
+                localStorage.removeItem('last_connected_room');
+                setRoomCode('');
+                setInputRoomCode('');
                 setJoinSelectionRoom(null);
+                setMode('welcome');
               }}
-              className="w-full py-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 font-bold text-sm rounded-xl transition-all"
+              className="w-full py-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 font-bold text-sm rounded-xl transition-all cursor-pointer"
             >
               חזרה לדף הבית
             </button>
@@ -639,8 +642,11 @@ function App() {
 
             <button
               onClick={() => {
-                setMode('welcome');
+                localStorage.removeItem('last_connected_room');
+                setRoomCode('');
+                setInputRoomCode('');
                 setJoinSelectionRoom(null);
+                setMode('welcome');
               }}
               className="w-full py-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 font-bold text-sm rounded-xl transition-all cursor-pointer"
             >
