@@ -430,7 +430,7 @@ export const ControlTab: React.FC = () => {
                 return (
                   <li key={qId} className="flex justify-between items-center bg-slate-900/50 p-2 rounded-lg border border-slate-900">
                     <span className="truncate max-w-[150px] text-slate-300">
-                      {q ? `״${q.text.substr(0, 18)}...״` : 'שאלה'}
+                      {q ? `״${q.text.slice(0, 18)}...״` : 'שאלה'}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <span className="text-slate-400 font-medium">({sp?.name})</span>

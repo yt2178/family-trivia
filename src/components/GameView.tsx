@@ -5,7 +5,7 @@ import { audioHelper } from '../utils/audioHelper';
 import { Trophy, Volume2, Award, Sparkles, RefreshCw, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { rtdb } from '../utils/firebase';
-import { ref, set, onValue, off, get, onDisconnect } from 'firebase/database';
+import { ref, set, update, onValue, off, get, onDisconnect } from 'firebase/database';
 
 function CountdownTimer({ duration, isRevealed, currentQuestionId, isPaused }: { duration: number; isRevealed: boolean; currentQuestionId: string; isPaused: boolean }) {
   const [timeLeft, setTimeLeft] = useState(duration);
@@ -305,8 +305,7 @@ export const GameView: React.FC = React.memo(() => {
             const roomCode = sync.getRoomCode();
             if (roomCode) {
               const stateRef = ref(rtdb, `rooms/${roomCode}/database/state`);
-              set(stateRef, {
-                ...gameState,
+              update(stateRef, {
                 winnerRevealed: true
               }).catch(err => console.error("Failed to update winnerRevealed in DB:", err));
             }
@@ -361,8 +360,7 @@ export const GameView: React.FC = React.memo(() => {
             const roomCode = sync.getRoomCode();
             if (roomCode) {
               const stateRef = ref(rtdb, `rooms/${roomCode}/database/state`);
-              set(stateRef, {
-                ...gameState,
+              update(stateRef, {
                 galleryRevealed: true
               }).catch(err => console.error("Failed to update galleryRevealed in DB:", err));
             }
@@ -1779,11 +1777,11 @@ export const GameView: React.FC = React.memo(() => {
                           const colors = CONTESTANT_COLORS[winnerIndex % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
                           const name = winnerContestant?.name || '';
                           const gender = winnerContestant?.gender || 'male';
-                          const pronoun = gender === 'female' ? 'הזוכה היא' : 'הזוכה הוא';
+                          const winnerTitle = gender === 'female' ? '🏆 הזוכה היא המנצחת! 🏆' : '🏆 הזוכה הוא המנצח! 🏆';
                           return (
                             <div className="space-y-3 shrink-0">
                               <h2 className="text-3xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(245,158,11,0.2)] animate-pulse">
-                                🏆 {pronoun} המנצח! 🏆
+                                {winnerTitle}
                               </h2>
                               <div className="flex flex-col items-center gap-1">
                                 <div className="relative">
@@ -1918,6 +1916,7 @@ export const GameView: React.FC = React.memo(() => {
                       const name = winnerContestant?.name || '';
                       const gender = winnerContestant?.gender || 'male';
                       const pronoun = gender === 'female' ? 'הזוכה היא' : 'הזוכה הוא';
+                      const winnerNoun = gender === 'female' ? 'המנצחת הגדולה' : 'המנצח הגדול';
                       const greeting = gender === 'female'
                         ? 'ברכות לזוכה המאושרת ששיחקה כמו אלופה! 👑'
                         : 'ברכות למנצח הגדול ששיחק בכישרון יוצא דופן! 👑';
@@ -1945,7 +1944,7 @@ export const GameView: React.FC = React.memo(() => {
                               {name}
                             </span>
                             <span className="text-xl md:text-3xl font-black text-amber-300 bg-slate-900/60 px-6 py-1.5 rounded-full border border-slate-800/80">
-                              המנצח הגדול עם {score} נקודות! 🏆
+                              {winnerNoun} עם {score} נקודות! 🏆
                             </span>
                           </div>
 
@@ -2042,7 +2041,8 @@ export const GameView: React.FC = React.memo(() => {
                           initial={{ x: idx === 0 ? -50 : 50, opacity: 0 }}
                           animate={{ x: 0, opacity: 1 }}
                           transition={{ type: "spring", stiffness: 70, delay: 0.2 + idx * 0.15 }}
-                          className={`text-5xl md:text-8xl font-black ${colors.text} drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]`}
+                          className={`text-5xl md:text-8xl font-black ${colors.text} drop-shadow-[0_0_40px_rgba(255,255,255,0.15)] truncate max-w-[40vw] inline-block`}
+                          title={c.name}
                         >
                           {c.name}
                         </motion.span>

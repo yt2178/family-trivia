@@ -82,7 +82,7 @@ export const excelHelper = {
             }
 
             const cleanName = name.trim();
-            const id = 'imported_' + Math.random().toString(36).substr(2, 9);
+            const id = 'imported_' + Math.random().toString(36).substring(2, 11);
             const gender = normalizeGender(genderHeb);
 
             const newMember: FamilyMember = {
@@ -174,7 +174,7 @@ export const excelHelper = {
 
               if (!speakerId) {
                 // Create placeholder/temporary member for missing speakers
-                const newId = 'placeholder_' + Math.random().toString(36).substr(2, 9);
+                const newId = 'placeholder_' + Math.random().toString(36).substring(2, 11);
                 const placeholderMember: FamilyMember = {
                   id: newId,
                   name: cleanSpeaker,
@@ -189,7 +189,7 @@ export const excelHelper = {
             }
 
             importedQuestions.push({
-              id: 'q_imported_' + Math.random().toString(36).substr(2, 9),
+              id: 'q_imported_' + Math.random().toString(36).substring(2, 11),
               text: cleanText,
               speakerId
             });

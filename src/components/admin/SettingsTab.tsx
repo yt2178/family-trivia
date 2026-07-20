@@ -35,7 +35,7 @@ export const SettingsTab: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
-                  const newId = `contestant_${Math.random().toString(36).substr(2, 9)}`;
+                  const newId = `contestant_${Math.random().toString(36).substring(2, 11)}`;
                   const updated = [
                     ...(settings.contestants || []),
                     { id: newId, name: `מתמודד/ת ${(settings.contestants?.length || 0) + 1}`, image: null }

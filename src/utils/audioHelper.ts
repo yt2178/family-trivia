@@ -45,8 +45,6 @@ export class AudioHelper {
     this.pauseAudio = new Audio('https://incompetech.com/music/royalty-free/mp3-royaltyfree/Bossa%20Antigua.mp3');
     this.pauseAudio.loop = true;
     this.pauseAudio.volume = 0.5;
-    this.pauseAudio.loop = true;
-    this.pauseAudio.volume = 0.5;
 
     // Kevin MacLeod "Decisions" — game-show style build-up tension for countdown
     this.introAudio = new Audio('https://incompetech.com/music/royalty-free/mp3-royaltyfree/Decisions.mp3');

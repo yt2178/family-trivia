@@ -908,7 +908,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
-    const id = 'm_' + Math.random().toString(36).substr(2, 9);
+    const id = 'm_' + Math.random().toString(36).substring(2, 11);
 
     const memberToAdd: FamilyMember = {
       id,
@@ -938,10 +938,13 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setWizardConfirmModal({
       message: `האם אתה בטוח שברצונך למחוק את המשתתף "${memberName}"?\n\nלא ניתן יהיה לשחזר פעולה זו.`,
       onConfirm: () => {
-        const updated = members.filter(m => m.id !== id);
-        setMembers(updated);
-        db.saveMembers(updated);
-        sync.sendMessage({ type: 'DATABASE_SYNC', members: updated, questions, settings });
+        const updatedMembers = members.filter(m => m.id !== id);
+        const updatedQuestions = questions.map(q => q.speakerId === id ? { ...q, speakerId: '' } : q);
+        setMembers(updatedMembers);
+        setQuestions(updatedQuestions);
+        db.saveMembers(updatedMembers);
+        db.saveQuestions(updatedQuestions);
+        sync.sendMessage({ type: 'DATABASE_SYNC', members: updatedMembers, questions: updatedQuestions, settings });
         setWizardConfirmModal(null);
         showSuccess('בן המשפחה נמחק.');
       }
@@ -1055,7 +1058,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updated = questions.map(q => q.id === newQuestion.id ? { ...q, text: newQuestion.text.trim(), speakerId } : q);
       showSuccess('השאלה עודכנה בהצלחה!');
     } else {
-      const id = 'q_' + Math.random().toString(36).substr(2, 9);
+      const id = 'q_' + Math.random().toString(36).substring(2, 11);
       const questionToAdd: TriviaQuestion = {
         id,
         text: newQuestion.text.trim(),
