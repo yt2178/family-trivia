@@ -513,61 +513,85 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         try {
           const data = await sync.fetchCurrentRoomDatabase();
           if (data) {
-             const fbMembers = ensureArray<FamilyMember>(data.db?.members);
-             const fbQuestions = ensureArray<TriviaQuestion>(data.db?.questions);
-            const fbSettings = data.db?.settings || data.settings || {};
-            const fbState = data.state || data.db?.state || {};
+             const rawFbMembers = ensureArray<FamilyMember>(data.db?.members || data.members);
+             const fbQuestions = ensureArray<TriviaQuestion>(data.db?.questions || data.questions);
+             const fbSettings = data.db?.settings || data.settings || {};
+             const fbState = data.state || data.db?.state || {};
 
-            const storedHostName = (fbSettings.hostName || '').trim();
-            const urlHostName = (urlParams.get('host') || '').trim();
-            if (storedHostName && urlHostName.toLowerCase() !== storedHostName.toLowerCase()) {
-              setSecurityError(true);
-            }
+             const storedHostName = (fbSettings.hostName || '').trim();
+             const urlHostName = (urlParams.get('host') || '').trim();
+             if (storedHostName && urlHostName.toLowerCase() !== storedHostName.toLowerCase()) {
+               setSecurityError(true);
+             }
 
-            // Set onDisconnect to pause the game automatically when host leaves/disconnects
-            const isPausedRef = ref(rtdb, `rooms/${roomCode}/database/state/isPaused`);
-            onDisconnect(isPausedRef).set(true);
+             // Set onDisconnect to pause the game automatically when host leaves/disconnects
+             const isPausedRef = ref(rtdb, `rooms/${roomCode}/database/state/isPaused`);
+             onDisconnect(isPausedRef).set(true);
 
-            const healed = fbMembers;
-            
-            db.saveMembers(healed);
-            db.saveQuestions(fbQuestions);
-            
-            const currentSettings = db.getSettings();
-            const mergedSettings = healSettings({ ...currentSettings, ...fbSettings });
-            db.saveSettings(mergedSettings);
-            
-            const currentGameState = db.getGameState();
-            const mergedState = healGameState({ ...currentGameState, ...fbState, isPaused: false }, mergedSettings);
-            db.saveGameState(mergedState);
+             const localMembers = db.getMembers();
+             const healed = rawFbMembers.length > 0 ? rawFbMembers.map(fbMem => {
+               const localMem = localMembers.find(m => m.id === fbMem.id || m.name === fbMem.name);
+               const validFbImg = isValidUserImage(fbMem.image) ? fbMem.image : null;
+               const validLocalImg = localMem && isValidUserImage(localMem.image) ? localMem.image : null;
+               return {
+                 ...fbMem,
+                 image: validFbImg || validLocalImg || null
+               };
+             }) : localMembers;
+             
+             db.saveMembers(healed);
+             db.saveQuestions(fbQuestions);
+             
+             const currentSettings = db.getSettings();
+             const mergedSettings = healSettings({ ...currentSettings, ...fbSettings });
+             
+             // Preserve contestant images from local settings if Firebase has null
+             if (mergedSettings.contestants) {
+               mergedSettings.contestants = mergedSettings.contestants.map((c, i) => {
+                 const localContestant = currentSettings.contestants?.[i];
+                 const validFbImg = isValidUserImage(c.image) ? c.image : null;
+                 const validLocalImg = localContestant && isValidUserImage(localContestant.image) ? localContestant.image : null;
+                 return {
+                   ...c,
+                   image: validFbImg || validLocalImg || null
+                 };
+               });
+             }
+             
+             db.saveSettings(mergedSettings);
+             
+             const currentGameState = db.getGameState();
+             const mergedState = healGameState({ ...currentGameState, ...fbState, isPaused: false }, mergedSettings);
+             db.saveGameState(mergedState);
 
-            setMembers(healed);
-            setQuestions(fbQuestions);
-            setSettings(mergedSettings);
-            setGameState(mergedState);
+             setMembers(healed);
+             setQuestions(fbQuestions);
+             setSettings(mergedSettings);
+             setGameState(mergedState);
 
-            // Sync wizard states from Firebase loaded settings to prevent defaulting to 2 contestants
-            setWizardHostName(mergedSettings.hostName || '');
-            setWizardContestantCount(mergedSettings.contestants?.length || 2);
-            setWizardQuestionTimer(mergedSettings.questionTimer !== undefined ? mergedSettings.questionTimer : null);
-            setWizardShowNameBank(mergedSettings.showNameBank || false);
-            setWizardNextQuestionDelay(mergedSettings.nextQuestionDelay !== undefined ? mergedSettings.nextQuestionDelay : 'manual');
-            setWizardStepLocal(mergedSettings.wizardStep || 1);
-            
-            const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
-            const defaultIds = ['contestant_1', 'contestant_2', 'contestant_3', 'contestant_4'];
-            const arr = [];
-            for (let i = 0; i < 4; i++) {
-              const existing = mergedSettings.contestants?.[i];
-              arr.push({
-                id: existing?.id || defaultIds[i],
-                name: existing?.name || defaultNames[i],
-                image: existing?.image || null,
-                gender: existing?.gender || (defaultNames[i] === 'סגול' ? 'female' : 'male')
-              });
-            }
-            setWizardContestants(arr);
-            setHasInitializedWizard(true);
+             // Sync wizard states from Firebase loaded settings to prevent defaulting to 2 contestants
+             setWizardHostName(mergedSettings.hostName || '');
+             setWizardContestantCount(mergedSettings.contestants?.length || 2);
+             setWizardQuestionTimer(mergedSettings.questionTimer !== undefined ? mergedSettings.questionTimer : null);
+             setWizardShowNameBank(mergedSettings.showNameBank || false);
+             setWizardNextQuestionDelay(mergedSettings.nextQuestionDelay !== undefined ? mergedSettings.nextQuestionDelay : 'manual');
+             setWizardStepLocal(mergedSettings.wizardStep || 1);
+             
+             const defaultNames = ['כחול', 'סגול', 'ירוק', 'כתום'];
+             const defaultIds = ['contestant_1', 'contestant_2', 'contestant_3', 'contestant_4'];
+             const arr = [];
+             for (let i = 0; i < 4; i++) {
+               const existing = mergedSettings.contestants?.[i];
+               const validImg = isValidUserImage(existing?.image) ? existing?.image : null;
+               arr.push({
+                 id: existing?.id || defaultIds[i],
+                 name: existing?.name || defaultNames[i],
+                 image: validImg,
+                 gender: existing?.gender || (defaultNames[i] === 'סגול' ? 'female' : 'male')
+               });
+             }
+             setWizardContestants(arr);
+             setHasInitializedWizard(true);
 
             setIsLoading(false);
             return;
@@ -652,13 +676,25 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateSettings = (newSettings: GameSettings) => {
-    setSettings(newSettings);
-    db.saveSettings(newSettings);
+    // Preserve existing valid contestant images if incoming has null/invalid
+    const sanitizedContestants = (newSettings.contestants || []).map((c, idx) => {
+      const existingImg = settings?.contestants?.[idx]?.image;
+      const validIncoming = isValidUserImage(c.image) ? c.image : null;
+      const validExisting = isValidUserImage(existingImg) ? existingImg : null;
+      return {
+        ...c,
+        image: validIncoming || validExisting || null
+      };
+    });
+
+    const finalSettings = { ...newSettings, contestants: sanitizedContestants };
+    setSettings(finalSettings);
+    db.saveSettings(finalSettings);
     
     // Update scores in gameState for new contestants if not exists
     const newScores = { ...(gameState?.scores || {}) };
     let scoreChanged = false;
-    (newSettings.contestants || []).forEach(c => {
+    (finalSettings.contestants || []).forEach(c => {
       if (newScores[c.id] === undefined) {
         newScores[c.id] = 0;
         scoreChanged = true;
@@ -667,7 +703,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Clean up scores of removed contestants
     if (newScores && typeof newScores === 'object') {
       Object.keys(newScores).forEach(key => {
-        if (!(newSettings.contestants || []).some(c => c.id === key)) {
+        if (!(finalSettings.contestants || []).some(c => c.id === key)) {
           delete newScores[key];
           scoreChanged = true;
         }
@@ -681,8 +717,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       sync.sendMessage({ type: 'STATE_CHANGED', state: updatedState });
     }
 
-    sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
-    sync.sendMessage({ type: 'DATABASE_SYNC', members, questions, settings: newSettings });
+    const safeMembers = members.length > 0 ? members : db.getMembers();
+    sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: finalSettings });
+    sync.sendMessage({ type: 'DATABASE_SYNC', members: safeMembers, questions, settings: finalSettings });
   };
 
   const handleStartGame = () => {

@@ -189,27 +189,15 @@ const safeLocalStorageSet = (key: string, value: string): boolean => {
 export const db = {
   // Family Members
   getMembers(): FamilyMember[] {
-    const DB_VERSION_KEY = 'family_game_db_version';
-    const CURRENT_VERSION = 'v7'; // Incremented for contestants schema
-    
     try {
-      const version = localStorage.getItem(DB_VERSION_KEY);
-      if (version !== CURRENT_VERSION) {
-        this.clearAllData();
-        safeLocalStorageSet(DB_VERSION_KEY, CURRENT_VERSION);
-        this.saveMembers(DEFAULT_MEMBERS);
-        return DEFAULT_MEMBERS;
-      }
-
       const data = localStorage.getItem(STORAGE_KEYS.MEMBERS);
       if (!data) {
-        this.saveMembers(DEFAULT_MEMBERS);
-        return DEFAULT_MEMBERS;
+        return [];
       }
       return JSON.parse(data);
     } catch (e) {
       console.error('Failed to read or parse members from localStorage', e);
-      return DEFAULT_MEMBERS;
+      return [];
     }
   },
 
