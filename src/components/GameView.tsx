@@ -403,6 +403,16 @@ export const GameView: React.FC = React.memo(() => {
             const mergedState = healGameState({ ...currentGameState, ...fbState }, mergedSettings);
             db.saveGameState(mergedState);
 
+            const storedHostName = (mergedSettings.hostName || '').trim();
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlHostName = (urlParams.get('host') || '').trim();
+
+            if (storedHostName && urlHostName.toLowerCase() !== storedHostName.toLowerCase()) {
+              setSecurityError(true);
+              setIsLoading(false);
+              return;
+            }
+
             setMembers(fbMembers);
             setQuestions(fbQuestions);
             setSettings(mergedSettings);

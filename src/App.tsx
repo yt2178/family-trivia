@@ -472,7 +472,7 @@ function App() {
           <div className="space-y-4">
             <button
               onClick={() => {
-                window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${joinSelectionRoom}`;
+                window.location.href = `${window.location.origin}${window.location.pathname}?mode=game&room=${joinSelectionRoom}&host=${encodeURIComponent(joinHostName || '')}`;
               }}
               className="w-full py-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-lg rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3"
             >
