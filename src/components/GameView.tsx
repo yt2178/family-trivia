@@ -267,7 +267,9 @@ export const GameView: React.FC = React.memo(() => {
     if (isGameOver) {
       if (gameState.winnerRevealed) {
         setWinnerRevealTimer(0);
-        setGalleryTransitionTimer(0);
+        if (gameState.galleryRevealed) {
+          setGalleryTransitionTimer(0);
+        }
         setHasTriggeredWinnerReveal(true);
       } else if (!hasTriggeredWinnerReveal && winnerRevealTimer === 0) {
         setWinnerRevealTimer(10); // 10 second suspense timer for maximum drama

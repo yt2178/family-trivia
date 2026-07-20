@@ -983,7 +983,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (m.id === editingMemberId) {
         const finalImage = isValidUserImage(newMember.image)
           ? newMember.image
-          : (newMember.image === null ? null : (isValidUserImage(m.image) ? m.image : null));
+          : (isValidUserImage(m.image) ? m.image : null);
         return {
           ...m,
           name: cleanName,
