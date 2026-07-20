@@ -29,19 +29,3 @@
 2. **הזנת תוכן**: מתוך מסך המנחה בטלפון — מוסיפים את המשתתפים, שמות המתמודדים, שאלות וציטוטים, תמונות והגדרות נוספות.
 3. **חיבור המחשב**: לאחר שהכל מוכן, פותחים את הקישור במחשב (שמחובר לטלוויזיה או למקרן), בוחרים **"התחבר לחדר קיים"** ומזינים את אותו מספר חדר ← לוחצים **"פתח מסך הקרנה 📺"**.
 4. **התחלת המשחק**: חוזרים לטלפון, מתחברים שוב לחדר כשלט מנחה, ומתחילים לשחק!
-
-
-## ⚙️ הגדרות Firebase
-יש להגדיר את פרטי הפרויקט שלכם בקובץ `src/utils/firebase.ts` לשימוש בענן הלייב.
-
-```typescript
-const firebaseConfig = {
-  apiKey: "AIzaSyBwBu1B1eLHREM0RhdCTKinPVfhQw31kcg",
-  authDomain: "family-trivia-yt2178.firebaseapp.com",
-  databaseURL: "https://family-trivia-yt2178-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "family-trivia-yt2178",
-  storageBucket: "family-trivia-yt2178.firebasestorage.app",
-  messagingSenderId: "867206641261",
-  appId: "1:867206641261:web:bda4aa42d560f2a17f3164"
-};
-```
