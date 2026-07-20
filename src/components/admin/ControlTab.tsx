@@ -29,6 +29,7 @@ export const ControlTab: React.FC = () => {
     handleRevealAnswer,
     handleAssignPoints,
     handleAbsoluteReset,
+    handleAdvanceStartStage,
     nextQuestionTimer,
     showContestantOrderModal,
     setShowContestantOrderModal,
@@ -261,16 +262,72 @@ export const ControlTab: React.FC = () => {
                 <p className="text-xs text-slate-400">הגענו לסוף כל השאלות.</p>
               </div>
             ) : (
-              <div className="text-center py-10">
-                <p className="text-sm text-slate-400 mb-4">המשחק טרם התחיל. הוסף משתתפים ושאלות דרך הלשוניות למעלה.</p>
-                <button
-                  onClick={handleStartGame}
-                  disabled={members.length === 0 || questions.length === 0 || !gameScreenConnected}
-                  className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 mx-auto hover:from-emerald-400 hover:to-teal-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-950/20"
-                >
-                  <Play size={18} fill="currentColor" />
-                  <span>הפעל והתחל משחק 🚀</span>
-                </button>
+              <div className="text-center py-6 space-y-4">
+                {/* Stage 0 / default: Welcome & Member order */}
+                {(!gameState.startStage || gameState.startStage === 'welcome') && (
+                  <div className="space-y-4 max-w-lg mx-auto bg-slate-950/60 p-5 rounded-2xl border border-slate-850 text-right">
+                    <h4 className="text-base font-black text-emerald-400">👋 ברוכים הבאים לשלט המנחה!</h4>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      מסך ההקרנה מציג כעת את הוראות המשחק למשתתפים.
+                    </p>
+                    
+                    {settings.questionOrder === 'sequential' && (
+                      <div className="border-t border-slate-800 pt-3">
+                        <span className="text-xs font-bold text-slate-200 block mb-2">📋 סדר הקראת המשתתפים (לפי סדר ההכנסה):</span>
+                        <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 bg-slate-900 rounded-xl border border-slate-800">
+                          {members.map((m, idx) => (
+                            <div key={m.id} className="text-xs text-slate-300 flex justify-between p-1">
+                              <span>{idx + 1}. {m.name}</span>
+                              <span className="text-[10px] text-slate-500">{m.gender === 'female' ? '👩' : '👨'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => handleAdvanceStartStage('contestants_count')}
+                      disabled={members.length === 0 || questions.length === 0 || !gameScreenConnected}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-950/20 text-sm"
+                    >
+                      <span>המשך (קבלו את המתמודדים) ➔</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Stage 1: Contestants count */}
+                {gameState.startStage === 'contestants_count' && (
+                  <div className="space-y-4 max-w-lg mx-auto bg-slate-950/60 p-5 rounded-2xl border border-slate-850 text-right">
+                    <h4 className="text-base font-black text-amber-400">🎙️ מוקרן כעת במקרן:</h4>
+                    <p className="text-sm font-bold text-slate-200">
+                      ״קבלו את {(settings.contestants || []).length} המתמודדים שלנו!״
+                    </p>
+                    <button
+                      onClick={() => handleAdvanceStartStage('ready')}
+                      className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-amber-400 hover:to-yellow-300 transition-all shadow-lg text-sm"
+                    >
+                      <span>המשך (מוכנים...) ➔</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Stage 2: Ready */}
+                {gameState.startStage === 'ready' && (
+                  <div className="space-y-4 max-w-lg mx-auto bg-slate-950/60 p-5 rounded-2xl border border-slate-850 text-right">
+                    <h4 className="text-base font-black text-emerald-400">🤔 מוקרן כעת במקרן:</h4>
+                    <p className="text-sm font-bold text-slate-200">
+                      ״מוכנים...״
+                    </p>
+                    <button
+                      onClick={() => handleAdvanceStartStage('in_game')}
+                      className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-300 transition-all shadow-xl shadow-emerald-950/30 text-base"
+                    >
+                      <Play size={20} fill="currentColor" />
+                      <span>הפעל והתחל משחק! 🚀</span>
+                    </button>
+                  </div>
+                )}
+
                 {(members.length === 0 || questions.length === 0) ? (
                   <p className="text-[10px] text-amber-500/80 mt-2">
                     * יש להוסיף לפחות משתתף אחד ושאלה אחת כדי להפעיל את המשחק.

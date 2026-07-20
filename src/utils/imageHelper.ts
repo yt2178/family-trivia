@@ -16,6 +16,17 @@ export const fileToBase64 = (file: File): Promise<string> => {
 };
 
 /**
+ * Checks if an image string is a valid user photo (not null, not empty, and not a 1x1 white dot filter replacement).
+ */
+export const isValidUserImage = (imgStr: string | null | undefined): boolean => {
+  if (!imgStr || typeof imgStr !== 'string') return false;
+  const trimmed = imgStr.trim();
+  if (trimmed.length < 300) return false; // Too short to be a real photo (likely 1x1 pixel)
+  if (trimmed.includes('R0lGODlhAQABA') || trimmed.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB')) return false; // 1x1 transparent/white pixel
+  return true;
+};
+
+/**
  * Compresses a Base64 image string to keep payload size minimal (target < 25KB).
  * This protects the application against LocalStorage quota limits and Firebase RTDB overflow.
  */
@@ -26,9 +37,18 @@ export const compressImage = (
   quality = 0.6
 ): Promise<string> => {
   return new Promise((resolve) => {
+    if (!isValidUserImage(base64Str)) {
+      resolve(base64Str);
+      return;
+    }
     const img = new Image();
     img.src = base64Str;
     img.onload = () => {
+      // Protection against Etrog / Kosher Filter 1x1 white dot replacement
+      if (img.width <= 10 || img.height <= 10) {
+        resolve(base64Str);
+        return;
+      }
       const canvas = document.createElement('canvas');
       let width = img.width;
       let height = img.height;

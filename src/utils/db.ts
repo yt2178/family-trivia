@@ -42,6 +42,8 @@ export interface GameState {
   isPlaying: boolean;
   isPaused: boolean; // Whether game is paused (host disconnected)
   winnerRevealed?: boolean;
+  galleryRevealed?: boolean;
+  startStage?: 'welcome' | 'contestants_count' | 'ready' | 'starting' | 'in_game';
 }
 
 const STORAGE_KEYS = {
@@ -80,6 +82,8 @@ const DEFAULT_GAME_STATE: GameState = {
   isPlaying: false,
   isPaused: false,
   winnerRevealed: false,
+  galleryRevealed: false,
+  startStage: 'welcome',
 };
 
 export function ensureArray<T>(val: any): T[] {
@@ -146,6 +150,14 @@ export const healGameState = (s: any, settings?: GameSettings): GameState => {
 
   if (typeof parsed.winnerRevealed !== 'boolean') {
     parsed.winnerRevealed = false;
+  }
+  
+  if (typeof parsed.galleryRevealed !== 'boolean') {
+    parsed.galleryRevealed = false;
+  }
+
+  if (!parsed.startStage) {
+    parsed.startStage = 'welcome';
   }
   
   // Ensure all contestants have scores
@@ -341,6 +353,8 @@ export const db = {
       isPlaying: true,
       isPaused: false,
       winnerRevealed: false,
+      galleryRevealed: false,
+      startStage: 'welcome',
     };
     
     this.saveGameState(newState);

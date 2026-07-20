@@ -236,6 +236,7 @@ export const GameView: React.FC = React.memo(() => {
   }, [startCountdownValue]);
   
   const hostLabel = settings.hostName || 'המנחה';
+  const contestantNames = (settings.contestants || []).map(c => c.name).join(' ו-');
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -330,17 +331,17 @@ export const GameView: React.FC = React.memo(() => {
     const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
     
     if (isGameOver && winnerRevealTimer === 0 && settings.showDetailedGalleryPage) {
-      if (gameState.winnerRevealed) {
+      if (gameState.galleryRevealed) {
         setGalleryTransitionTimer(0);
       } else if (galleryTransitionTimer === null) {
-        setGalleryTransitionTimer(10); // Start 10 seconds transition timer
+        setGalleryTransitionTimer(10); // Start 10 seconds transition timer for Phase 1
       }
     } else {
       if (galleryTransitionTimer !== null) {
         setGalleryTransitionTimer(null);
       }
     }
-  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, winnerRevealTimer, settings.showDetailedGalleryPage, gameState.winnerRevealed]);
+  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, winnerRevealTimer, settings.showDetailedGalleryPage, gameState.galleryRevealed]);
 
   // Tick down transition timer for detailed gallery page
   useEffect(() => {
@@ -353,6 +354,17 @@ export const GameView: React.FC = React.memo(() => {
           if (prev === null || prev <= 1) {
             clearInterval(galleryIntervalRef.current);
             galleryIntervalRef.current = null;
+
+            // Phase 1 finished! Update galleryRevealed to true in Firebase DB
+            const roomCode = sync.getRoomCode();
+            if (roomCode) {
+              const stateRef = ref(rtdb, `rooms/${roomCode}/database/state`);
+              set(stateRef, {
+                ...gameState,
+                galleryRevealed: true
+              }).catch(err => console.error("Failed to update galleryRevealed in DB:", err));
+            }
+
             return 0;
           }
           return prev - 1;
@@ -360,12 +372,12 @@ export const GameView: React.FC = React.memo(() => {
       }, 1000);
     }
     return () => {
-      if (galleryTransitionTimer === null && galleryIntervalRef.current) {
+      if (galleryTransitionTimer === 0 && galleryIntervalRef.current) {
         clearInterval(galleryIntervalRef.current);
         galleryIntervalRef.current = null;
       }
     };
-  }, [galleryTransitionTimer]);
+  }, [galleryTransitionTimer, gameState]);
 
   // Load initial data
   useEffect(() => {
@@ -716,6 +728,7 @@ export const GameView: React.FC = React.memo(() => {
 
   const totalQuestions = gameState.shuffledQuestionIds?.length || 0;
   const isGameOver = totalQuestions > 0 && gameState.currentQuestionIndex >= totalQuestions;
+  const isGameLoaded = totalQuestions > 0;
 
   // Keyboard controls for projector screen
   useEffect(() => {
@@ -1367,7 +1380,63 @@ export const GameView: React.FC = React.memo(() => {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
 
               <AnimatePresence mode="wait">
-                {!gameState.isRevealed && currentQuestion ? (
+                {!isGameLoaded || gameState.startStage !== 'in_game' ? (
+                  <motion.div
+                    key="pregame-stage"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="flex flex-col items-center text-center relative z-10 space-y-6 max-w-xl mx-auto p-4"
+                  >
+                    {gameState.startStage === 'contestants_count' ? (
+                      <div className="space-y-6">
+                        <h2 className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] animate-pulse">
+                          קבלו את {(settings.contestants || []).length} המתמודדים שלנו! 🎙️
+                        </h2>
+                        <div className="flex justify-center items-center gap-6 flex-wrap">
+                          {(settings.contestants || []).map((c, idx) => {
+                            const colors = CONTESTANT_COLORS[idx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
+                            return (
+                              <span key={c.id} className={`text-2xl md:text-4xl font-black ${colors.text} bg-slate-900/60 px-6 py-2 rounded-2xl border border-slate-800 shadow-lg`}>
+                                {c.name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : gameState.startStage === 'ready' ? (
+                      <div className="space-y-6">
+                        <h2 className="text-5xl md:text-7xl font-black text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.3)] animate-pulse">
+                          מוכנים... 🤔
+                        </h2>
+                        <p className="text-slate-400 text-lg font-bold">
+                          המנחה עומד להפעיל את המשחק!
+                        </p>
+                      </div>
+                    ) : (
+                      // Stage 0 / default: Welcome & Instructions
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <h1 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-amber-300 bg-clip-text text-transparent drop-shadow-md">
+                            מי אמר מה?
+                          </h1>
+                          <p className="text-amber-400 font-bold text-lg">
+                            חידון הציטוטים המשפחתי {hostLabel ? `בהנחיית ${hostLabel}` : ''} 🎙️
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl text-right space-y-3 shadow-xl backdrop-blur-md">
+                          <h3 className="text-sm font-black text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-2">
+                            📌 הוראות למשתתפים:
+                          </h3>
+                          <p className="text-slate-200 text-sm leading-relaxed font-semibold">
+                            הקשיבו למנחה <strong className="text-amber-300 font-black">{hostLabel || 'המנחה'}</strong>! כל אחד מבני המשפחה בתורו יגיד ציטוט או משפט, והמתחרים שלנו ({contestantNames}) יצטרכו לזהות מי אמר מה!
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : !gameState.isRevealed && currentQuestion ? (
                   <motion.div
                     key="unrevealed"
                     initial={{ opacity: 0, scale: 0.95 }}

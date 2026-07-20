@@ -5,7 +5,7 @@ import { excelHelper } from '../../utils/excelHelper';
 import { audioHelper } from '../../utils/audioHelper';
 import { rtdb } from '../../utils/firebase';
 import { ref, onValue, off, set, remove, get, onDisconnect } from 'firebase/database';
-import { fileToBase64, compressImage, cropImage } from '../../utils/imageHelper';
+import { fileToBase64, compressImage, cropImage, isValidUserImage } from '../../utils/imageHelper';
 
 export const CONTESTANT_COLORS = [
   {
@@ -175,6 +175,7 @@ interface AdminContextType {
   updateSettings: (newSettings: GameSettings) => void;
   handleStartGame: () => void;
   handleStartGameAfterContestantOrder: () => void;
+  handleAdvanceStartStage: (nextStage: 'contestants_count' | 'ready' | 'in_game') => void;
   handleNextQuestion: () => void;
   handlePrevQuestion: () => void;
   handleRevealAnswer: () => void;
@@ -342,11 +343,14 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const defaultIds = ['contestant_1', 'contestant_2', 'contestant_3', 'contestant_4'];
         const arr = [];
         for (let i = 0; i < 4; i++) {
+          const draftImg = draft.contestants?.[i]?.image;
+          const settingsImg = settings.contestants?.[i]?.image;
+          const validImg = isValidUserImage(draftImg) ? draftImg : (isValidUserImage(settingsImg) ? settingsImg : null);
           const existing = draft.contestants?.[i] || settings.contestants?.[i];
           arr.push({
             id: existing?.id || defaultIds[i],
             name: existing?.name || defaultNames[i],
-            image: existing?.image || null,
+            image: validImg,
             gender: existing?.gender || (defaultNames[i] === 'סגול' ? 'female' : 'male')
           });
         }
@@ -706,14 +710,29 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const handleStartGameAfterContestantOrder = () => {
     setShowContestantOrderModal(false);
-    const freshState = db.resetGame();
-    updateGameState(freshState);
-    const newSettings = { ...settings, setupComplete: true };
-    db.saveSettings(newSettings);
-    setSettings(newSettings);
-    sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
-    sync.sendMessage({ type: 'START_GAME_COUNTDOWN' });
-    showSuccess('המשחק אותחל בהצלחה!');
+    handleAdvanceStartStage('contestants_count');
+  };
+
+  const handleAdvanceStartStage = (nextStage: 'contestants_count' | 'ready' | 'in_game') => {
+    if (nextStage === 'in_game') {
+      const freshState = db.resetGame();
+      const updatedState: GameState = {
+        ...freshState,
+        startStage: 'in_game'
+      };
+      updateGameState(updatedState);
+      const newSettings = { ...settings, setupComplete: true };
+      db.saveSettings(newSettings);
+      setSettings(newSettings);
+      sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
+      sync.sendMessage({ type: 'START_GAME_COUNTDOWN' });
+      showSuccess('המשחק הופעל והספירה לאחור החלה!');
+    } else {
+      updateGameState({
+        ...gameState,
+        startStage: nextStage
+      });
+    }
   };
 
   const handleNextQuestion = () => {
@@ -925,11 +944,14 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const updated = members.map(m => {
       if (m.id === editingMemberId) {
+        const finalImage = isValidUserImage(newMember.image)
+          ? newMember.image
+          : (newMember.image === null ? null : (isValidUserImage(m.image) ? m.image : null));
         return {
           ...m,
           name: cleanName,
           gender: newMember.gender,
-          image: newMember.image,
+          image: finalImage,
         };
       }
       return m;
@@ -1240,6 +1262,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updateSettings,
       handleStartGame,
       handleStartGameAfterContestantOrder,
+      handleAdvanceStartStage,
       handleNextQuestion,
       handlePrevQuestion,
       handleRevealAnswer,
