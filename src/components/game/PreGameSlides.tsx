@@ -18,8 +18,13 @@ export const PreGameSlides: React.FC<PreGameSlidesProps> = ({
   if (gameState.startStage === 'group_welcome') {
     return (
       <div className="space-y-4 w-full max-w-2xl animate-fade-in text-center relative z-10">
-        <h2 className="text-2xl md:text-4xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent drop-shadow-md">
-          ברוכים הבאים לכל המשתתפים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial] select-none">🎉</span>
+        <h2 className="text-2xl md:text-4xl font-black drop-shadow-md">
+          <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
+            ברוכים הבאים לכל המשתתפים!
+          </span>{' '}
+          <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial] [text-fill-color:initial] text-emerald-400 select-none">
+            🎉
+          </span>
         </h2>
         {settings.groupName && (
           <div className="relative inline-block px-8 py-4 bg-slate-900/90 rounded-2xl border-2 border-amber-400/40 shadow-2xl backdrop-blur-md animate-pulse">
