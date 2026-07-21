@@ -97,16 +97,6 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
 
     return (
       <div className="flex flex-col justify-between py-2 space-y-4 animate-fade-in text-center overflow-hidden h-full max-h-full">
-        {/* Title & Subtitle */}
-        <div className="space-y-1 shrink-0">
-          <h2 className="text-3xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
-            כל הכבוד לכל המשתתפים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">👏</span>
-          </h2>
-          <p className="text-sm md:text-base text-slate-300 font-bold">
-            תודה לכל המשתתפים שחלקו את הציטוטים, הצחוקים והזיכרונות! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">❤️</span>
-          </p>
-        </div>
-
         {/* Top Section: Contestants Standalone VIP Row */}
         <div className="shrink-0 py-2 bg-slate-900/40 border border-amber-500/20 rounded-3xl p-3 md:p-4 max-w-6xl mx-auto w-full shadow-2xl backdrop-blur-sm">
           <div className="text-xs md:text-sm font-black text-amber-400 uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
@@ -140,6 +130,16 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
               );
             })}
           </div>
+        </div>
+
+        {/* Title & Subtitle */}
+        <div className="space-y-1 shrink-0">
+          <h2 className="text-3xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
+            כל הכבוד לכל המשתתפים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">👏</span>
+          </h2>
+          <p className="text-sm md:text-base text-slate-300 font-bold">
+            תודה לכל המשתתפים שחלקו את הציטוטים, הצחוקים והזיכרונות! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">❤️</span>
+          </p>
         </div>
 
         {/* Bottom Section: Responsive Auto-scaling Family Members Grid */}
