@@ -58,17 +58,46 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
 
   if (gameState.galleryRevealed) {
     // --- PHASE C: Full Family Gallery Screen ---
-    const totalGalleryCount = (settings.contestants || []).length + members.length;
-    let cols: number;
-    if (totalGalleryCount > 80) cols = 13;
-    else if (totalGalleryCount > 60) cols = 11;
-    else if (totalGalleryCount > 40) cols = 9;
-    else if (totalGalleryCount > 25) cols = 7;
-    else if (totalGalleryCount > 12) cols = 5;
-    else cols = 4;
+    const contestantsList = settings.contestants || [];
+    const memberCount = members.length;
+    
+    let memberCols: number;
+    let circleMaxW: string;
+    let nameTextSize: string;
+
+    if (memberCount <= 6) {
+      memberCols = Math.min(memberCount || 1, 4);
+      circleMaxW = 'max-w-[7.5rem] md:max-w-[9.5rem]';
+      nameTextSize = 'text-xs md:text-base';
+    } else if (memberCount <= 12) {
+      memberCols = 4;
+      circleMaxW = 'max-w-[6.5rem] md:max-w-[8.5rem]';
+      nameTextSize = 'text-xs md:text-sm';
+    } else if (memberCount <= 20) {
+      memberCols = 5;
+      circleMaxW = 'max-w-[5.5rem] md:max-w-[7.2rem]';
+      nameTextSize = 'text-[0.75rem] md:text-xs';
+    } else if (memberCount <= 32) {
+      memberCols = 7;
+      circleMaxW = 'max-w-[4.8rem] md:max-w-[6rem]';
+      nameTextSize = 'text-[0.7rem] md:text-[0.75rem]';
+    } else if (memberCount <= 48) {
+      memberCols = 9;
+      circleMaxW = 'max-w-[4.2rem] md:max-w-[5.2rem]';
+      nameTextSize = 'text-[0.65rem] md:text-[0.7rem]';
+    } else if (memberCount <= 70) {
+      memberCols = 11;
+      circleMaxW = 'max-w-[3.6rem] md:max-w-[4.5rem]';
+      nameTextSize = 'text-[0.6rem] md:text-[0.65rem]';
+    } else {
+      memberCols = 13;
+      circleMaxW = 'max-w-[3.2rem] md:max-w-[3.8rem]';
+      nameTextSize = 'text-[0.55rem] md:text-[0.6rem]';
+    }
 
     return (
       <div className="flex flex-col justify-between py-2 space-y-3 animate-fade-in text-center overflow-hidden h-full max-h-full">
+        {/* Title & Subtitle */}
         <div className="space-y-1 shrink-0">
           <h2 className="text-3xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
             כל הכבוד לכל המשתתפים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">👏</span>
@@ -78,67 +107,72 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
           </p>
         </div>
 
-        {/* Responsive Auto-scaling Gallery Grid (fills screen in height & width) */}
-        <div className="flex-grow flex flex-col justify-center min-h-0 py-1 overflow-hidden">
-          <div 
-            className="w-full max-w-7xl mx-auto px-2 overflow-hidden justify-center items-center"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-              gap: '0.3rem',
-              alignContent: 'center',
-            }}
-          >
-            {/* Contestants with scores */}
-            {(settings.contestants || []).map((c: Contestant, index: number) => {
+        {/* Top Section: Contestants Standalone Row */}
+        <div className="shrink-0 py-2">
+          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-10 max-w-6xl mx-auto px-2">
+            {contestantsList.map((c: Contestant, index: number) => {
               const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
               const score = gameState.scores[c.id] || 0;
               return (
-                <div key={c.id} className="flex flex-col items-center gap-0.5 group min-w-0">
-                  <div className="relative w-full aspect-square max-w-[4.2rem] mx-auto">
-                    <div className={`absolute -inset-0.5 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-70 group-hover:opacity-100 transition-opacity`} />
-                    <div className="relative w-full h-full rounded-full border-2 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
+                <div key={c.id} className="flex flex-col items-center gap-1 group">
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 lg:w-36 lg:h-36">
+                    <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient} rounded-full blur-md opacity-80 group-hover:opacity-100 transition-opacity`} />
+                    <div className="relative w-full h-full rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-2xl">
                       {c.image ? (
                         <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xs font-black ${colors.text}`}>
+                        <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-3xl md:text-5xl font-black ${colors.text}`}>
                           🏆
                         </div>
                       )}
                     </div>
                   </div>
-                  <span className="text-[0.6rem] md:text-[0.75rem] font-black text-amber-300 truncate w-full text-center" title={c.name}>
+                  <span className="text-sm sm:text-base md:text-xl font-black text-amber-300 truncate max-w-[9rem] sm:max-w-[12rem] text-center drop-shadow" title={c.name}>
                     {c.name}
                   </span>
-                  <span className="text-[0.5rem] md:text-[0.65rem] font-bold text-slate-300 bg-slate-950/60 px-1 py-0.2 rounded border border-slate-800/40 inline-block">
+                  <span className="text-xs sm:text-sm md:text-base font-bold text-slate-100 bg-slate-950/80 px-2.5 py-0.5 rounded-full border border-amber-500/30 shadow-md">
                     {score} נק'
                   </span>
                 </div>
               );
             })}
-
-            {/* Regular family members */}
-            {members.map((m: FamilyMember) => (
-              <div key={m.id} className="flex flex-col items-center gap-0.5 group min-w-0">
-                <div className="relative w-full aspect-square max-w-[3.8rem] mx-auto">
-                  <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/25 to-teal-500/25 rounded-full blur opacity-30 group-hover:opacity-100 transition-opacity" />
-                  <div className="relative w-full h-full rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md">
-                    {m.image ? (
-                      <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-[80%] select-none">
-                        {m.gender === 'female' ? '👩' : '👨'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <span className="text-[0.55rem] md:text-[0.7rem] font-bold text-slate-300 truncate w-full text-center group-hover:text-emerald-400 transition-colors" title={m.name}>
-                  {m.name}
-                </span>
-              </div>
-            ))}
           </div>
         </div>
+
+        {/* Bottom Section: Responsive Auto-scaling Family Members Grid */}
+        {members.length > 0 && (
+          <div className="flex-grow flex flex-col justify-center min-h-0 py-1 overflow-hidden">
+            <div 
+              className="w-full max-w-7xl mx-auto px-2 overflow-hidden justify-center items-center"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${memberCols}, minmax(0, 1fr))`,
+                gap: '0.4rem',
+                alignContent: 'center',
+              }}
+            >
+              {members.map((m: FamilyMember) => (
+                <div key={m.id} className="flex flex-col items-center gap-0.5 group min-w-0">
+                  <div className={`relative w-full aspect-square ${circleMaxW} mx-auto`}>
+                    <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative w-full h-full rounded-full border-2 border-slate-800/80 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md">
+                      {m.image ? (
+                        <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-lg sm:text-2xl md:text-3xl select-none">
+                          {m.gender === 'female' ? '👩' : '👨'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`${nameTextSize} font-bold text-slate-200 truncate w-full text-center group-hover:text-emerald-400 transition-colors`} title={m.name}>
+                    {m.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
