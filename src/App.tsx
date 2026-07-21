@@ -958,7 +958,7 @@ function App() {
               {/* Waiting for host message */}
               {joinWaiting && (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-xs text-amber-300 font-bold text-center space-y-1">
-                  <p>⏳ המנחה עדיין עורך את פרטי המשחק...</p>
+                  <p>⏳ {joinHostName || 'העורך'} עדיין עורך את פרטי המשחק...</p>
                   <p className="text-amber-400/70 font-normal">המסך ייפתח אוטומטית ברגע שהוא ייסיים!</p>
                 </div>
               )}

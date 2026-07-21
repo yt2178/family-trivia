@@ -1267,7 +1267,7 @@ export const GameView: React.FC = React.memo(() => {
                       📌 הוראות למשתתפים:
                     </h3>
                     <p className="text-slate-200 text-xs md:text-sm leading-relaxed font-semibold">
-                      הקשיבו למנחה <strong className="text-amber-300 font-black">{hostLabel || 'המנחה'}</strong>! כל אחד מבני המשפחה בתורו יגיד ציטוט או משפט, והמתחרים שלנו ({contestantNames}) יצטרכו לזהות מי אמר מה!
+                      הקשיבו ל-<strong className="text-amber-300 font-black">{hostLabel}</strong>! כל אחד מבני המשפחה בתורו יגיד ציטוט או משפט, והמתחרים שלנו ({contestantNames}) יצטרכו לזהות מי אמר מה!
                     </p>
                   </div>
                 </div>
@@ -1313,7 +1313,7 @@ export const GameView: React.FC = React.memo(() => {
                     האם כולם מוכנים? <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🤔</span>
                   </h2>
                   <p className="text-slate-300 text-sm md:text-base font-bold leading-relaxed">
-                    המנחה <strong className="text-amber-300 font-black">{hostLabel}</strong> יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
+                    <strong className="text-amber-300 font-black">{hostLabel}</strong> יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
                   </p>
                 </div>
               ) : gameState.startStage === 'contestants_photos' ? (
@@ -1377,7 +1377,7 @@ export const GameView: React.FC = React.memo(() => {
                       📌 הוראות למשתתפים:
                     </h3>
                     <p className="text-slate-200 text-sm leading-relaxed font-semibold">
-                      הקשיבו למנחה <strong className="text-amber-300 font-black">{hostLabel || 'המנחה'}</strong>! כל אחד מבני המשפחה בתורו יגיד ציטוט או משפט, והמתחרים שלנו ({contestantNames}) יצטרכו לזהות מי אמר מה!
+                      הקשיבו ל-<strong className="text-amber-300 font-black">{hostLabel}</strong>! כל אחד מבני המשפחה בתורו יגיד ציטוט או משפט, והמתחרים שלנו ({contestantNames}) יצטרכו לזהות מי אמר מה!
                     </p>
                   </div>
                 </div>
@@ -1877,7 +1877,7 @@ export const GameView: React.FC = React.memo(() => {
                             הפתעה מיוחדת לכל המשתתפים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">✨</span>
                           </h2>
                           <p className="text-xl md:text-3xl font-black text-slate-100 leading-relaxed animate-pulse">
-                            הכינו את עצמכם לרגע השיא... מיד המנחה ייחשוף את...??? <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🚀</span>
+                            הכינו את עצמכם לרגע השיא... מיד {hostLabel} ייחשוף את...??? <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🚀</span>
                           </p>
                         </div>
                       </div>
