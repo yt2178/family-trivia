@@ -26,6 +26,17 @@ export const SettingsTab: React.FC = () => {
           />
         </div>
 
+        <div>
+          <label className="text-xs text-slate-400 block mb-1 font-semibold">שם הקבוצה / המשפחה (למשל: משפחת צברי)</label>
+          <input
+            type="text"
+            value={settings.groupName || ''}
+            onChange={(e) => updateSettings({ ...settings, groupName: e.target.value })}
+            placeholder="הקלד שם קבוצה/משפחה"
+            className="w-full max-w-md bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-emerald-500 font-bold"
+          />
+        </div>
+
 
 
         <div className="border-t border-slate-800 pt-6">

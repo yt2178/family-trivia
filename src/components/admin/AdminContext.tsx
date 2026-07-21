@@ -145,6 +145,8 @@ interface AdminContextType {
   // Wizard buffers
   wizardHostName: string;
   setWizardHostName: React.Dispatch<React.SetStateAction<string>>;
+  wizardGroupName: string;
+  setWizardGroupName: React.Dispatch<React.SetStateAction<string>>;
   wizardContestantCount: number;
   setWizardContestantCount: React.Dispatch<React.SetStateAction<number>>;
   wizardQuestionTimer: number | null;
@@ -175,7 +177,7 @@ interface AdminContextType {
   updateSettings: (newSettings: GameSettings) => void;
   handleStartGame: () => void;
   handleStartGameAfterContestantOrder: () => void;
-  handleAdvanceStartStage: (nextStage: 'contestants_count' | 'ready' | 'in_game') => void;
+  handleAdvanceStartStage: (nextStage: 'logo' | 'group_welcome' | 'contestants_welcome' | 'contestants_names' | 'ready' | 'contestants_photos' | 'starting' | 'in_game') => void;
   handleNextQuestion: () => void;
   handlePrevQuestion: () => void;
   handleRevealAnswer: () => void;
@@ -200,6 +202,7 @@ interface AdminContextType {
   copyToClipboard: (text: string, label: string) => void;
   saveDraftToLocalStorage: (
     hostName: string,
+    groupName: string,
     contestantCount: number,
     contestants: Array<{ id: string; name: string; image: string | null; gender?: 'male' | 'female' }>,
     questionTimer: number | null,
@@ -297,6 +300,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Local wizard buffer states to prevent saving to Firebase on every keystroke
   const [wizardHostName, setWizardHostName] = useState('');
+  const [wizardGroupName, setWizardGroupName] = useState('');
   const [wizardContestantCount, setWizardContestantCount] = useState(2);
   const [wizardQuestionTimer, setWizardQuestionTimer] = useState<number | null>(null);
   const [wizardShowNameBank, setWizardShowNameBank] = useState<boolean>(false);
@@ -332,6 +336,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (draft) {
         setWizardHostName(draft.hostName || '');
+        setWizardGroupName(draft.groupName || settings.groupName || '');
         setWizardContestantCount(draft.contestantCount || 2);
         setWizardQuestionTimer(draft.questionTimer !== undefined ? draft.questionTimer : (settings.questionTimer || null));
         setWizardShowNameBank(draft.showNameBank !== undefined ? draft.showNameBank : (settings.showNameBank || false));
@@ -357,6 +362,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWizardContestants(arr);
       } else {
         setWizardHostName(settings.hostName || '');
+        setWizardGroupName(settings.groupName || '');
         setWizardContestantCount(settings.contestants?.length || 2);
         setWizardQuestionTimer(settings.questionTimer !== undefined ? settings.questionTimer : null);
         setWizardShowNameBank(settings.showNameBank || false);
@@ -463,6 +469,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const saveDraftToLocalStorage = (
     hostName: string,
+    groupName: string,
     contestantCount: number,
     contestants: Array<{ id: string; name: string; image: string | null }>,
     questionTimer: number | null,
@@ -477,6 +484,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       localStorage.setItem(`wizard_draft_${rCode}`, JSON.stringify({
         hostName,
+        groupName,
         contestantCount,
         contestants: contestants.slice(0, contestantCount),
         questionTimer,
@@ -491,8 +499,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const playAdminSound = (type: 'success' | 'undo' | 'reveal') => {
-    audioHelper.play(type);
+  const playAdminSound = (_type: 'success' | 'undo' | 'reveal') => {
+    // No-op: Silence audio completely on host remote/admin screens
   };
 
   // Load Data
@@ -747,10 +755,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const handleStartGameAfterContestantOrder = () => {
     setShowContestantOrderModal(false);
-    handleAdvanceStartStage('contestants_count');
+    handleAdvanceStartStage('logo');
   };
 
-  const handleAdvanceStartStage = (nextStage: 'contestants_count' | 'ready' | 'in_game') => {
+  const handleAdvanceStartStage = (nextStage: 'logo' | 'group_welcome' | 'contestants_welcome' | 'contestants_names' | 'ready' | 'contestants_photos' | 'starting' | 'in_game') => {
     if (nextStage === 'in_game') {
       const freshState = db.resetGame();
       const updatedState: GameState = {
@@ -767,7 +775,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } else {
       updateGameState({
         ...gameState,
-        startStage: nextStage
+        startStage: nextStage,
+        winnerRevealed: false,
+        galleryRevealed: false
       });
     }
   };
@@ -1273,6 +1283,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       wizardHostName,
       setWizardHostName,
+      wizardGroupName,
+      setWizardGroupName,
       wizardContestantCount,
       setWizardContestantCount,
       wizardQuestionTimer,

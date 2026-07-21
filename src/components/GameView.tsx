@@ -216,6 +216,16 @@ export const GameView: React.FC = React.memo(() => {
             startIntervalRef.current = null;
             audioHelper.stopIntroMusic();
             audioHelper.play('game-start-boom');
+            
+            const rCode = sync.getRoomCode();
+            if (rCode) {
+              const stateRef = ref(rtdb, `rooms/${rCode}/database/state`);
+              update(stateRef, {
+                startStage: 'in_game',
+                isPlaying: true
+              }).catch(err => console.error("Failed to update startStage to in_game in DB:", err));
+            }
+
             setTimeout(() => {
               setStartCountdownValue(null);
             }, 2200);
@@ -234,6 +244,16 @@ export const GameView: React.FC = React.memo(() => {
       }
     };
   }, [startCountdownValue]);
+
+  // Trigger start countdown when startStage becomes 'starting'
+  useEffect(() => {
+    if (gameState.startStage === 'starting' && startCountdownValue === null) {
+      setStartCountdownValue(10);
+    } else if (gameState.startStage !== 'starting' && gameState.startStage !== 'in_game' && startCountdownValue !== null) {
+      // If reset or changed back, clear the countdown
+      setStartCountdownValue(null);
+    }
+  }, [gameState.startStage]);
   
   const hostLabel = settings.hostName || 'המנחה';
   const contestantNames = (settings.contestants || []).map(c => c.name).join(' ו-');
@@ -537,29 +557,60 @@ export const GameView: React.FC = React.memo(() => {
   useEffect(() => {
     const totalQ = (gameState.shuffledQuestionIds || []).length;
     const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
-    
-    // Play background music if game is active, not over, not paused, and countdown is finished
-    const isRunning = gameState.isPlaying && !isGameOver && startCountdownValue === null && !gameState.isPaused;
+    const stage = gameState.startStage || 'logo';
 
-    if (!isAudioSuspended && !isBgMusicMuted && isRunning) {
+    if (isAudioSuspended || isBgMusicMuted) {
+      audioHelper.stopBackgroundMusic();
+      audioHelper.stopPauseMusic();
+      audioHelper.stopIntroMusic();
+      return;
+    }
+
+    if (gameState.isPaused && gameState.isPlaying && !isGameOver) {
+      // Game is paused: play calm pause music
+      audioHelper.stopBackgroundMusic();
+      audioHelper.stopIntroMusic();
+      audioHelper.startPauseMusic();
+      return;
+    }
+
+    if (stage === 'logo' || stage === 'group_welcome' || stage === 'contestants_welcome' || stage === 'contestants_names') {
+      // Pre-game introduction screens: play calm background pause/elevator music
+      audioHelper.stopBackgroundMusic();
+      audioHelper.stopIntroMusic();
+      audioHelper.startPauseMusic();
+    } else if (stage === 'ready' || stage === 'contestants_photos') {
+      // Ready / Photos (Stage 5-6): play Decisions build-up tension music
+      audioHelper.stopBackgroundMusic();
+      audioHelper.stopPauseMusic();
+      audioHelper.startIntroMusic();
+    } else if (stage === 'starting') {
+      // Ticking countdown (Stage 7): stop intro and pause music
+      audioHelper.stopBackgroundMusic();
+      audioHelper.stopPauseMusic();
+      audioHelper.stopIntroMusic();
+    } else if (stage === 'in_game' && !isGameOver) {
+      // Gameplay: play background tension loop
+      audioHelper.stopPauseMusic();
+      audioHelper.stopIntroMusic();
       audioHelper.startBackgroundMusic();
     } else {
+      // Game over or other: stop music
       audioHelper.stopBackgroundMusic();
-    }
-
-    // Play calm pause music if game is active, not over, and is paused
-    const isPausedMode = gameState.isPlaying && !isGameOver && gameState.isPaused;
-    if (!isAudioSuspended && !isBgMusicMuted && isPausedMode) {
-      audioHelper.startPauseMusic();
-    } else {
       audioHelper.stopPauseMusic();
+      audioHelper.stopIntroMusic();
     }
+  }, [isAudioSuspended, isBgMusicMuted, gameState.isPlaying, gameState.startStage, gameState.isPaused, gameState.currentQuestionIndex, gameState.shuffledQuestionIds]);
 
+  // Handle stopping music only when component unmounts
+  useEffect(() => {
     return () => {
       audioHelper.stopBackgroundMusic();
       audioHelper.stopPauseMusic();
+      audioHelper.stopIntroMusic();
+      audioHelper.stopSuspenseMusic();
     };
-  }, [isAudioSuspended, isBgMusicMuted, gameState.isPlaying, startCountdownValue, gameState.isPaused]);
+  }, []);
 
   useEffect(() => {
     const ctx = audioHelper.getContext();
@@ -1264,275 +1315,298 @@ export const GameView: React.FC = React.memo(() => {
         );
       })()}
 
-      {/* Header */}
-      <header className="flex justify-between items-center mb-6 z-10">
-        <div className="flex items-center gap-3">
-          <div className="bg-emerald-500/10 text-emerald-400 p-2 rounded-xl border border-emerald-500/20">
-            <Sparkles size={24} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">
-              מי אמר את זה?
-            </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <p className="text-xs text-slate-400">שעשועון טריוויה משפחתי</p>
-              {sync.getRoomCode() && (
-                <>
-                  <span className="text-slate-600 text-[10px]">•</span>
-                  <span className="text-xs text-emerald-400 font-bold">חדר: {sync.getRoomCode()}</span>
-                </>
-              )}
-              {members.length > 0 && (
-                <>
-                  <span className="text-slate-600 text-[10px]">•</span>
-                  <div className="flex gap-2 text-[10px] text-slate-400 font-medium bg-slate-900/40 border border-slate-800/40 px-2 py-0.5 rounded-md">
-                    <span>סה״כ משתתפים: <strong className="text-emerald-400">{totalPlayers}</strong></span>
-                    <span>|</span>
-                    <span>זכרים: <strong className="text-emerald-400">{males}</strong></span>
-                    <span>|</span>
-                    <span>נקבות: <strong className="text-emerald-400">{females}</strong></span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {totalQuestions > 0 && !isGameOver && (
-          <div className="flex items-center gap-3">
-            {!isAudioSuspended && (
-              <button
-                onClick={() => setIsBgMusicMuted(prev => !prev)}
-                className="p-2 bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-emerald-400 rounded-xl border border-slate-800/80 hover:border-emerald-500/30 transition-all duration-300 shadow-md flex items-center justify-center backdrop-blur-sm cursor-pointer"
-                title={isBgMusicMuted ? "הפעל מוזיקת רקע" : "השתק מוזיקת רקע"}
-              >
-                {isBgMusicMuted ? <VolumeX size={16} /> : <Volume2 size={16} className="animate-pulse" />}
-              </button>
-            )}
-            <div className="glass-panel px-4 py-2 rounded-xl text-sm border border-slate-800">
-              <span className="text-slate-400">שאלה:</span>{' '}
-              <strong className="text-emerald-400 font-bold">{gameState.currentQuestionIndex + 1}</strong>
-              <span className="text-slate-500"> / {totalQuestions}</span>
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* Main Grid */}
-      <div className="flex-grow grid grid-cols-12 gap-6 z-10 items-stretch">
-        
-        {/* Left Column (Contestants 1 & 2) */}
-        {renderContestantColumn(leftContestants, 0)}
-
-        {/* Center Tree Panel */}
-        <div className="col-span-8 flex flex-col gap-6">
-          
-          {/* Question Box (Quotes) */}
+      {isPreGameStage ? (
+        // Clean Full-Screen Presentation View for Pre-game Stages
+        <div className="flex-grow flex items-center justify-center z-10 w-full max-w-5xl mx-auto h-full min-h-0">
           <AnimatePresence mode="wait">
-            {!isGameOver && currentQuestion && (
-              <motion.div
-                key={currentQuestion.id}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="glass-panel p-6 rounded-3xl border border-slate-800 shadow-2xl flex flex-col justify-center items-center relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl" />
-                <div className="flex items-center gap-2 mb-2 select-none">
-                  <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider">
-                    ציטוט משפחתי
-                  </span>
-                  {(currentQuestion.speakerId === 'general' || !currentQuestion.speakerId) ? (
-                    <span className="text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/5">
-                      שאלה כללית
-                    </span>
-                  ) : (
-                    <span className="text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/5">
-                      ציטוט משויך
-                    </span>
+            <motion.div
+              key={gameState.startStage}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.5 }}
+              className="w-full text-center space-y-8 glass-panel p-12 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center max-h-[85vh] overflow-y-auto"
+            >
+              {/* Glow blobs inside card */}
+              <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+              <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
+
+              {gameState.startStage === 'group_welcome' ? (
+                // Stage 2: Group Welcome
+                <div className="space-y-6 w-full max-w-2xl animate-fade-in text-center relative z-10">
+                  <h2 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent drop-shadow-md">
+                    ברוכים הבאים לכל המשתתפים! 🎉
+                  </h2>
+                  {settings.groupName && (
+                    <div className="relative inline-block px-10 py-5 bg-gradient-to-b from-slate-900/80 to-slate-950/90 rounded-3xl border-2 border-emerald-500/30 shadow-2xl backdrop-blur-md">
+                      <div className="absolute -inset-0.5 bg-emerald-500/10 rounded-3xl blur opacity-50" />
+                      <span className="relative text-3xl md:text-5xl font-black text-emerald-400 drop-shadow">
+                        {settings.groupName}
+                      </span>
+                    </div>
+                  )}
+                  <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl text-right space-y-3 shadow-xl backdrop-blur-md max-w-xl mx-auto">
+                    <h3 className="text-sm font-black text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-2">
+                      📌 הוראות למשתתפים:
+                    </h3>
+                    <p className="text-slate-200 text-sm md:text-base leading-relaxed font-semibold">
+                      הקשיבו למנחה <strong className="text-amber-300 font-black">{hostLabel || 'המנחה'}</strong>! כל אחד מבני המשפחה בתורו יגיד ציטוט או משפט, והמתחרים שלנו ({contestantNames}) יצטרכו לזהות מי אמר מה!
+                    </p>
+                  </div>
+                </div>
+              ) : gameState.startStage === 'contestants_welcome' ? (
+                // Stage 3: Contestants Welcome
+                <div className="space-y-6 animate-fade-in text-center max-w-xl relative z-10">
+                  <h2 className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
+                    ברוכים הבאים למתמודדים! 🎙️
+                  </h2>
+                  <div className="bg-slate-900/60 border border-slate-800/80 p-6 rounded-2xl shadow-xl">
+                    <p className="text-xl md:text-2xl font-black text-slate-100 leading-relaxed">
+                      על כושר זיהוי מהיר וזריזות! ⚡
+                    </p>
+                    <p className="text-slate-400 text-sm mt-3 font-semibold">
+                      מי יזהה הכי מהר מי אמר מה במשפחה?
+                    </p>
+                  </div>
+                </div>
+              ) : gameState.startStage === 'contestants_names' ? (
+                // Stage 4: Contestants Names
+                <div className="space-y-8 animate-fade-in text-center relative z-10">
+                  <h2 className="text-4xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+                    קבלו את המתמודדים שלנו! 📢
+                  </h2>
+                  <div className="flex justify-center items-center gap-6 md:gap-10 flex-wrap py-2">
+                    {(settings.contestants || []).map((c, idx) => {
+                      const colors = CONTESTANT_COLORS[idx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
+                      return (
+                        <React.Fragment key={c.id}>
+                          {idx > 0 && <span className="text-2xl text-slate-600 font-black">VS</span>}
+                          <span className={`text-3xl md:text-5xl font-black ${colors.text} bg-slate-900/80 px-8 py-4 rounded-2xl border border-slate-800 shadow-xl`}>
+                            {c.name}
+                          </span>
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : gameState.startStage === 'ready' ? (
+                // Stage 5: Ready
+                <div className="space-y-6 animate-fade-in text-center max-w-xl relative z-10">
+                  <h2 className="text-5xl md:text-7xl font-black text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.3)] animate-pulse">
+                    האם כולם מוכנים? 🤔
+                  </h2>
+                  <p className="text-slate-300 text-base md:text-lg font-bold leading-relaxed">
+                    המנחה <strong className="text-amber-300 font-black">{hostLabel}</strong> יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
+                  </p>
+                </div>
+              ) : gameState.startStage === 'contestants_photos' ? (
+                // Stage 6: Contestants Photos
+                <div className="space-y-8 w-full max-w-4xl animate-fade-in text-center relative z-10">
+                  <h2 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent drop-shadow-md select-none">
+                    בהצלחה לכל המתמודדים! 👏
+                  </h2>
+                  <div className="flex items-center justify-center gap-8 md:gap-16 flex-wrap py-4">
+                    {(settings.contestants || []).map((c, idx) => {
+                      const colors = CONTESTANT_COLORS[idx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
+                      return (
+                        <div key={c.id} className="flex flex-col items-center space-y-3">
+                          <div className="relative">
+                            <div className={`absolute -inset-2 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-65`} />
+                            <div className="relative w-28 h-28 md:w-44 md:h-44 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden flex items-center justify-center shadow-2xl">
+                              {c.image ? (
+                                <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-4xl md:text-6xl font-black ${colors.text}`}>
+                                  🏆
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-xl md:text-3xl font-black ${colors.text} drop-shadow`}>
+                            {c.name}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : gameState.startStage === 'starting' ? (
+                // Stage 7: Starting Countdown
+                <div className="space-y-6 text-center relative z-10">
+                  <h2 className="text-4xl font-black text-amber-400 animate-pulse">המשחק מתחיל...</h2>
+                </div>
+              ) : (
+                // Stage 1 / default: Logo
+                <div className="space-y-6 animate-fade-in text-center max-w-xl relative z-10">
+                  <div className="space-y-2">
+                    <h1 className="text-6xl md:text-8xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(16,185,129,0.25)] select-none">
+                      מי אמר מה?
+                    </h1>
+                    <p className="text-amber-400 font-bold text-xl md:text-2xl">
+                      חידון הציטוטים המשפחתי {hostLabel ? `בהנחיית ${hostLabel}` : ''} 🎙️
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl text-right space-y-3 shadow-xl backdrop-blur-md">
+                    <h3 className="text-sm font-black text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-2">
+                      📌 הוראות למשתתפים:
+                    </h3>
+                    <p className="text-slate-200 text-sm leading-relaxed font-semibold">
+                      הקשיבו למנחה <strong className="text-amber-300 font-black">{hostLabel || 'המנחה'}</strong>! כל אחד מבני המשפחה בתורו יגיד ציטוט או משפט, והמתחרים שלנו ({contestantNames}) יצטרכו לזהות מי אמר מה!
+                    </p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      ) : (
+        // Active Game Layout (when gameState.startStage === 'in_game')
+        <>
+          {/* Header */}
+          <header className="flex justify-between items-center mb-6 z-10">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-500/10 text-emerald-400 p-2 rounded-xl border border-emerald-500/20">
+                <Sparkles size={24} />
+              </div>
+              <div>
+                <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">
+                  מי אמר את זה?
+                </h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs text-slate-400">שעשועון טריוויה משפחתי</p>
+                  {sync.getRoomCode() && (
+                    <>
+                      <span className="text-slate-600 text-[10px]">•</span>
+                      <span className="text-xs text-emerald-400 font-bold">חדר: {sync.getRoomCode()}</span>
+                    </>
+                  )}
+                  {members.length > 0 && (
+                    <>
+                      <span className="text-slate-600 text-[10px]">•</span>
+                      <div className="flex gap-2 text-[10px] text-slate-400 font-medium bg-slate-900/40 border border-slate-800/40 px-2 py-0.5 rounded-md">
+                        <span>סה״כ משתתפים: <strong className="text-emerald-400">{totalPlayers}</strong></span>
+                        <span>|</span>
+                        <span>זכרים: <strong className="text-emerald-400">{males}</strong></span>
+                        <span>|</span>
+                        <span>נקבות: <strong className="text-emerald-400">{females}</strong></span>
+                      </div>
+                    </>
                   )}
                 </div>
-                
-                {/* Large statement */}
-                <h3 className="text-2xl md:text-3xl font-extrabold text-center px-4 leading-relaxed text-slate-100 italic">
-                  ״{currentQuestion.text}״
-                </h3>
-
-                {settings.questionTimer ? (
-                  <CountdownTimer
-                    duration={settings.questionTimer}
-                    isRevealed={gameState.isRevealed}
-                    currentQuestionId={currentQuestion.id}
-                    isPaused={gameState.isPaused}
-                  />
-                ) : null}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Dynamic Family Tree, Speaker Reveal or Question Placeholder */}
-          {isGameOver ? (
-            <div className="flex-grow min-h-[250px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl bg-slate-950/40 p-8">
-              <div className="text-center space-y-4">
-                <h3 className="text-4xl font-extrabold text-amber-400">המשחק הסתיים! 🏆</h3>
-                <p className="text-slate-400 text-sm">מיד נדע מי ניצח במשפחה...</p>
               </div>
             </div>
-          ) : (
-            <div className="flex-grow min-h-[250px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40 p-8">
-              {/* Blur decoration always present for rich aesthetics */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
 
+            {totalQuestions > 0 && !isGameOver && (
+              <div className="flex items-center gap-3">
+                {!isAudioSuspended && (
+                  <button
+                    onClick={() => setIsBgMusicMuted(prev => !prev)}
+                    className="p-2 bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-emerald-400 rounded-xl border border-slate-800/80 hover:border-emerald-500/30 transition-all duration-300 shadow-md flex items-center justify-center backdrop-blur-sm cursor-pointer"
+                    title={isBgMusicMuted ? "הפעל מוזיקת רקע" : "השתק מוזיקת רקע"}
+                  >
+                    {isBgMusicMuted ? <VolumeX size={16} /> : <Volume2 size={16} className="animate-pulse" />}
+                  </button>
+                )}
+                <div className="glass-panel px-4 py-2 rounded-xl text-sm border border-slate-800">
+                  <span className="text-slate-400">שאלה:</span>{' '}
+                  <strong className="text-emerald-400 font-bold">{gameState.currentQuestionIndex + 1}</strong>
+                  <span className="text-slate-500"> / {totalQuestions}</span>
+                </div>
+              </div>
+            )}
+          </header>
+
+          {/* Main Grid */}
+          <div className="flex-grow grid grid-cols-12 gap-6 z-10 items-stretch">
+            
+            {/* Left Column (Contestants 1 & 2) */}
+            {renderContestantColumn(leftContestants, 0)}
+
+            {/* Center Tree Panel */}
+            <div className="col-span-8 flex flex-col gap-6">
+              
+              {/* Question Box (Quotes) */}
               <AnimatePresence mode="wait">
-                {!gameState.isRevealed && currentQuestion ? (
+                {!isGameOver && currentQuestion && (
                   <motion.div
-                    key="unrevealed"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex flex-col items-center text-center relative z-10"
+                    key={currentQuestion.id}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    className="glass-panel p-6 rounded-3xl border border-slate-800 shadow-2xl flex flex-col justify-center items-center relative overflow-hidden"
                   >
-                    <motion.div
-                      initial={{ scale: 0.8, rotate: -10 }}
-                      animate={{ scale: [0.9, 1.05, 0.9], rotate: [-5, 5, -5] }}
-                      transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                      className="text-9xl mb-6 select-none text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.3)] flex items-center justify-center"
-                    >
-                      ❓
-                    </motion.div>
-                    <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent mb-2">
-                      מי אמר את זה?
-                    </h2>
-                    <p className="text-slate-400 text-sm max-w-md text-center">
-                      המשפחה מנסה לנחש! <strong className="font-black text-amber-400">{hostLabel}</strong> יחשוף את התשובה והדובר יתגלה...
-                    </p>
-                  </motion.div>
-                ) : currentQuestion ? (
-                  (() => {
-                    const liveSpeakerId = gameState.revealedSpeakers?.[currentQuestion.id] as string;
-                    const resolvedSpeakerId = liveSpeakerId || (
-                      currentQuestion.speakerId === 'general' ? undefined : currentQuestion.speakerId
-                    );
-                    const speaker = members.find(m => m.id === resolvedSpeakerId);
-                    const speakerName = speaker ? speaker.name : 'פלוני אלמוני';
-                    return (
-                      <motion.div
-                        key={`revealed-${resolvedSpeakerId || 'unknown'}`}
-                        initial={{ opacity: 0, scale: 0.85 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.85 }}
-                        transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                        className="flex flex-col items-center text-center relative z-10 space-y-6"
-                      >
-                        <span className="text-emerald-400 text-sm font-bold uppercase tracking-widest px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                          הדובר נחשף! 🎉
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl" />
+                    <div className="flex items-center gap-2 mb-2 select-none">
+                      <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                        ציטוט משפחתי
+                      </span>
+                      {(currentQuestion.speakerId === 'general' || !currentQuestion.speakerId) ? (
+                        <span className="text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/5">
+                          שאלה כללית
                         </span>
+                      ) : (
+                        <span className="text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/5">
+                          ציטוט משויך
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Large statement */}
+                    <h3 className="text-2xl md:text-3xl font-extrabold text-center px-4 leading-relaxed text-slate-100 italic">
+                      ״{currentQuestion.text}״
+                    </h3>
 
-                        <div className="relative">
-                          <div className="absolute -inset-2 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full blur opacity-70 animate-pulse" />
-                          <div className="relative w-44 h-44 rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden shadow-2xl flex items-center justify-center">
-                            {speaker?.image ? (
-                              <img src={speaker.image} alt={speakerName} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-8xl select-none">
-                                {speaker ? (speaker.gender === 'female' ? '👩' : '👨') : '❓'}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <h2 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-md">
-                            {speakerName}
-                          </h2>
-                        </div>
-
-                        <p className="text-slate-400 text-sm max-w-sm italic">
-                          ״אמר/ה את הציטוט בהתרגשות רבה!״
-                        </p>
-                      </motion.div>
-                    );
-                  })()
-                ) : (
-                  // Pre-game / Standby Card when no question is active yet
-                  <motion.div
-                    key="pregame-stage"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="flex flex-col items-center text-center relative z-10 space-y-6 max-w-xl mx-auto p-4"
-                  >
-                    {gameState.startStage === 'contestants_count' ? (
-                      <div className="space-y-6">
-                        <h2 className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] animate-pulse">
-                          קבלו את {(settings.contestants || []).length} המתמודדים שלנו! 🎙️
-                        </h2>
-                        <div className="flex justify-center items-center gap-6 flex-wrap">
-                          {(settings.contestants || []).map((c, idx) => {
-                            const colors = CONTESTANT_COLORS[idx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
-                            return (
-                              <span key={c.id} className={`text-2xl md:text-4xl font-black ${colors.text} bg-slate-900/60 px-6 py-2 rounded-2xl border border-slate-800 shadow-lg`}>
-                                {c.name}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : gameState.startStage === 'ready' ? (
-                      <div className="space-y-6">
-                        <h2 className="text-5xl md:text-7xl font-black text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.3)] animate-pulse">
-                          מוכנים... 🤔
-                        </h2>
-                        <p className="text-slate-400 text-lg font-bold">
-                          המנחה עומד להפעיל את המשחק!
-                        </p>
-                      </div>
-                    ) : (
-                      // Stage 0 / default: Welcome & Instructions
-                      <div className="space-y-6">
-                        <div className="space-y-2">
-                          <h1 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-emerald-400 via-teal-200 to-amber-300 bg-clip-text text-transparent drop-shadow-md">
-                            מי אמר מה?
-                          </h1>
-                          <p className="text-amber-400 font-bold text-lg">
-                            חידון הציטוטים המשפחתי {hostLabel ? `בהנחיית ${hostLabel}` : ''} 🎙️
-                          </p>
-                        </div>
-
-                        <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl text-right space-y-3 shadow-xl backdrop-blur-md">
-                          <h3 className="text-sm font-black text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-2">
-                            📌 הוראות למשתתפים:
-                          </h3>
-                          <p className="text-slate-200 text-sm leading-relaxed font-semibold">
-                            הקשיבו למנחה <strong className="text-amber-300 font-black">{hostLabel || 'המנחה'}</strong>! כל אחד מבני המשפחה בתורו יגיד ציטוט או משפט, והמתחרים שלנו ({contestantNames}) יצטרכו לזהות מי אמר מה!
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                    {settings.questionTimer ? (
+                      <CountdownTimer
+                        duration={settings.questionTimer}
+                        isRevealed={gameState.isRevealed}
+                        currentQuestionId={currentQuestion.id}
+                        isPaused={gameState.isPaused}
+                      />
+                    ) : null}
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
-          )}
 
-          {/* Name Bank */}
-          {settings.showNameBank && !isGameOver && (
-            <div className={`glass-panel ${members.length > 40 ? 'p-3' : 'p-4'} rounded-2xl border border-slate-800/80 shadow-lg text-right`}>
-              <span className="text-[10px] text-slate-500 block mb-2 font-bold">בנק השמות:</span>
-              <div className={`flex flex-wrap ${members.length > 40 ? 'gap-1.5' : 'gap-2'} justify-center`}>
-                {members.map(m => {
-                  const currentLiveSpeakerId = currentQuestion ? gameState.revealedSpeakers?.[currentQuestion.id] : undefined;
-                  const isCurrentCorrect = currentQuestion && gameState.isRevealed && (
-                    currentLiveSpeakerId
-                      ? currentLiveSpeakerId === m.id
-                      : (currentQuestion.speakerId === 'general' ? false : currentQuestion.speakerId === m.id)
-                  );
-                  
-                  const wasSolvedInPast = Object.entries(gameState.solvedQuestions || {}).some(([qId, winnerId]) => {
-                    const q = questions.find(question => question.id === qId);
-                    if (!q) return false;
+              {/* Dynamic Family Tree, Speaker Reveal or Question Placeholder */}
+              {isGameOver ? (
+                <div className="flex-grow min-h-[250px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl bg-slate-950/40 p-8">
+                  <div className="text-center space-y-4">
+                    <h3 className="text-4xl font-extrabold text-amber-400">המשחק הסתיים! 🏆</h3>
+                    <p className="text-slate-400 text-sm">מיד נדע מי ניצח במשפחה...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-grow min-h-[250px] flex flex-col items-center justify-center glass-panel rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden bg-slate-950/40 p-8">
+                  {/* Blur decoration always present for rich aesthetics */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                  <AnimatePresence mode="wait">
+                    {!gameState.isRevealed && currentQuestion ? (
+                      <motion.div
+                        key="unrevealed"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex flex-col items-center text-center relative z-10"
+                      >
+                        <motion.div
+                          animate={{ scale: [0.9, 1.05, 0.9], rotate: [-5, 5, -5] }}
+                          transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                          className="text-9xl mb-6 select-none text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.3)] flex items-center justify-center"
+                        >
+                          ❓
+                        </motion.div>
+                        <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent mb-2">
+                          מי אמר את זה?
+                        </h2>
+                        <p className="text-slate-400 text-sm max-w-md text-center">
+                          המשפחה מנסה לנחש! <strong className="font-black text-amber-400">{hostLabel}</strong> יחשוף את התשובה והדובר יתגלה...
+                        </p>
+                      </motion.div>
                     const qLiveSpeakerId = gameState.revealedSpeakers?.[qId];
                     const speakerId = qLiveSpeakerId || (q.speakerId === 'general' ? undefined : q.speakerId);
                     return speakerId === m.id;
@@ -2015,107 +2089,27 @@ export const GameView: React.FC = React.memo(() => {
               <div className="absolute w-[600px] h-[600px] rounded-full bg-emerald-500/5 blur-3xl animate-pulse pointer-events-none" />
             )}
             
-            {startCountdownValue >= 6 ? (
-              // Stage 1 (Seconds 10 to 6): Welcome the contestants (Text only, NO photos)
+            {startCountdownValue > 0 ? (
+              // Clean, beautiful ticking countdown screen
               <motion.div 
-                key="welcome-stage"
+                key="countdown-tick-view"
                 initial={{ opacity: 0, scale: 0.9 }} 
                 animate={{ opacity: 1, scale: 1 }} 
                 exit={{ opacity: 0 }}
                 className="flex flex-col items-center justify-center space-y-12 z-10 select-none text-center"
               >
-                <motion.h2 
-                  initial={{ y: -20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] tracking-wider"
-                >
-                  קבלו את המתמודדים הבאים! 🎙️
-                </motion.h2>
-                <div className="flex items-center justify-center gap-8 md:gap-16 flex-wrap px-6">
-                  {(settings.contestants || []).map((c, idx) => {
-                    const colors = CONTESTANT_COLORS[idx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
-                    return (
-                      <React.Fragment key={c.id}>
-                        {idx > 0 && (
-                          <motion.span 
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: 0.3 }}
-                            className="text-3xl md:text-5xl font-black text-slate-500"
-                          >
-                            🆚
-                          </motion.span>
-                        )}
-                        <motion.span 
-                          initial={{ x: idx === 0 ? -50 : 50, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ type: "spring", stiffness: 70, delay: 0.2 + idx * 0.15 }}
-                          className={`text-5xl md:text-8xl font-black ${colors.text} drop-shadow-[0_0_40px_rgba(255,255,255,0.15)] truncate max-w-[40vw] inline-block`}
-                          title={c.name}
-                        >
-                          {c.name}
-                        </motion.span>
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
-                <p className="text-slate-400 text-lg md:text-xl font-bold animate-pulse">
-                  המשחק מוכן! כולם להכין את הניחושים... 🤔
-                </p>
-              </motion.div>
-            ) : startCountdownValue > 0 ? (
-              // Stage 2 (Seconds 5 to 1): Growing/Rising photos and Giant Countdown Number
-              <motion.div 
-                key="photos-stage"
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }}
-                className="flex flex-col items-center justify-center space-y-8 z-10 select-none text-center"
-              >
-                <h2 className="text-2xl md:text-3xl font-black text-slate-400 uppercase tracking-widest animate-pulse">
+                <h2 className="text-4xl md:text-5xl font-black text-slate-400 uppercase tracking-widest animate-pulse">
                   המשחק מתחיל בעוד...
                 </h2>
                 
-                <div className="flex items-center justify-center gap-10 md:gap-20">
-                  {(settings.contestants || []).map((c, idx) => {
-                    const colors = CONTESTANT_COLORS[idx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
-                    return (
-                      <motion.div
-                        key={c.id}
-                        initial={{ y: 250, opacity: 0, scale: 0.5 }}
-                        animate={{ y: 0, opacity: 1, scale: 1 }}
-                        transition={{ type: "spring", stiffness: 85, damping: 15 }}
-                        className="flex flex-col items-center space-y-3"
-                      >
-                        <div className="relative">
-                          <div className={`absolute -inset-2 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-65`} />
-                          <div className="relative w-32 h-32 md:w-52 md:h-52 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden flex items-center justify-center shadow-2xl">
-                            {c.image ? (
-                              <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className={`w-full h-full flex items-center justify-center text-4xl md:text-6xl font-black ${colors.text}`}>
-                                🏆
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <span className={`text-2xl md:text-4xl font-black ${colors.text} drop-shadow`}>
-                          {c.name}
-                        </span>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-
                 {/* Giant animated countdown number */}
                 <div className="h-44 flex items-center justify-center">
                   <motion.div
                     key={startCountdownValue}
-                    initial={{ scale: 0.6, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="text-8xl md:text-[10rem] font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_80px_rgba(16,185,129,0.45)]"
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: [1, 1.2, 1], opacity: 1 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="text-9xl md:text-[12rem] font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_80px_rgba(16,185,129,0.45)] font-mono"
                   >
                     {startCountdownValue}
                   </motion.div>

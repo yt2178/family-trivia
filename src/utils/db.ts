@@ -20,9 +20,9 @@ export interface Contestant {
 }
 
 export interface GameSettings {
-
   contestants: Contestant[]; // Dynamic list of contestants (up to 5)
   hostName?: string; // Optional host name
+  groupName?: string; // Optional group/family name
   setupComplete?: boolean; // Whether host has finished setting up the room
   questionTimer?: number | null; // Timer in seconds (null/0 means unlimited)
   wizardStep?: number; // Current wizard step (1-6) if setup not complete
@@ -43,7 +43,7 @@ export interface GameState {
   isPaused: boolean; // Whether game is paused (host disconnected)
   winnerRevealed?: boolean;
   galleryRevealed?: boolean;
-  startStage?: 'welcome' | 'contestants_count' | 'ready' | 'starting' | 'in_game';
+  startStage?: 'logo' | 'group_welcome' | 'contestants_welcome' | 'contestants_names' | 'ready' | 'contestants_photos' | 'starting' | 'in_game';
 }
 
 const STORAGE_KEYS = {
@@ -59,13 +59,13 @@ const DEFAULT_MEMBERS: FamilyMember[] = [];
 const DEFAULT_QUESTIONS: TriviaQuestion[] = [];
 
 const DEFAULT_SETTINGS: GameSettings = {
-
   contestants: [
     { id: 'contestant_1', name: 'מתמודד 1', gender: 'male', image: null },
     { id: 'contestant_2', name: 'מתמודד 2', gender: 'male', image: null },
   ],
   showNameBank: true,
   hostName: '',
+  groupName: '',
   questionTimer: null,
   wizardStep: 1,
   questionOrder: 'random',
@@ -83,7 +83,7 @@ const DEFAULT_GAME_STATE: GameState = {
   isPaused: false,
   winnerRevealed: false,
   galleryRevealed: false,
-  startStage: 'welcome',
+  startStage: 'logo',
 };
 
 export function ensureArray<T>(val: any): T[] {
@@ -157,7 +157,7 @@ export const healGameState = (s: any, settings?: GameSettings): GameState => {
   }
 
   if (!parsed.startStage) {
-    parsed.startStage = 'welcome';
+    parsed.startStage = 'logo';
   }
   
   // Ensure all contestants have scores
@@ -342,7 +342,7 @@ export const db = {
       isPaused: false,
       winnerRevealed: false,
       galleryRevealed: false,
-      startStage: 'welcome',
+      startStage: 'logo',
     };
     
     this.saveGameState(newState);

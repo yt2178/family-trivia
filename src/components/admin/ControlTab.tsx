@@ -263,12 +263,12 @@ export const ControlTab: React.FC = () => {
               </div>
             ) : (
               <div className="text-center py-6 space-y-4">
-                {/* Stage 0 / default: Welcome & Member order */}
-                {(!gameState.startStage || gameState.startStage === 'welcome') && (
+                {/* Stage 1: Logo */}
+                {(!gameState.startStage || gameState.startStage === 'logo') && (
                   <div className="space-y-4 max-w-lg mx-auto bg-slate-950/60 p-5 rounded-2xl border border-slate-850 text-right">
-                    <h4 className="text-base font-black text-emerald-400">👋 ברוכים הבאים לשלט המנחה!</h4>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      מסך ההקרנה מציג כעת את הוראות המשחק למשתתפים.
+                    <h4 className="text-base font-black text-emerald-400">📺 מסך פתיחה: לוגו המשחק</h4>
+                    <p className="text-xs text-slate-350 leading-relaxed">
+                      מסך ההקרנה מציג כעת את לוגו המשחק "מי אמר מה?".
                     </p>
                     
                     {settings.questionOrder === 'sequential' && (
@@ -286,21 +286,53 @@ export const ControlTab: React.FC = () => {
                     )}
 
                     <button
-                      onClick={() => handleAdvanceStartStage('contestants_count')}
+                      onClick={() => handleAdvanceStartStage('group_welcome')}
                       disabled={members.length === 0 || questions.length === 0 || !gameScreenConnected}
                       className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-950/20 text-sm"
+                    >
+                      <span>המשך (ברוכים הבאים לכל המשתתפים) ➔</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Stage 2: Group Welcome */}
+                {gameState.startStage === 'group_welcome' && (
+                  <div className="space-y-4 max-w-lg mx-auto bg-slate-950/60 p-5 rounded-2xl border border-slate-850 text-right">
+                    <h4 className="text-base font-black text-emerald-400">👋 ברוכים הבאים למשתתפים</h4>
+                    <p className="text-xs text-slate-350 leading-relaxed">
+                      מוקרן כעת במקרן: ברוכים הבאים לקבוצה {settings.groupName ? `"${settings.groupName}"` : ''}.
+                    </p>
+                    <button
+                      onClick={() => handleAdvanceStartStage('contestants_welcome')}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-300 transition-all shadow-lg text-sm"
+                    >
+                      <span>המשך (כושר זיהוי מהיר) ➔</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Stage 3: Contestants Welcome */}
+                {gameState.startStage === 'contestants_welcome' && (
+                  <div className="space-y-4 max-w-lg mx-auto bg-slate-950/60 p-5 rounded-2xl border border-slate-850 text-right">
+                    <h4 className="text-base font-black text-amber-400">🎙️ ברוכים הבאים למתמודדים</h4>
+                    <p className="text-xs text-slate-350 leading-relaxed">
+                      מוקרן כעת במקרן: ברוכים הבאים ל-{settings.contestants?.length || 0} המתמודדים על כושר זיהוי מהיר (ללא תמונות).
+                    </p>
+                    <button
+                      onClick={() => handleAdvanceStartStage('contestants_names')}
+                      className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-amber-400 hover:to-yellow-300 transition-all shadow-lg text-sm"
                     >
                       <span>המשך (קבלו את המתמודדים) ➔</span>
                     </button>
                   </div>
                 )}
 
-                {/* Stage 1: Contestants count */}
-                {gameState.startStage === 'contestants_count' && (
+                {/* Stage 4: Contestants Names */}
+                {gameState.startStage === 'contestants_names' && (
                   <div className="space-y-4 max-w-lg mx-auto bg-slate-950/60 p-5 rounded-2xl border border-slate-850 text-right">
-                    <h4 className="text-base font-black text-amber-400">🎙️ מוקרן כעת במקרן:</h4>
-                    <p className="text-sm font-bold text-slate-200">
-                      ״קבלו את {(settings.contestants || []).length} המתמודדים שלנו!״
+                    <h4 className="text-base font-black text-amber-400">🎙️ שמות המתמודדים</h4>
+                    <p className="text-xs text-slate-350 leading-relaxed">
+                      מוקרן כעת במקרן: קבלו את המתמודדים {(settings.contestants || []).map(c => c.name).join(' ו-')} (ללא תמונות).
                     </p>
                     <button
                       onClick={() => handleAdvanceStartStage('ready')}
@@ -311,20 +343,45 @@ export const ControlTab: React.FC = () => {
                   </div>
                 )}
 
-                {/* Stage 2: Ready */}
+                {/* Stage 5: Ready */}
                 {gameState.startStage === 'ready' && (
                   <div className="space-y-4 max-w-lg mx-auto bg-slate-950/60 p-5 rounded-2xl border border-slate-850 text-right">
-                    <h4 className="text-base font-black text-emerald-400">🤔 מוקרן כעת במקרן:</h4>
-                    <p className="text-sm font-bold text-slate-200">
-                      ״מוכנים...״
+                    <h4 className="text-base font-black text-emerald-400">🤔 שלב ההיערכות: מוכנים...</h4>
+                    <p className="text-xs text-slate-350 leading-relaxed">
+                      מוקרן כעת במקרן: מוכנים...
                     </p>
                     <button
-                      onClick={() => handleAdvanceStartStage('in_game')}
-                      className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-300 transition-all shadow-xl shadow-emerald-950/30 text-base"
+                      onClick={() => handleAdvanceStartStage('contestants_photos')}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-300 transition-all shadow-lg text-sm"
                     >
-                      <Play size={20} fill="currentColor" />
-                      <span>הפעל והתחל משחק! 🚀</span>
+                      <span>המשך (בהצלחה לכולם) ➔</span>
                     </button>
+                  </div>
+                )}
+
+                {/* Stage 6: Contestants Photos */}
+                {gameState.startStage === 'contestants_photos' && (
+                  <div className="space-y-4 max-w-lg mx-auto bg-slate-950/60 p-5 rounded-2xl border border-slate-850 text-right">
+                    <h4 className="text-base font-black text-emerald-400">📸 תמונות המתמודדים וברכת בהצלחה</h4>
+                    <p className="text-xs text-slate-350 leading-relaxed">
+                      מוקרן כעת במקרן: תמונות המתמודדים עם הכיתוב "בהצלחה לכולם👏".
+                    </p>
+                    <button
+                      onClick={() => handleAdvanceStartStage('starting')}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-300 transition-all shadow-lg text-sm"
+                    >
+                      <span>המשך (מתחילים!) ➔</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Stage 7: Starting Countdown */}
+                {gameState.startStage === 'starting' && (
+                  <div className="space-y-4 max-w-lg mx-auto bg-slate-950/60 p-5 rounded-2xl border border-slate-850 text-center">
+                    <h4 className="text-base font-black text-amber-400">⏳ המשחק מתחיל...</h4>
+                    <p className="text-sm text-slate-200 animate-pulse font-bold">
+                      ספירה לאחור של 10 שניות פועלת כעת במקרן!
+                    </p>
                   </div>
                 )}
 
