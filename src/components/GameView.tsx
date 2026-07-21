@@ -1349,32 +1349,40 @@ export const GameView: React.FC = React.memo(() => {
                   </p>
                 </div>
               ) : gameState.startStage === 'contestants_photos' ? (
-                // Stage 6: Contestants Photos
+                // Stage 6: Contestants Photos & VS with Good Luck Greeting
                 <div className="space-y-8 w-full max-w-4xl animate-fade-in text-center relative z-10">
-                  <h2 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent drop-shadow-md select-none">
-                    בהצלחה לכל המתמודדים! 👏
-                  </h2>
-                  <div className="flex items-center justify-center gap-8 md:gap-16 flex-wrap py-4">
+                  <div className="space-y-2">
+                    <h2 className="text-4xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+                      קבלו את המתמודדים שלנו! 📢
+                    </h2>
+                    <p className="text-2xl md:text-3xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent drop-shadow-md select-none">
+                      בהצלחה לכל המתמודדים! 👏
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-6 md:gap-12 flex-wrap py-4">
                     {(settings.contestants || []).map((c, idx) => {
                       const colors = CONTESTANT_COLORS[idx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
                       return (
-                        <div key={c.id} className="flex flex-col items-center space-y-3">
-                          <div className="relative">
-                            <div className={`absolute -inset-2 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-65`} />
-                            <div className="relative w-28 h-28 md:w-44 md:h-44 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden flex items-center justify-center shadow-2xl">
-                              {c.image ? (
-                                <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-4xl md:text-6xl font-black ${colors.text}`}>
-                                  🏆
-                                </div>
-                              )}
+                        <React.Fragment key={c.id}>
+                          {idx > 0 && <span className="text-3xl md:text-5xl text-slate-500 font-black self-center">VS</span>}
+                          <div className="flex flex-col items-center space-y-3">
+                            <div className="relative">
+                              <div className={`absolute -inset-2 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-65`} />
+                              <div className="relative w-28 h-28 md:w-44 md:h-44 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden flex items-center justify-center shadow-2xl">
+                                {c.image ? (
+                                  <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-4xl md:text-6xl font-black ${colors.text}`}>
+                                    🏆
+                                  </div>
+                                )}
+                              </div>
                             </div>
+                            <span className={`text-xl md:text-3xl font-black ${colors.text} drop-shadow`}>
+                              {c.name}
+                            </span>
                           </div>
-                          <span className={`text-xl md:text-3xl font-black ${colors.text} drop-shadow`}>
-                            {c.name}
-                          </span>
-                        </div>
+                        </React.Fragment>
                       );
                     })}
                   </div>
