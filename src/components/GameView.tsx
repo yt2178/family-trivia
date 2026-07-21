@@ -218,6 +218,14 @@ export const GameView: React.FC = React.memo(() => {
             audioHelper.play('game-start-boom');
             setTimeout(() => {
               setStartCountdownValue(null);
+              setGameState(current => {
+                if (current.startStage === 'starting') {
+                  const updated = { ...current, startStage: 'in_game' as const };
+                  sync.sendMessage({ type: 'STATE_CHANGED', state: updated });
+                  return updated;
+                }
+                return current;
+              });
             }, 2200);
             return 0;
           }
@@ -234,6 +242,12 @@ export const GameView: React.FC = React.memo(() => {
       }
     };
   }, [startCountdownValue]);
+
+  useEffect(() => {
+    if (gameState.startStage === 'starting' && startCountdownValue === null) {
+      setStartCountdownValue(10);
+    }
+  }, [gameState.startStage]);
   
   const hostLabel = settings.hostName || 'המנחה';
   const contestantNames = (settings.contestants || []).map(c => c.name).join(' ו-');

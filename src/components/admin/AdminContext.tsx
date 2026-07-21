@@ -777,13 +777,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updateGameState(updatedState);
       showSuccess('המשחק הוחזר לשלב הראשון 📺');
     } else if (nextStage === 'in_game') {
-      const freshState = db.resetGame();
       const updatedState: GameState = {
-        ...freshState,
-        startStage: 'in_game'
+        ...gameState,
+        startStage: 'in_game',
+        isPlaying: true
       };
       updateGameState(updatedState);
-      sync.sendMessage({ type: 'START_GAME_COUNTDOWN' });
       showSuccess('המשחק הופעל!');
     } else {
       updateGameState({
