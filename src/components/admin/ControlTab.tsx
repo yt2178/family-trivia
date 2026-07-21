@@ -262,9 +262,35 @@ export const ControlTab: React.FC = () => {
                 </div>
               </div>
             ) : isGameLoaded ? (
-              <div className="text-center py-10">
-                <h4 className="text-xl font-bold text-amber-400 mb-2">🏆 המשחק הסתיים!</h4>
-                <p className="text-xs text-slate-400">הגענו לסוף כל השאלות.</p>
+              <div className="text-center py-8 space-y-4 max-w-lg mx-auto bg-slate-950/60 p-6 rounded-2xl border border-slate-850">
+                <h4 className="text-xl font-black text-amber-400">🏆 המשחק הסתיים!</h4>
+                <p className="text-xs text-slate-350 leading-relaxed">
+                  הגענו לסוף כל השאלות. השליטו בחשיפת המנצחים וההפתעה במקרן:
+                </p>
+
+                {!gameState.teaserRevealed && !gameState.galleryRevealed ? (
+                  <button
+                    onClick={() => {
+                      updateGameState({ ...gameState, teaserRevealed: true });
+                    }}
+                    className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 shadow-lg text-sm cursor-pointer"
+                  >
+                    <span>המשך (הפתעת הסיום!) ➔</span>
+                  </button>
+                ) : gameState.teaserRevealed && !gameState.galleryRevealed ? (
+                  <button
+                    onClick={() => {
+                      updateGameState({ ...gameState, galleryRevealed: true });
+                    }}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 shadow-lg text-sm cursor-pointer animate-pulse"
+                  >
+                    <span>חשוף את גלריית המשפחה! 🎉 ➔</span>
+                  </button>
+                ) : (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-bold">
+                    ✨ גלריית כל המשתתפים מוקרנת כעת במקרן בהצלחה!
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-6 space-y-4">

@@ -42,6 +42,7 @@ export interface GameState {
   isPlaying: boolean;
   isPaused: boolean; // Whether game is paused (host disconnected)
   winnerRevealed?: boolean;
+  teaserRevealed?: boolean;
   galleryRevealed?: boolean;
   startStage?: 'logo' | 'group_welcome' | 'contestants_welcome' | 'contestants_names' | 'ready' | 'contestants_photos' | 'starting' | 'in_game';
 }
@@ -82,6 +83,7 @@ const DEFAULT_GAME_STATE: GameState = {
   isPlaying: false,
   isPaused: false,
   winnerRevealed: false,
+  teaserRevealed: false,
   galleryRevealed: false,
   startStage: 'logo',
 };
@@ -341,6 +343,7 @@ export const db = {
       isPlaying: true,
       isPaused: false,
       winnerRevealed: false,
+      teaserRevealed: false,
       galleryRevealed: false,
       startStage: 'logo',
     };

@@ -340,59 +340,6 @@ export const GameView: React.FC = React.memo(() => {
     };
   }, [winnerRevealTimer, gameState]);
 
-  // Trigger secondary transition for detailed gallery page
-  useEffect(() => {
-    const totalQ = (gameState.shuffledQuestionIds || []).length;
-    const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
-    
-    if (isGameOver && winnerRevealTimer === 0 && settings.showDetailedGalleryPage) {
-      if (gameState.galleryRevealed) {
-        setGalleryTransitionTimer(0);
-      } else if (galleryTransitionTimer === null) {
-        setGalleryTransitionTimer(10); // Start 10 seconds transition timer for Phase 1
-      }
-    } else {
-      if (galleryTransitionTimer !== null) {
-        setGalleryTransitionTimer(null);
-      }
-    }
-  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, winnerRevealTimer, settings.showDetailedGalleryPage, gameState.galleryRevealed]);
-
-  // Tick down transition timer for detailed gallery page
-  useEffect(() => {
-    if (galleryTransitionTimer === 10) {
-      if (galleryIntervalRef.current) {
-        clearInterval(galleryIntervalRef.current);
-      }
-      galleryIntervalRef.current = setInterval(() => {
-        setGalleryTransitionTimer(prev => {
-          if (prev === null || prev <= 1) {
-            clearInterval(galleryIntervalRef.current);
-            galleryIntervalRef.current = null;
-
-            // Phase 1 finished! Update galleryRevealed to true in Firebase DB
-            const roomCode = sync.getRoomCode();
-            if (roomCode) {
-              const stateRef = ref(rtdb, `rooms/${roomCode}/database/state`);
-              update(stateRef, {
-                galleryRevealed: true
-              }).catch(err => console.error("Failed to update galleryRevealed in DB:", err));
-            }
-
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (galleryTransitionTimer === 0 && galleryIntervalRef.current) {
-        clearInterval(galleryIntervalRef.current);
-        galleryIntervalRef.current = null;
-      }
-    };
-  }, [galleryTransitionTimer, gameState]);
-
   // Load initial data
   useEffect(() => {
     const initData = async () => {
@@ -1295,7 +1242,7 @@ export const GameView: React.FC = React.memo(() => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.5 }}
-              className="w-full text-center space-y-6 glass-panel p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center max-h-[92vh] overflow-y-auto animate-fade-in"
+              className="w-full text-center space-y-4 md:space-y-6 glass-panel p-4 md:p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center max-h-[95vh] animate-fade-in"
             >
               {/* Glow blobs inside card */}
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
@@ -1303,55 +1250,55 @@ export const GameView: React.FC = React.memo(() => {
 
               {gameState.startStage === 'group_welcome' ? (
                 // Stage 2: Group Welcome
-                <div className="space-y-4 w-full max-w-2xl animate-fade-in text-center relative z-10">
-                  <h2 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent drop-shadow-md">
-                    ברוכים הבאים לכל המשתתפים! 🎉
+                <div className="space-y-3 md:space-y-4 w-full max-w-2xl animate-fade-in text-center relative z-10">
+                  <h2 className="text-2xl md:text-4xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent drop-shadow-md">
+                    ברוכים הבאים לכל המשתתפים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial] select-none">🎉</span>
                   </h2>
                   {settings.groupName && (
-                    <div className="relative inline-block px-8 py-4 bg-gradient-to-b from-slate-900/80 to-slate-950/90 rounded-3xl border-2 border-emerald-500/30 shadow-2xl backdrop-blur-md animate-pulse">
-                      <div className="absolute -inset-0.5 bg-emerald-500/10 rounded-3xl blur opacity-50" />
-                      <span className="relative text-2xl md:text-4xl font-black text-emerald-400 drop-shadow">
+                    <div className="relative inline-block px-6 py-3 bg-gradient-to-b from-slate-900/80 to-slate-950/90 rounded-2xl border-2 border-emerald-500/30 shadow-2xl backdrop-blur-md animate-pulse">
+                      <div className="absolute -inset-0.5 bg-emerald-500/10 rounded-2xl blur opacity-50" />
+                      <span className="relative text-xl md:text-3xl font-black text-emerald-400 drop-shadow">
                         {settings.groupName}
                       </span>
                     </div>
                   )}
-                  <div className="bg-slate-900/80 border border-slate-800 p-4 md:p-5 rounded-2xl text-right space-y-2 shadow-xl backdrop-blur-md max-w-xl mx-auto">
+                  <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl text-right space-y-2 shadow-xl backdrop-blur-md max-w-xl mx-auto">
                     <h3 className="text-xs md:text-sm font-black text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-1.5">
                       📌 הוראות למשתתפים:
                     </h3>
-                    <p className="text-slate-200 text-sm md:text-base leading-relaxed font-semibold">
+                    <p className="text-slate-200 text-xs md:text-sm leading-relaxed font-semibold">
                       הקשיבו למנחה <strong className="text-amber-300 font-black">{hostLabel || 'המנחה'}</strong>! כל אחד מבני המשפחה בתורו יגיד ציטוט או משפט, והמתחרים שלנו ({contestantNames}) יצטרכו לזהות מי אמר מה!
                     </p>
                   </div>
                 </div>
               ) : gameState.startStage === 'contestants_welcome' ? (
                 // Stage 3: Contestants Welcome
-                <div className="space-y-6 animate-fade-in text-center max-w-xl relative z-10">
-                  <h2 className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
-                    ברוכים הבאים למתמודדים! 🎙️
+                <div className="space-y-4 animate-fade-in text-center max-w-xl relative z-10">
+                  <h2 className="text-3xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
+                    ברוכים הבאים למתמודדים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🎙️</span>
                   </h2>
-                  <div className="bg-slate-900/60 border border-slate-800/80 p-6 rounded-2xl shadow-xl">
-                    <p className="text-xl md:text-2xl font-black text-slate-100 leading-relaxed animate-pulse">
-                      על כושר זיהוי מהיר וזריזות! ⚡
+                  <div className="bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl shadow-xl">
+                    <p className="text-lg md:text-xl font-black text-slate-100 leading-relaxed animate-pulse">
+                      על כושר זיהוי מהיר וזריזות! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">⚡</span>
                     </p>
-                    <p className="text-slate-400 text-sm mt-3 font-semibold">
+                    <p className="text-slate-400 text-xs md:text-sm mt-2 font-semibold">
                       מי יזהה הכי מהר מי אמר מה במשפחה?
                     </p>
                   </div>
                 </div>
               ) : gameState.startStage === 'contestants_names' ? (
                 // Stage 4: Contestants Names
-                <div className="space-y-8 animate-fade-in text-center relative z-10">
-                  <h2 className="text-4xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)]">
-                    קבלו את המתמודדים שלנו! 📢
+                <div className="space-y-6 animate-fade-in text-center relative z-10">
+                  <h2 className="text-3xl md:text-4xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+                    קבלו את המתמודדים שלנו! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">📢</span>
                   </h2>
-                  <div className="flex justify-center items-center gap-6 md:gap-10 flex-wrap py-2">
+                  <div className="flex justify-center items-center gap-4 md:gap-8 flex-wrap py-2">
                     {(settings.contestants || []).map((c, idx) => {
                       const colors = CONTESTANT_COLORS[idx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
                       return (
                         <React.Fragment key={c.id}>
-                          {idx > 0 && <span className="text-2xl text-slate-600 font-black">VS</span>}
-                          <span className={`text-3xl md:text-5xl font-black ${colors.text} bg-slate-900/80 px-8 py-4 rounded-2xl border border-slate-800 shadow-xl`}>
+                          {idx > 0 && <span className="text-xl md:text-2xl text-slate-600 font-black">VS</span>}
+                          <span className={`text-2xl md:text-4xl font-black ${colors.text} bg-slate-900/80 px-6 py-3 rounded-2xl border border-slate-800 shadow-xl`}>
                             {c.name}
                           </span>
                         </React.Fragment>
@@ -1361,23 +1308,23 @@ export const GameView: React.FC = React.memo(() => {
                 </div>
               ) : gameState.startStage === 'ready' ? (
                 // Stage 5: Ready
-                <div className="space-y-6 animate-fade-in text-center max-w-xl relative z-10">
-                  <h2 className="text-5xl md:text-7xl font-black text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.3)] animate-pulse">
-                    האם כולם מוכנים? 🤔
+                <div className="space-y-4 animate-fade-in text-center max-w-xl relative z-10">
+                  <h2 className="text-4xl md:text-6xl font-black text-emerald-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.3)] animate-pulse">
+                    האם כולם מוכנים? <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🤔</span>
                   </h2>
-                  <p className="text-slate-300 text-base md:text-lg font-bold leading-relaxed">
+                  <p className="text-slate-300 text-sm md:text-base font-bold leading-relaxed">
                     המנחה <strong className="text-amber-300 font-black">{hostLabel}</strong> יפעיל את המשחק מלוח הבקרה בעוד מספר רגעים... הכינו את עצמכם לסיבוב של נוסטלגיה וצחוק!
                   </p>
                 </div>
               ) : gameState.startStage === 'contestants_photos' ? (
                 // Stage 6: Contestants Photos & VS with Good Luck Greeting
-                <div className="space-y-8 w-full max-w-4xl animate-fade-in text-center relative z-10">
-                  <div className="space-y-2">
-                    <h2 className="text-4xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)]">
-                      קבלו את המתמודדים שלנו! 📢
+                <div className="space-y-6 w-full max-w-4xl animate-fade-in text-center relative z-10">
+                  <div className="space-y-1">
+                    <h2 className="text-3xl md:text-4xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+                      קבלו את המתמודדים שלנו! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">📢</span>
                     </h2>
-                    <p className="text-2xl md:text-3xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent drop-shadow-md select-none">
-                      בהצלחה לכל המתמודדים! 👏
+                    <p className="text-xl md:text-2xl font-black text-amber-300 drop-shadow-md select-none">
+                      בהצלחה לכל המתמודדים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">👏</span>
                     </p>
                   </div>
                   <div className="flex items-center justify-center gap-6 md:gap-12 flex-wrap py-4">
@@ -1847,133 +1794,46 @@ export const GameView: React.FC = React.memo(() => {
                   const tiedContestants = (settings.contestants || []).filter(c => (gameState.scores[c.id] || 0) === maxScore);
                   const nonWinners = (settings.contestants || []).filter(c => (gameState.scores[c.id] || 0) < maxScore);
 
-                  if (!settings.showDetailedGalleryPage) {
-                    // --- CASE A: Detailed Gallery Page NOT active ---
-                    // Show winner(s) alone at the top, and all family members + non-winners (rendered slightly larger) below.
-                    const isTie = winnerId === 'tie';
-                    const totalGalleryCount = members.length + nonWinners.length;
-                    
-                    let avatarSize = 'w-12 h-12';
-                    let nonWinnerSize = 'w-16 h-16';
-                    let textSize = 'text-xs';
-                    let nonWTextSize = 'text-sm';
-                    let gapClass = 'gap-4';
-
-                    if (totalGalleryCount > 60) {
-                      avatarSize = 'w-8 h-8';
-                      nonWinnerSize = 'w-12 h-12';
-                      textSize = 'text-[8px]';
-                      nonWTextSize = 'text-[10px]';
-                      gapClass = 'gap-2';
-                    } else if (totalGalleryCount > 30) {
-                      avatarSize = 'w-10 h-10';
-                      nonWinnerSize = 'w-14 h-14';
-                      textSize = 'text-[10px]';
-                      nonWTextSize = 'text-xs';
-                      gapClass = 'gap-3';
-                    }
-
+                  if (gameState.galleryRevealed) {
+                    // --- PHASE C: Full Family Gallery Screen ---
                     return (
-                      <div className="flex flex-col justify-between py-2 space-y-4 animate-fade-in text-center overflow-hidden h-full">
-                        {/* Winner(s) at the top */}
-                        {isTie ? (
-                          <div className="space-y-3 shrink-0">
-                            <h2 className="text-3xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                              תיקו דרמטי בצמרת! 🏆
-                            </h2>
-                            <div className="flex justify-center gap-6 items-center">
-                              {tiedContestants.map((c) => {
-                                const originalIdx = (settings.contestants || []).findIndex(x => x.id === c.id);
-                                const colors = CONTESTANT_COLORS[originalIdx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
-                                return (
-                                  <div key={c.id} className="flex flex-col items-center gap-1 group">
-                                    <div className="relative">
-                                      <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-65`} />
-                                      <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-slate-900 overflow-hidden flex items-center justify-center shadow-xl">
-                                        {c.image ? (
-                                          <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                          <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xl md:text-2xl font-black ${colors.text}`}>
-                                            🏆
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <span className={`text-xs md:text-sm font-black ${colors.text}`}>{c.name}</span>
-                                    <span className="text-[9px] md:text-[10px] font-bold text-slate-400 bg-slate-900/60 px-2 py-0.5 rounded-full border border-slate-800">
-                                      {maxScore} נקודות
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ) : (() => {
-                          const winnerContestant = (settings.contestants || []).find(c => c.id === winnerId);
-                          const winnerIndex = (settings.contestants || []).findIndex(c => c.id === winnerId);
-                          const colors = CONTESTANT_COLORS[winnerIndex % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
-                          const name = winnerContestant?.name || '';
-                          const gender = winnerContestant?.gender || 'male';
-                          const winnerTitle = gender === 'female' ? '🏆 הזוכה היא המנצחת! 🏆' : '🏆 הזוכה הוא המנצח! 🏆';
-                          return (
-                            <div className="space-y-3 shrink-0">
-                              <h2 className="text-3xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(245,158,11,0.2)] animate-pulse">
-                                {winnerTitle}
-                              </h2>
-                              <div className="flex flex-col items-center gap-1">
-                                <div className="relative">
-                                  <div className={`absolute -inset-2 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-75 animate-pulse`} />
-                                  <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full border-2 border-slate-900 overflow-hidden flex items-center justify-center shadow-2xl">
-                                    {winnerContestant?.image ? (
-                                      <img src={winnerContestant.image} alt={name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-3xl md:text-4xl font-black ${colors.text}`}>
-                                        🏆
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                                <span className={`text-lg md:text-xl font-black ${colors.text} tracking-wide drop-shadow`}>
-                                  {name}
-                                </span>
-                                <span className="text-[10px] md:text-xs font-black text-amber-300 bg-slate-900/60 px-4 py-1 rounded-full border border-slate-800/80">
-                                  עם {maxScore} נקודות! 🎉
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })()}
+                      <div className="flex flex-col justify-between py-4 space-y-4 animate-fade-in text-center overflow-hidden h-full">
+                        <div className="space-y-1 shrink-0">
+                          <h2 className="text-3xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
+                            כל הכבוד לכל המשתתפים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">👏</span>
+                          </h2>
+                          <p className="text-sm md:text-base text-slate-300 font-bold">
+                            תודה לכל בני המשפחה שחלקו את הציטוטים, הצחוקים והזיכרונות! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">❤️</span>
+                          </p>
+                        </div>
 
-                        {/* Gallery Section */}
-                        <div className="flex-grow flex flex-col justify-center min-h-0 border-t border-slate-800/60 pt-3">
-                          <h3 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-2 shrink-0">
-                            משתתפי החידון המשפחתי:
-                          </h3>
-                          <div className={`flex-grow overflow-y-auto flex flex-wrap justify-center items-center content-center ${gapClass} py-2 px-4 max-w-7xl mx-auto`}>
-                            {/* Render non-winners slightly larger with contestant colors and scores */}
+                        {/* Responsive Auto-scaling Gallery Grid */}
+                        <div className="flex-grow flex flex-col justify-center min-h-0 pt-2">
+                          <div className="flex-grow overflow-y-auto flex flex-wrap justify-center items-center content-center gap-3 md:gap-4 py-2 px-4 max-w-7xl mx-auto">
+                            {/* Non-winning contestants */}
                             {nonWinners.map(c => {
                               const originalIdx = (settings.contestants || []).findIndex(x => x.id === c.id);
                               const colors = CONTESTANT_COLORS[originalIdx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
                               const score = gameState.scores[c.id] || 0;
                               return (
-                                <div key={c.id} className="flex flex-col items-center gap-1.5 group shrink-0">
+                                <div key={c.id} className="flex flex-col items-center gap-1 group shrink-0">
                                   <div className="relative">
                                     <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-60 group-hover:opacity-100 transition-opacity`} />
-                                    <div className={`relative ${nonWinnerSize} rounded-full border-2 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg`}>
+                                    <div className="relative w-[clamp(3rem,6vw,5.5rem)] h-[clamp(3rem,6vw,5.5rem)] rounded-full border-2 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
                                       {c.image ? (
                                         <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
                                       ) : (
-                                        <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-lg font-black ${colors.text}`}>
+                                        <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xl font-black ${colors.text}`}>
                                           🏆
                                         </div>
                                       )}
                                     </div>
                                   </div>
-                                  <div className="text-center w-20">
-                                    <span className={`${nonWTextSize} font-black ${colors.text} truncate block`} title={c.name}>
+                                  <div className="text-center">
+                                    <span className="text-[clamp(0.65rem,1.2vw,0.9rem)] font-black text-amber-300 truncate block max-w-[100px]" title={c.name}>
                                       {c.name}
                                     </span>
-                                    <span className="text-[8px] font-bold text-slate-400 bg-slate-950/40 px-1.5 py-0.5 rounded border border-slate-800/40 block mt-0.5">
+                                    <span className="text-[clamp(0.55rem,1vw,0.75rem)] font-bold text-slate-400 bg-slate-950/40 px-1.5 py-0.5 rounded border border-slate-800/40 inline-block mt-0.5">
                                       {score} נק'
                                     </span>
                                   </div>
@@ -1981,22 +1841,22 @@ export const GameView: React.FC = React.memo(() => {
                               );
                             })}
 
-                            {/* Render regular family members */}
+                            {/* Regular family members */}
                             {members.map(m => (
                               <div key={m.id} className="flex flex-col items-center gap-1 group shrink-0">
                                 <div className="relative">
                                   <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/25 to-teal-500/25 rounded-full blur opacity-30 group-hover:opacity-100 transition-opacity" />
-                                  <div className={`relative ${avatarSize} rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md`}>
+                                  <div className="relative w-[clamp(2.4rem,4.5vw,4.2rem)] h-[clamp(2.4rem,4.5vw,4.2rem)] rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md">
                                     {m.image ? (
                                       <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
                                     ) : (
-                                      <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-[75%] select-none">
+                                      <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-[110%] select-none">
                                         {m.gender === 'female' ? '👩' : '👨'}
                                       </div>
                                     )}
                                   </div>
                                 </div>
-                                <span className={`${textSize} font-bold text-slate-300 truncate w-16 text-center group-hover:text-emerald-400 transition-colors`} title={m.name}>
+                                <span className="text-[clamp(0.6rem,1.1vw,0.85rem)] font-bold text-slate-300 truncate max-w-[80px] text-center group-hover:text-emerald-400 transition-colors" title={m.name}>
                                   {m.name}
                                 </span>
                               </div>
@@ -2005,17 +1865,36 @@ export const GameView: React.FC = React.memo(() => {
                         </div>
                       </div>
                     );
+                  } else if (gameState.teaserRevealed) {
+                    // --- PHASE B: Suspense Teaser Screen ---
+                    return (
+                      <div className="flex flex-col items-center justify-center space-y-8 py-10 animate-fade-in text-center h-full relative z-10">
+                        <div className="inline-flex items-center justify-center p-6 bg-gradient-to-br from-amber-500/20 to-teal-500/20 border-2 border-amber-500/40 rounded-full shadow-2xl animate-bounce">
+                          <span className="text-6xl select-none">🎁</span>
+                        </div>
+                        <div className="space-y-4 max-w-2xl">
+                          <h2 className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-[0_0_35px_rgba(245,158,11,0.4)] select-none">
+                            הפתעה מיוחדת לכל המשפחה! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">✨</span>
+                          </h2>
+                          <p className="text-xl md:text-2xl font-black text-slate-100 leading-relaxed animate-pulse">
+                            הכינו את עצמכם לרגע השיא של החידון המשפחתי... <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🚀</span>
+                          </p>
+                          <p className="text-slate-400 text-sm md:text-base font-semibold">
+                            מיד המנחה ייחשוף את גלריית כל המשתתפים שחלקו את הציטוטים והחוויות!
+                          </p>
+                        </div>
+                      </div>
+                    );
                   } else {
-                    // --- CASE B: Detailed Gallery Page IS active ---
-                    // Show ONLY winner(s) alone. No family members grid or non-winning contestants here.
+                    // --- PHASE A: Winner Solo Screen ---
                     if (winnerId === 'tie') {
                       return (
                         <div className="flex flex-col items-center justify-center space-y-10 py-8 animate-fade-in text-center h-full">
-                          <h2 className="text-4xl md:text-6xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
-                            תיקו דרמטי! 🏆
+                          <h2 className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
+                            תיקו דרמטי! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🏆</span>
                           </h2>
                           <div className="flex justify-center gap-10 items-center flex-wrap">
-                            {tiedContestants.map((c, idx) => {
+                            {tiedContestants.map((c) => {
                               const originalIdx = (settings.contestants || []).findIndex(x => x.id === c.id);
                               const colors = CONTESTANT_COLORS[originalIdx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
                               return (
@@ -2040,9 +1919,6 @@ export const GameView: React.FC = React.memo(() => {
                               );
                             })}
                           </div>
-                          <p className="text-slate-400 text-sm md:text-base font-bold animate-pulse tracking-wider">
-                            איזה משחק צמוד! מיד נעלה את גלריית כל המשתתפים... 🌟
-                          </p>
                         </div>
                       );
                     } else {
@@ -2059,15 +1935,15 @@ export const GameView: React.FC = React.memo(() => {
                         : 'ברכות למנצח הגדול ששיחק בכישרון יוצא דופן! 👑';
 
                       return (
-                        <div className="flex flex-col items-center justify-center space-y-12 py-10 animate-fade-in text-center h-full">
-                          <h2 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(245,158,11,0.35)] select-none">
-                            {pronoun}... 🎉
+                        <div className="flex flex-col items-center justify-center space-y-8 py-6 animate-fade-in text-center h-full">
+                          <h2 className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-[0_0_35px_rgba(245,158,11,0.35)] select-none">
+                            {pronoun}... <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🎉</span>
                           </h2>
                           
-                          <div className="flex flex-col items-center space-y-6">
+                          <div className="flex flex-col items-center space-y-4">
                             <div className="relative">
                               <div className={`absolute -inset-4 bg-gradient-to-tr ${colors.gradient} rounded-full blur-xl opacity-80 animate-pulse`} />
-                              <div className="relative w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden flex items-center justify-center shadow-2xl">
+                              <div className="relative w-40 h-40 md:w-56 md:h-56 rounded-full border-4 border-slate-900 bg-slate-950 overflow-hidden flex items-center justify-center shadow-2xl">
                                 {winnerContestant?.image ? (
                                   <img src={winnerContestant.image} alt={name} className="w-full h-full object-cover" />
                                 ) : (
@@ -2077,22 +1953,17 @@ export const GameView: React.FC = React.memo(() => {
                                 )}
                               </div>
                             </div>
-                            <span className={`text-4xl md:text-7xl font-black ${colors.text} tracking-wide drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]`}>
+                            <span className={`text-3xl md:text-6xl font-black ${colors.text} tracking-wide drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]`}>
                               {name}
                             </span>
-                            <span className="text-xl md:text-3xl font-black text-amber-300 bg-slate-900/60 px-6 py-1.5 rounded-full border border-slate-800/80">
-                              {winnerNoun} עם {score} נקודות! 🏆
+                            <span className="text-lg md:text-2xl font-black text-amber-300 bg-slate-900/60 px-6 py-1.5 rounded-full border border-slate-800/80">
+                              {winnerNoun} עם {score} נקודות! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🏆</span>
                             </span>
                           </div>
 
-                          <div className="space-y-3">
-                            <p className="text-xl md:text-2xl font-black text-slate-200">
-                              {greeting}
-                            </p>
-                            <p className="text-xs text-slate-500 tracking-widest animate-pulse font-semibold">
-                              מיד תעלה גלריית כל המשתתפים... 🌟
-                            </p>
-                          </div>
+                          <p className="text-lg md:text-xl font-black text-slate-200">
+                            {greeting}
+                          </p>
                         </div>
                       );
                     }
