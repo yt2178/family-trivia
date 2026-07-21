@@ -548,47 +548,7 @@ export const ControlTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Contestant Order Modal */}
-      {showContestantOrderModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full text-right" dir="rtl">
-            <h3 className="text-lg font-black text-emerald-400 mb-4 flex items-center gap-2">
-              <Users size={20} />
-              <span>סדר המשתתפים (בני המשפחה) למשחק</span>
-            </h3>
-            <p className="text-xs text-slate-400 mb-4">
-              מכיוון שבחרת סדר הכנסה לשאלות, וודא שסדר המשתתפים (בני המשפחה) נכון לפני התחלת המשחק:
-            </p>
-            <div className="space-y-2 mb-6 max-h-[220px] overflow-y-auto border border-slate-850 p-2 rounded-2xl bg-slate-950/20">
-              {members.map((m, index) => {
-                return (
-                  <div key={m.id} className="p-2.5 bg-slate-950 border border-slate-850/60 rounded-xl flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-black text-[10px]">
-                      {index + 1}
-                    </span>
-                    <span className="text-xs font-bold text-slate-200">{m.name}</span>
-                    <span className="text-[10px] text-slate-500">{m.gender === 'female' ? '👩 נקבה' : '👨 זכר'}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowContestantOrderModal(false)}
-                className="flex-1 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 font-bold text-sm rounded-xl hover:bg-slate-700 transition-colors"
-              >
-                ביטול
-              </button>
-              <button
-                onClick={handleStartGameAfterContestantOrder}
-                className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-sm rounded-xl hover:from-emerald-400 hover:to-teal-300 transition-all shadow-lg shadow-emerald-950/20"
-              >
-                התחל משחק 🎮
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Mid-Game Reconnect Prompt Modal */}
       {showMidGameNotice && (
