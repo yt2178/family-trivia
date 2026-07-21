@@ -1289,7 +1289,7 @@ export const GameView: React.FC = React.memo(() => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.5 }}
-              className="w-full text-center space-y-8 glass-panel p-12 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center max-h-[85vh] overflow-y-auto animate-fade-in"
+              className="w-full text-center space-y-6 glass-panel p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center max-h-[92vh] overflow-y-auto animate-fade-in"
             >
               {/* Glow blobs inside card */}
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
@@ -1297,20 +1297,20 @@ export const GameView: React.FC = React.memo(() => {
 
               {gameState.startStage === 'group_welcome' ? (
                 // Stage 2: Group Welcome
-                <div className="space-y-6 w-full max-w-2xl animate-fade-in text-center relative z-10">
-                  <h2 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent drop-shadow-md">
+                <div className="space-y-4 w-full max-w-2xl animate-fade-in text-center relative z-10">
+                  <h2 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent drop-shadow-md">
                     ברוכים הבאים לכל המשתתפים! 🎉
                   </h2>
                   {settings.groupName && (
-                    <div className="relative inline-block px-10 py-5 bg-gradient-to-b from-slate-900/80 to-slate-950/90 rounded-3xl border-2 border-emerald-500/30 shadow-2xl backdrop-blur-md animate-pulse">
+                    <div className="relative inline-block px-8 py-4 bg-gradient-to-b from-slate-900/80 to-slate-950/90 rounded-3xl border-2 border-emerald-500/30 shadow-2xl backdrop-blur-md animate-pulse">
                       <div className="absolute -inset-0.5 bg-emerald-500/10 rounded-3xl blur opacity-50" />
-                      <span className="relative text-3xl md:text-5xl font-black text-emerald-400 drop-shadow">
+                      <span className="relative text-2xl md:text-4xl font-black text-emerald-400 drop-shadow">
                         {settings.groupName}
                       </span>
                     </div>
                   )}
-                  <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl text-right space-y-3 shadow-xl backdrop-blur-md max-w-xl mx-auto">
-                    <h3 className="text-sm font-black text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-2">
+                  <div className="bg-slate-900/80 border border-slate-800 p-4 md:p-5 rounded-2xl text-right space-y-2 shadow-xl backdrop-blur-md max-w-xl mx-auto">
+                    <h3 className="text-xs md:text-sm font-black text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-1.5">
                       📌 הוראות למשתתפים:
                     </h3>
                     <p className="text-slate-200 text-sm md:text-base leading-relaxed font-semibold">

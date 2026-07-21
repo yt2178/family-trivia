@@ -389,6 +389,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Set mode based on URL parameters or setupComplete
       if (controllerMode) {
         setAdminSubMode('controller');
+        if (!settings.setupComplete) {
+          const newSettings = { ...settings, setupComplete: true };
+          db.saveSettings(newSettings);
+          setSettings(newSettings);
+          sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
+        }
       } else if (wizardMode) {
         setAdminSubMode('wizard');
       } else if (settings.setupComplete) {

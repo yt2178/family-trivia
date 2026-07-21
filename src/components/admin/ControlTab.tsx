@@ -292,8 +292,8 @@ export const ControlTab: React.FC = () => {
 
                     <button
                       onClick={() => handleAdvanceStartStage('group_welcome')}
-                      disabled={members.length === 0 || questions.length === 0 || !gameScreenConnected}
-                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-950/20 text-sm"
+                      disabled={members.length === 0 || questions.length === 0}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-950/20 text-sm cursor-pointer"
                     >
                       <span>המשך (ברוכים הבאים לכל המשתתפים) ➔</span>
                     </button>
