@@ -1194,6 +1194,7 @@ export const GameView: React.FC = React.memo(() => {
   const totalPlayers = members.length;
   const males = members.filter(m => m.gender === 'male').length;
   const females = members.filter(m => m.gender === 'female').length;
+  const isPreGameStage = gameState.startStage && gameState.startStage !== 'in_game';
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-100 flex flex-col p-6 overflow-hidden">
@@ -1617,6 +1618,10 @@ export const GameView: React.FC = React.memo(() => {
                         <p className="text-slate-500 text-sm">המנחה יתחיל את השאלה הראשונה בעוד רגע...</p>
                       </div>
                     )}
+                  </AnimatePresence>
+                </div>
+              )}
+
               {/* Name Bank */}
               {settings.showNameBank && !isGameOver && (
                 <div className={`glass-panel ${members.length > 40 ? 'p-3' : 'p-4'} rounded-2xl border border-slate-800/80 shadow-lg text-right`}>
@@ -1668,6 +1673,8 @@ export const GameView: React.FC = React.memo(() => {
         {renderContestantColumn(rightContestants, leftContestants.length)}
 
       </div>
+    </>
+  )}
 
       {/* End Game Modal Overlay */}
       <AnimatePresence>
