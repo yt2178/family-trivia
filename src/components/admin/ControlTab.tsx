@@ -611,12 +611,14 @@ export const ControlTab: React.FC = () => {
 
             <div className="bg-slate-950/60 border border-slate-800 p-4 rounded-2xl space-y-2 relative z-10 text-xs text-slate-300 leading-relaxed font-medium">
               <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                <span className="text-slate-400">שאלה נוכחית:</span>
+                <span className="text-slate-400">מצב נוכחי:</span>
                 <strong className="text-emerald-400 font-bold text-sm">
-                  שאלה {gameState.currentQuestionIndex + 1} מתוך {questions.length}
+                  {gameState.currentQuestionIndex >= questions.length 
+                    ? 'גלריית סיום המשחק 🏆' 
+                    : `שאלה ${gameState.currentQuestionIndex + 1} מתוך ${questions.length}`}
                 </strong>
               </div>
-              {activeQuestion && (
+              {activeQuestion && gameState.currentQuestionIndex < questions.length && (
                 <p className="italic text-slate-400 truncate pt-1">
                   ״{activeQuestion.text}״
                 </p>
@@ -629,7 +631,11 @@ export const ControlTab: React.FC = () => {
                 onClick={() => setShowMidGameNotice(false)}
                 className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>להמשיך מאיפה שהפסקנו (שאלה {gameState.currentQuestionIndex + 1}) ➔</span>
+                <span>
+                  {gameState.currentQuestionIndex >= questions.length
+                    ? 'להמשיך מאיפה שהפסקנו (גלריית הסיום) ➔'
+                    : `להמשיך מאיפה שהפסקנו (שאלה ${gameState.currentQuestionIndex + 1}) ➔`}
+                </span>
               </button>
 
               <button
