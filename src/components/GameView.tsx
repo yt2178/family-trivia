@@ -1874,13 +1874,10 @@ export const GameView: React.FC = React.memo(() => {
                         </div>
                         <div className="space-y-4 max-w-2xl">
                           <h2 className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-[0_0_35px_rgba(245,158,11,0.4)] select-none">
-                            הפתעה מיוחדת לכל המשפחה! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">✨</span>
+                            הפתעה מיוחדת לכל המשתתפים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">✨</span>
                           </h2>
-                          <p className="text-xl md:text-2xl font-black text-slate-100 leading-relaxed animate-pulse">
-                            הכינו את עצמכם לרגע השיא של החידון המשפחתי... <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🚀</span>
-                          </p>
-                          <p className="text-slate-400 text-sm md:text-base font-semibold">
-                            מיד המנחה ייחשוף את גלריית כל המשתתפים שחלקו את הציטוטים והחוויות!
+                          <p className="text-xl md:text-3xl font-black text-slate-100 leading-relaxed animate-pulse">
+                            הכינו את עצמכם לרגע השיא... מיד המנחה ייחשוף את...??? <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🚀</span>
                           </p>
                         </div>
                       </div>

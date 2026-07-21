@@ -284,7 +284,7 @@ export const ControlTab: React.FC = () => {
                     }}
                     className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 shadow-lg text-sm cursor-pointer animate-pulse"
                   >
-                    <span>חשוף את גלריית המשפחה! 🎉 ➔</span>
+                    <span>חשוף את גלריית המשתתפים! 🎉 ➔</span>
                   </button>
                 ) : (
                   <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-bold">
