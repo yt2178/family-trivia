@@ -39,6 +39,9 @@ export const ControlTab: React.FC = () => {
   const isConnected = useConnectionStatus();
 
   const [showAllNextSpeakers, setShowAllNextSpeakers] = useState(false);
+  const [showMidGameNotice, setShowMidGameNotice] = useState<boolean>(() => {
+    return gameState.isPlaying && gameState.startStage === 'in_game';
+  });
 
   const shuffledIds = gameState.shuffledQuestionIds || [];
   const isGameLoaded = shuffledIds.length > 0;
@@ -553,6 +556,63 @@ export const ControlTab: React.FC = () => {
                 className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-sm rounded-xl hover:from-emerald-400 hover:to-teal-300 transition-all shadow-lg shadow-emerald-950/20"
               >
                 התחל משחק 🎮
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mid-Game Reconnect Prompt Modal */}
+      {showMidGameNotice && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4 text-right" dir="rtl">
+          <div className="max-w-md w-full glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl relative overflow-hidden animate-fade-in">
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+
+            <div className="text-center space-y-3 relative z-10">
+              <div className="inline-flex items-center justify-center p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl shadow-xl animate-pulse">
+                <span className="text-4xl">🎮</span>
+              </div>
+              <h2 className="text-2xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
+                המשחק כבר בעיצומו!
+              </h2>
+              <p className="text-slate-300 text-sm leading-relaxed font-semibold">
+                שמנו לב שקיים משחק פתוח ופעיל כעת בחדר זה.
+              </p>
+            </div>
+
+            <div className="bg-slate-950/60 border border-slate-800 p-4 rounded-2xl space-y-2 relative z-10 text-xs text-slate-300 leading-relaxed font-medium">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                <span className="text-slate-400">שאלה נוכחית:</span>
+                <strong className="text-emerald-400 font-bold text-sm">
+                  שאלה {gameState.currentQuestionIndex + 1} מתוך {questions.length}
+                </strong>
+              </div>
+              {activeQuestion && (
+                <p className="italic text-slate-400 truncate pt-1">
+                  ״{activeQuestion.text}״
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-3 pt-2 relative z-10">
+              <button
+                type="button"
+                onClick={() => setShowMidGameNotice(false)}
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>להמשיך מאיפה שהפסקנו (שאלה {gameState.currentQuestionIndex + 1}) ➔</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleAdvanceStartStage('logo');
+                  setShowMidGameNotice(false);
+                }}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-rose-400 hover:text-rose-300 border border-rose-500/30 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>להתחיל משחק חדש מהתחלה 🔄</span>
               </button>
             </div>
           </div>
