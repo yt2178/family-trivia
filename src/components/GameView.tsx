@@ -500,33 +500,40 @@ export const GameView: React.FC = React.memo(() => {
     audioHelper.setMute(isBgMusicMuted);
   }, [isBgMusicMuted]);
 
-  // Background music effect
+  // Background & Pre-game music effect
   useEffect(() => {
     const totalQ = (gameState.shuffledQuestionIds || []).length;
     const isGameOver = totalQ > 0 && gameState.currentQuestionIndex >= totalQ;
-    
-    // Play background music if game is active, not over, not paused, and countdown is finished
-    const isRunning = gameState.isPlaying && !isGameOver && startCountdownValue === null && !gameState.isPaused;
+    const isPreGame = !!(gameState.startStage && gameState.startStage !== 'in_game');
 
-    if (!isAudioSuspended && !isBgMusicMuted && isRunning) {
-      audioHelper.startBackgroundMusic();
-    } else {
-      audioHelper.stopBackgroundMusic();
-    }
-
-    // Play calm pause music if game is active, not over, and is paused
-    const isPausedMode = gameState.isPlaying && !isGameOver && gameState.isPaused;
-    if (!isAudioSuspended && !isBgMusicMuted && isPausedMode) {
-      audioHelper.startPauseMusic();
-    } else {
-      audioHelper.stopPauseMusic();
+    if (!isAudioSuspended && !isBgMusicMuted) {
+      if (isPreGame && startCountdownValue === null) {
+        audioHelper.startIntroMusic();
+      } else if (gameState.isPlaying && !isGameOver && startCountdownValue === null && !gameState.isPaused) {
+        audioHelper.startBackgroundMusic();
+      } else if (gameState.isPlaying && !isGameOver && gameState.isPaused) {
+        audioHelper.startPauseMusic();
+      } else {
+        audioHelper.stopBackgroundMusic();
+        audioHelper.stopPauseMusic();
+        if (startCountdownValue === null) {
+          audioHelper.stopIntroMusic();
+        }
+      }
     }
 
     return () => {
       audioHelper.stopBackgroundMusic();
       audioHelper.stopPauseMusic();
     };
-  }, [isAudioSuspended, isBgMusicMuted, gameState.isPlaying, startCountdownValue, gameState.isPaused]);
+  }, [isAudioSuspended, isBgMusicMuted, gameState.isPlaying, gameState.startStage, startCountdownValue, gameState.isPaused]);
+
+  // SFX applause on pregame stage changes
+  useEffect(() => {
+    if (gameState.startStage === 'contestants_names' || gameState.startStage === 'contestants_photos') {
+      audioHelper.play('victory');
+    }
+  }, [gameState.startStage]);
 
   useEffect(() => {
     const ctx = audioHelper.getContext();
@@ -1250,26 +1257,18 @@ export const GameView: React.FC = React.memo(() => {
 
               {gameState.startStage === 'group_welcome' ? (
                 // Stage 2: Group Welcome
-                <div className="space-y-3 md:space-y-4 w-full max-w-2xl animate-fade-in text-center relative z-10">
+                <div className="space-y-4 w-full max-w-2xl animate-fade-in text-center relative z-10">
                   <h2 className="text-2xl md:text-4xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent drop-shadow-md">
                     ברוכים הבאים לכל המשתתפים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial] select-none">🎉</span>
                   </h2>
                   {settings.groupName && (
-                    <div className="relative inline-block px-6 py-3 bg-gradient-to-b from-slate-900/80 to-slate-950/90 rounded-2xl border-2 border-emerald-500/30 shadow-2xl backdrop-blur-md animate-pulse">
-                      <div className="absolute -inset-0.5 bg-emerald-500/10 rounded-2xl blur opacity-50" />
-                      <span className="relative text-xl md:text-3xl font-black text-emerald-400 drop-shadow">
+                    <div className="relative inline-block px-8 py-4 bg-slate-900/90 rounded-2xl border-2 border-amber-400/40 shadow-2xl backdrop-blur-md animate-pulse">
+                      <div className="absolute -inset-0.5 bg-amber-500/20 rounded-2xl blur opacity-60" />
+                      <span className="relative text-2xl md:text-4xl font-black bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent drop-shadow">
                         {settings.groupName}
                       </span>
                     </div>
                   )}
-                  <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl text-right space-y-2 shadow-xl backdrop-blur-md max-w-xl mx-auto">
-                    <h3 className="text-xs md:text-sm font-black text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-1.5">
-                      📌 הוראות למשתתפים:
-                    </h3>
-                    <p className="text-slate-200 text-xs md:text-sm leading-relaxed font-semibold">
-                      הקשיבו ל-<strong className="text-amber-300 font-black">{hostLabel}</strong>! כל אחד מבני המשפחה בתורו יגיד ציטוט או משפט, והמתחרים שלנו ({contestantNames}) יצטרכו לזהות מי אמר מה!
-                    </p>
-                  </div>
                 </div>
               ) : gameState.startStage === 'contestants_welcome' ? (
                 // Stage 3: Contestants Welcome
@@ -1277,12 +1276,12 @@ export const GameView: React.FC = React.memo(() => {
                   <h2 className="text-3xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
                     ברוכים הבאים למתמודדים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🎙️</span>
                   </h2>
-                  <div className="bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl shadow-xl">
-                    <p className="text-lg md:text-xl font-black text-slate-100 leading-relaxed animate-pulse">
-                      על כושר זיהוי מהיר וזריזות! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">⚡</span>
+                  <div className="bg-slate-900/60 border border-slate-800/80 p-6 rounded-2xl shadow-xl space-y-3">
+                    <p className="text-xl md:text-2xl font-black text-amber-300 leading-relaxed animate-pulse">
+                      🎯 האתגר מתחיל: מי יזהה ראשון מי עומד מאחורי המשפט?
                     </p>
-                    <p className="text-slate-400 text-xs md:text-sm mt-2 font-semibold">
-                      מי יזהה הכי מהר מי אמר מה במשפחה?
+                    <p className="text-slate-200 text-sm md:text-base font-bold">
+                      חדדו את החושים ונסו לנצח במהירות את המתחרים שלכם.
                     </p>
                   </div>
                 </div>
@@ -1324,7 +1323,7 @@ export const GameView: React.FC = React.memo(() => {
                       קבלו את המתמודדים שלנו! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">📢</span>
                     </h2>
                     <p className="text-xl md:text-2xl font-black text-amber-300 drop-shadow-md select-none">
-                      בהצלחה לכל המתמודדים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">👏</span>
+                      בהצלחה לכולם! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">👏</span>
                     </p>
                   </div>
                   <div className="flex items-center justify-center gap-6 md:gap-12 flex-wrap py-4">
@@ -1368,11 +1367,11 @@ export const GameView: React.FC = React.memo(() => {
                       מי אמר מה?
                     </h1>
                     <p className="text-amber-400 font-bold text-xl md:text-2xl">
-                      חידון הציטוטים המשפחתי {hostLabel ? `בהנחיית ${hostLabel}` : ''} 🎙️
+                      חידון הציטוטים {hostLabel ? `בהנחיית ${hostLabel}` : ''} <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">🎙️</span>
                     </p>
                   </div>
 
-                  <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl text-right space-y-3 shadow-xl backdrop-blur-md">
+                  <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl text-center space-y-3 shadow-xl backdrop-blur-md">
                     <h3 className="text-sm font-black text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-2">
                       📌 הוראות למשתתפים:
                     </h3>
@@ -1682,106 +1681,12 @@ export const GameView: React.FC = React.memo(() => {
                   >
                     {winnerRevealTimer}
                   </motion.div>
-                  <p className="text-slate-400 text-sm font-semibold tracking-wider">
-                    המתנה קצרה... מי אמר את הכי הרבה ציטוטים נכון?
+                  <p className="text-slate-200 text-base md:text-xl font-bold tracking-wider animate-pulse">
+                    🔥 רגע האמת הגיע! מי קטף את תואר אלוף הזיהוי המהיר? 🏆
                   </p>
                 </div>
               ) : (
-                galleryTransitionTimer === 0 ? (
-                // Phase 2: Full Screen Festive Gallery Page
-                (() => {
-                  const count = members.length;
-                  const contestantCount = (settings.contestants || []).length;
-
-                  // Determine grid columns for members based on count
-                  // Goal: fill the screen in rows without scrolling
-                  let cols: number;
-                  if (count > 120) cols = 20;
-                  else if (count > 90) cols = 18;
-                  else if (count > 70) cols = 15;
-                  else if (count > 55) cols = 13;
-                  else if (count > 40) cols = 11;
-                  else if (count > 28) cols = 9;
-                  else if (count > 18) cols = 7;
-                  else if (count > 10) cols = 6;
-                  else if (count > 6) cols = 5;
-                  else cols = 4;
-
-                  // Contestant row sizes (bigger, always visible)
-                  let cImgSize: string;
-                  if (contestantCount > 6) cImgSize = 'w-14 h-14';
-                  else if (contestantCount > 4) cImgSize = 'w-20 h-20';
-                  else cImgSize = 'w-28 h-28';
-
-                  return (
-                    <div className="flex-grow flex flex-col h-full min-h-0 animate-fade-in text-center overflow-hidden" style={{ gap: '0.4rem' }}>
-                      <h2 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.2)] shrink-0 leading-tight py-0.5">
-                        כל הכבוד לכל המשתתפים!
-                      </h2>
-
-                      {/* Contestants Row – always prominent */}
-                      <div className="flex flex-wrap justify-center gap-4 pb-2 border-b border-slate-800/50 max-w-7xl mx-auto shrink-0">
-                        {(settings.contestants || []).map((c, index) => {
-                          const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length];
-                          return (
-                            <div key={c.id} className="flex flex-col items-center gap-1.5 group">
-                              <div className="relative">
-                                <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient || 'from-emerald-500 to-teal-400'} rounded-full blur opacity-55 group-hover:opacity-90 transition-opacity duration-300`} />
-                                <div className={`relative ${cImgSize} rounded-full border-2 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-xl`}>
-                                  {c.image ? (
-                                    <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <div className={`w-full h-full bg-gradient-to-b from-slate-850 to-slate-950 flex items-center justify-center text-xl font-black ${colors.text}`}>
-                                      🏆
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <span className={`text-sm font-black ${colors.text} truncate max-w-[5rem] text-center`} title={c.name}>
-                                {c.name}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Members Grid – fills remaining space, no scroll */}
-                      <div
-                        className="flex-grow min-h-0 w-full max-w-[100%] mx-auto"
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-                          gap: '0.25rem',
-                          alignContent: 'center',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {members.map(m => (
-                          <div key={m.id} className="flex flex-col items-center gap-0.5 group min-w-0">
-                            <div className="relative w-full aspect-square">
-                              <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
-                              <div className="relative w-full h-full rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md">
-                                {m.image ? (
-                                  <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-[70%] select-none">
-                                    {m.gender === 'female' ? '👩' : '👨'}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <span className="text-[0.5rem] leading-tight font-bold text-slate-300 truncate w-full text-center group-hover:text-emerald-400 transition-colors" title={m.name}>
-                              {m.name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()
-
-              ) : (
-                // Phase 1: High-Celebration Winner Screen (Depends on settings.showDetailedGalleryPage toggle)
+                // High-Celebration Winner Screen Sequence
                 (() => {
                   const winnerId = getGameWinner();
                   
@@ -1796,67 +1701,81 @@ export const GameView: React.FC = React.memo(() => {
 
                   if (gameState.galleryRevealed) {
                     // --- PHASE C: Full Family Gallery Screen ---
+                    const totalGalleryCount = (settings.contestants || []).length + members.length;
+                    let cols: number;
+                    if (totalGalleryCount > 80) cols = 13;
+                    else if (totalGalleryCount > 60) cols = 11;
+                    else if (totalGalleryCount > 40) cols = 9;
+                    else if (totalGalleryCount > 25) cols = 7;
+                    else if (totalGalleryCount > 12) cols = 5;
+                    else cols = 4;
+
                     return (
-                      <div className="flex flex-col justify-between py-4 space-y-4 animate-fade-in text-center overflow-hidden h-full">
+                      <div className="flex flex-col justify-between py-2 space-y-3 animate-fade-in text-center overflow-hidden h-full max-h-full">
                         <div className="space-y-1 shrink-0">
                           <h2 className="text-3xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
                             כל הכבוד לכל המשתתפים! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">👏</span>
                           </h2>
                           <p className="text-sm md:text-base text-slate-300 font-bold">
-                            תודה לכל בני המשפחה שחלקו את הציטוטים, הצחוקים והזיכרונות! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">❤️</span>
+                            תודה לכל המשתתפים שחלקו את הציטוטים, הצחוקים והזיכרונות! <span className="not-italic inline-block [background:none] [-webkit-text-fill-color:initial]">❤️</span>
                           </p>
                         </div>
 
-                        {/* Responsive Auto-scaling Gallery Grid */}
-                        <div className="flex-grow flex flex-col justify-center min-h-0 pt-2">
-                          <div className="flex-grow overflow-y-auto flex flex-wrap justify-center items-center content-center gap-3 md:gap-4 py-2 px-4 max-w-7xl mx-auto">
-                            {/* Non-winning contestants */}
-                            {nonWinners.map(c => {
-                              const originalIdx = (settings.contestants || []).findIndex(x => x.id === c.id);
-                              const colors = CONTESTANT_COLORS[originalIdx % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
+                        {/* Responsive Auto-scaling Gallery Grid (fills screen in height & width) */}
+                        <div className="flex-grow flex flex-col justify-center min-h-0 py-1 overflow-hidden">
+                          <div 
+                            className="w-full max-w-7xl mx-auto px-2 overflow-hidden justify-center items-center"
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                              gap: '0.3rem',
+                              alignContent: 'center',
+                            }}
+                          >
+                            {/* Contestants with scores */}
+                            {(settings.contestants || []).map((c, index) => {
+                              const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
                               const score = gameState.scores[c.id] || 0;
                               return (
-                                <div key={c.id} className="flex flex-col items-center gap-1 group shrink-0">
-                                  <div className="relative">
-                                    <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-60 group-hover:opacity-100 transition-opacity`} />
-                                    <div className="relative w-[clamp(3rem,6vw,5.5rem)] h-[clamp(3rem,6vw,5.5rem)] rounded-full border-2 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
+                                <div key={c.id} className="flex flex-col items-center gap-0.5 group min-w-0">
+                                  <div className="relative w-full aspect-square max-w-[4.2rem] mx-auto">
+                                    <div className={`absolute -inset-0.5 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-70 group-hover:opacity-100 transition-opacity`} />
+                                    <div className="relative w-full h-full rounded-full border-2 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
                                       {c.image ? (
                                         <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
                                       ) : (
-                                        <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xl font-black ${colors.text}`}>
+                                        <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xs font-black ${colors.text}`}>
                                           🏆
                                         </div>
                                       )}
                                     </div>
                                   </div>
-                                  <div className="text-center">
-                                    <span className="text-[clamp(0.65rem,1.2vw,0.9rem)] font-black text-amber-300 truncate block max-w-[100px]" title={c.name}>
-                                      {c.name}
-                                    </span>
-                                    <span className="text-[clamp(0.55rem,1vw,0.75rem)] font-bold text-slate-400 bg-slate-950/40 px-1.5 py-0.5 rounded border border-slate-800/40 inline-block mt-0.5">
-                                      {score} נק'
-                                    </span>
-                                  </div>
+                                  <span className="text-[0.6rem] md:text-[0.75rem] font-black text-amber-300 truncate w-full text-center" title={c.name}>
+                                    {c.name}
+                                  </span>
+                                  <span className="text-[0.5rem] md:text-[0.65rem] font-bold text-slate-300 bg-slate-950/60 px-1 py-0.2 rounded border border-slate-800/40 inline-block">
+                                    {score} נק'
+                                  </span>
                                 </div>
                               );
                             })}
 
                             {/* Regular family members */}
                             {members.map(m => (
-                              <div key={m.id} className="flex flex-col items-center gap-1 group shrink-0">
-                                <div className="relative">
+                              <div key={m.id} className="flex flex-col items-center gap-0.5 group min-w-0">
+                                <div className="relative w-full aspect-square max-w-[3.8rem] mx-auto">
                                   <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/25 to-teal-500/25 rounded-full blur opacity-30 group-hover:opacity-100 transition-opacity" />
-                                  <div className="relative w-[clamp(2.4rem,4.5vw,4.2rem)] h-[clamp(2.4rem,4.5vw,4.2rem)] rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md">
+                                  <div className="relative w-full h-full rounded-full border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md">
                                     {m.image ? (
                                       <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
                                     ) : (
-                                      <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-[110%] select-none">
+                                      <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-[80%] select-none">
                                         {m.gender === 'female' ? '👩' : '👨'}
                                       </div>
                                     )}
                                   </div>
                                 </div>
-                                <span className="text-[clamp(0.6rem,1.1vw,0.85rem)] font-bold text-slate-300 truncate max-w-[80px] text-center group-hover:text-emerald-400 transition-colors" title={m.name}>
+                                <span className="text-[0.55rem] md:text-[0.7rem] font-bold text-slate-300 truncate w-full text-center group-hover:text-emerald-400 transition-colors" title={m.name}>
                                   {m.name}
                                 </span>
                               </div>
@@ -1966,7 +1885,7 @@ export const GameView: React.FC = React.memo(() => {
                     }
                   }
                 })()
-              ))}
+              )}
 
 
             </motion.div>
