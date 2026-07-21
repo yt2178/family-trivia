@@ -462,16 +462,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [questions, gameState?.shuffledQuestionIds, settings.questionOrder]);
 
-  // Automatically show the participant order modal when entering controller mode at the beginning of the game
-  useEffect(() => {
-    if (
-      adminSubMode === 'controller' &&
-      settings?.questionOrder === 'sequential' &&
-      gameState?.currentQuestionIndex === 0
-    ) {
-      setShowContestantOrderModal(true);
-    }
-  }, [adminSubMode, settings?.questionOrder, gameState?.currentQuestionIndex]);
+  // (Contestant order modal was removed - participants order is now shown in the pre-game slides on the projection screen)
 
   const saveDraftToLocalStorage = (
     hostName: string,
@@ -765,6 +756,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ...freshState,
         startStage: 'logo',
         winnerRevealed: false,
+        teaserRevealed: false,
         galleryRevealed: false
       };
       updateGameState(updatedState);
@@ -782,6 +774,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ...gameState,
         startStage: nextStage,
         winnerRevealed: false,
+        teaserRevealed: false,
         galleryRevealed: false
       });
     }
@@ -792,10 +785,17 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const total = (gameState.shuffledQuestionIds || []).length;
     if (gameState.currentQuestionIndex < total) {
       const nextIndex = gameState.currentQuestionIndex + 1;
+      const isNowGameOver = nextIndex >= total;
       updateGameState({
         ...gameState,
         currentQuestionIndex: nextIndex,
         isRevealed: false,
+        // If we are advancing BACK into game from a previous end state reset the end-game flags
+        ...(isNowGameOver ? {} : {
+          winnerRevealed: false,
+          teaserRevealed: false,
+          galleryRevealed: false,
+        }),
       });
     }
   };

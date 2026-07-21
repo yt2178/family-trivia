@@ -23,7 +23,6 @@ export const ControlTab: React.FC = () => {
     gameScreenConnected,
     setActiveTab,
     handleStartGame,
-    handleStartGameAfterContestantOrder,
     handleNextQuestion,
     handlePrevQuestion,
     handleRevealAnswer,
@@ -31,8 +30,6 @@ export const ControlTab: React.FC = () => {
     handleAbsoluteReset,
     handleAdvanceStartStage,
     nextQuestionTimer,
-    showContestantOrderModal,
-    setShowContestantOrderModal,
     handleTogglePause
   } = useAdmin();
 

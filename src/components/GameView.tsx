@@ -297,7 +297,8 @@ export const GameView: React.FC = React.memo(() => {
         setWinnerRevealTimer(0);
       }
     }
-  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, hasTriggeredWinnerReveal, gameState.winnerRevealed, winnerRevealTimer]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, hasTriggeredWinnerReveal, gameState.winnerRevealed]);
 
   // Suspense timer for winner reveal - Tick Down - robust interval implementation using useRef to prevent resetting when state changes
   useEffect(() => {
