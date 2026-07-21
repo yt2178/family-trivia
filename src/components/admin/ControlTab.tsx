@@ -44,7 +44,9 @@ export const ControlTab: React.FC = () => {
   });
 
   const shuffledIds = gameState.shuffledQuestionIds || [];
-  const isGameLoaded = shuffledIds.length > 0;
+  const hasQuestions = shuffledIds.length > 0;
+  const isGameActive = gameState.startStage === 'in_game' && hasQuestions;
+  const isGameLoaded = isGameActive;
   const activeQuestionId = shuffledIds[gameState.currentQuestionIndex];
   const activeQuestion = questions.find(q => q.id === activeQuestionId);
   const liveSpeakerId = activeQuestion ? gameState.revealedSpeakers?.[activeQuestion.id] : undefined;
@@ -457,7 +459,7 @@ export const ControlTab: React.FC = () => {
             })}
           </div>
 
-          {isGameLoaded && (
+          {hasQuestions && (
             <button
               onClick={handleStartGame}
               className="w-full mt-4 py-2 border border-slate-800 hover:bg-slate-900 transition-colors text-slate-400 hover:text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"

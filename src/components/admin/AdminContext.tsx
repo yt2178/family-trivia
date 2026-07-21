@@ -759,19 +759,32 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const handleAdvanceStartStage = (nextStage: 'logo' | 'group_welcome' | 'contestants_welcome' | 'contestants_names' | 'ready' | 'contestants_photos' | 'starting' | 'in_game') => {
-    if (nextStage === 'in_game') {
+    if (!settings.setupComplete) {
+      const newSettings = { ...settings, setupComplete: true };
+      db.saveSettings(newSettings);
+      setSettings(newSettings);
+      sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
+    }
+
+    if (nextStage === 'logo') {
+      const freshState = db.resetGame();
+      const updatedState: GameState = {
+        ...freshState,
+        startStage: 'logo',
+        winnerRevealed: false,
+        galleryRevealed: false
+      };
+      updateGameState(updatedState);
+      showSuccess('המשחק הוחזר לשלב הראשון 📺');
+    } else if (nextStage === 'in_game') {
       const freshState = db.resetGame();
       const updatedState: GameState = {
         ...freshState,
         startStage: 'in_game'
       };
       updateGameState(updatedState);
-      const newSettings = { ...settings, setupComplete: true };
-      db.saveSettings(newSettings);
-      setSettings(newSettings);
-      sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
       sync.sendMessage({ type: 'START_GAME_COUNTDOWN' });
-      showSuccess('המשחק הופעל והספירה לאחור החלה!');
+      showSuccess('המשחק הופעל!');
     } else {
       updateGameState({
         ...gameState,

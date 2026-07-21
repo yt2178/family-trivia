@@ -1202,7 +1202,7 @@ export const GameView: React.FC = React.memo(() => {
       <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
 
       {/* Floating Paused Overlay */}
-      {settings.setupComplete === false && (() => {
+      {settings.setupComplete === false && !gameState.startStage && (() => {
         const step = settings.wizardStep || 1;
         const stepNames: Record<number, { label: string; icon: string }> = {
           1: { label: 'פרטי חדר ומנחה',        icon: '🏠' },
