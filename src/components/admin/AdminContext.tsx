@@ -741,20 +741,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       message: "⚠️ האם אתה בטוח שברצונך לאפס את הניקוד ולהתחיל את המשחק מחדש?\n\nכל הניקוד הנוכחי של המתחרים יימחק!",
       onConfirm: () => {
         setWizardConfirmModal(null);
-        // If sequential order is selected, show contestant order modal first
-        if (settings.questionOrder === 'sequential') {
-          setShowContestantOrderModal(true);
-          return;
-        }
-
-        const freshState = db.resetGame();
-        updateGameState(freshState);
-        const newSettings = { ...settings, setupComplete: true };
-        db.saveSettings(newSettings);
-        setSettings(newSettings);
-        sync.sendMessage({ type: 'SETTINGS_CHANGED', settings: newSettings });
-        sync.sendMessage({ type: 'START_GAME_COUNTDOWN' });
-        showSuccess('המשחק אותחל וערבוב השאלות הושלם בהצלחה!');
+        handleAdvanceStartStage('logo');
       }
     });
   };

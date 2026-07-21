@@ -470,7 +470,13 @@ export const GameView: React.FC = React.memo(() => {
         }
       });
       
+      const handleUnload = () => {
+        set(statusRef, false);
+      };
+      window.addEventListener('beforeunload', handleUnload);
+
       return () => {
+        window.removeEventListener('beforeunload', handleUnload);
         if (unsubscribeConnected) unsubscribeConnected();
         set(statusRef, false);
       };
@@ -1016,7 +1022,7 @@ export const GameView: React.FC = React.memo(() => {
     );
   }
 
-  const isInitialSetup = (settings?.setupComplete === false || totalQuestions === 0 || !gameState.isPlaying);
+  const isInitialSetup = (settings?.setupComplete === false && !gameState.startStage);
 
   // Pause screen when host is away
   if (gameState.isPaused && !isInitialSetup) {
