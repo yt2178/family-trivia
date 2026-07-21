@@ -66,37 +66,37 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
     let nameTextSize: string;
 
     if (memberCount <= 6) {
-      memberCols = Math.min(memberCount || 1, 4);
-      circleMaxW = 'max-w-[7.5rem] md:max-w-[9.5rem]';
-      nameTextSize = 'text-xs md:text-base';
+      memberCols = Math.min(memberCount || 1, 3);
+      circleMaxW = 'max-w-[10rem] md:max-w-[12rem]';
+      nameTextSize = 'text-sm md:text-lg';
     } else if (memberCount <= 12) {
       memberCols = 4;
-      circleMaxW = 'max-w-[6.5rem] md:max-w-[8.5rem]';
-      nameTextSize = 'text-xs md:text-sm';
+      circleMaxW = 'max-w-[8.5rem] md:max-w-[10.5rem]';
+      nameTextSize = 'text-xs md:text-base';
     } else if (memberCount <= 20) {
       memberCols = 5;
-      circleMaxW = 'max-w-[5.5rem] md:max-w-[7.2rem]';
-      nameTextSize = 'text-[0.75rem] md:text-xs';
+      circleMaxW = 'max-w-[7rem] md:max-w-[8.5rem]';
+      nameTextSize = 'text-xs md:text-sm';
     } else if (memberCount <= 32) {
       memberCols = 7;
-      circleMaxW = 'max-w-[4.8rem] md:max-w-[6rem]';
-      nameTextSize = 'text-[0.7rem] md:text-[0.75rem]';
+      circleMaxW = 'max-w-[5.8rem] md:max-w-[7rem]';
+      nameTextSize = 'text-[0.75rem] md:text-xs';
     } else if (memberCount <= 48) {
       memberCols = 9;
-      circleMaxW = 'max-w-[4.2rem] md:max-w-[5.2rem]';
-      nameTextSize = 'text-[0.65rem] md:text-[0.7rem]';
+      circleMaxW = 'max-w-[4.8rem] md:max-w-[5.8rem]';
+      nameTextSize = 'text-[0.7rem] md:text-[0.75rem]';
     } else if (memberCount <= 70) {
       memberCols = 11;
-      circleMaxW = 'max-w-[3.6rem] md:max-w-[4.5rem]';
-      nameTextSize = 'text-[0.6rem] md:text-[0.65rem]';
+      circleMaxW = 'max-w-[4rem] md:max-w-[4.8rem]';
+      nameTextSize = 'text-[0.65rem] md:text-[0.7rem]';
     } else {
       memberCols = 13;
-      circleMaxW = 'max-w-[3.2rem] md:max-w-[3.8rem]';
-      nameTextSize = 'text-[0.55rem] md:text-[0.6rem]';
+      circleMaxW = 'max-w-[3.5rem] md:max-w-[4.2rem]';
+      nameTextSize = 'text-[0.6rem] md:text-[0.65rem]';
     }
 
     return (
-      <div className="flex flex-col justify-between py-2 space-y-3 animate-fade-in text-center overflow-hidden h-full max-h-full">
+      <div className="flex flex-col justify-between py-2 space-y-4 animate-fade-in text-center overflow-hidden h-full max-h-full">
         {/* Title & Subtitle */}
         <div className="space-y-1 shrink-0">
           <h2 className="text-3xl md:text-5xl font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] select-none">
@@ -107,31 +107,34 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
           </p>
         </div>
 
-        {/* Top Section: Contestants Standalone Row */}
-        <div className="shrink-0 py-2">
-          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-10 max-w-6xl mx-auto px-2">
+        {/* Top Section: Contestants Standalone VIP Row */}
+        <div className="shrink-0 py-2 bg-slate-900/40 border border-amber-500/20 rounded-3xl p-3 md:p-4 max-w-6xl mx-auto w-full shadow-2xl backdrop-blur-sm">
+          <div className="text-xs md:text-sm font-black text-amber-400 uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
+            <span>👑 המתחרים שלנו 👑</span>
+          </div>
+          <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-8 md:gap-14 max-w-5xl mx-auto px-2">
             {contestantsList.map((c: Contestant, index: number) => {
               const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
               const score = gameState.scores[c.id] || 0;
               return (
-                <div key={c.id} className="flex flex-col items-center gap-1 group">
-                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 lg:w-36 lg:h-36">
-                    <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient} rounded-full blur-md opacity-80 group-hover:opacity-100 transition-opacity`} />
-                    <div className="relative w-full h-full rounded-full border-4 border-slate-900 bg-slate-900 overflow-hidden flex items-center justify-center shadow-2xl">
+                <div key={c.id} className="flex flex-col items-center gap-2 group">
+                  <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 lg:w-48 lg:h-48">
+                    <div className={`absolute -inset-1.5 bg-gradient-to-tr ${colors.gradient} rounded-full blur-lg opacity-85 group-hover:opacity-100 transition-opacity animate-pulse`} />
+                    <div className="relative w-full h-full rounded-full border-4 border-slate-950 bg-slate-900 overflow-hidden flex items-center justify-center shadow-2xl">
                       {c.image ? (
                         <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-3xl md:text-5xl font-black ${colors.text}`}>
+                        <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-4xl md:text-6xl font-black ${colors.text}`}>
                           🏆
                         </div>
                       )}
                     </div>
                   </div>
-                  <span className="text-sm sm:text-base md:text-xl font-black text-amber-300 truncate max-w-[9rem] sm:max-w-[12rem] text-center drop-shadow" title={c.name}>
+                  <span className="text-base sm:text-xl md:text-2xl font-black text-amber-300 truncate max-w-[10rem] sm:max-w-[14rem] text-center drop-shadow-md" title={c.name}>
                     {c.name}
                   </span>
-                  <span className="text-xs sm:text-sm md:text-base font-bold text-slate-100 bg-slate-950/80 px-2.5 py-0.5 rounded-full border border-amber-500/30 shadow-md">
-                    {score} נק'
+                  <span className="text-xs sm:text-base md:text-lg font-black text-slate-950 bg-gradient-to-r from-amber-300 to-yellow-400 px-4 py-1 rounded-full shadow-lg border border-amber-200">
+                    {score} נקודות
                   </span>
                 </div>
               );
@@ -141,31 +144,34 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
 
         {/* Bottom Section: Responsive Auto-scaling Family Members Grid */}
         {members.length > 0 && (
-          <div className="flex-grow flex flex-col justify-center min-h-0 py-1 overflow-hidden">
+          <div className="flex-grow flex flex-col justify-center min-h-0 py-2 overflow-hidden">
+            <div className="text-[11px] md:text-xs font-bold text-emerald-400/80 mb-2 uppercase tracking-wider">
+              בני המשפחה ששתפו את הציטוטים:
+            </div>
             <div 
               className="w-full max-w-7xl mx-auto px-2 overflow-hidden justify-center items-center"
               style={{
                 display: 'grid',
                 gridTemplateColumns: `repeat(${memberCols}, minmax(0, 1fr))`,
-                gap: '0.4rem',
+                gap: '0.6rem',
                 alignContent: 'center',
               }}
             >
               {members.map((m: FamilyMember) => (
-                <div key={m.id} className="flex flex-col items-center gap-0.5 group min-w-0">
+                <div key={m.id} className="flex flex-col items-center gap-1 group min-w-0">
                   <div className={`relative w-full aspect-square ${circleMaxW} mx-auto`}>
-                    <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500/30 to-teal-500/30 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative w-full h-full rounded-full border-2 border-slate-800/80 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md">
+                    <div className="absolute -inset-1 bg-gradient-to-tr from-emerald-500/40 to-teal-500/40 rounded-full blur-md opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative w-full h-full rounded-full border-2 border-slate-700 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
                       {m.image ? (
                         <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-lg sm:text-2xl md:text-3xl select-none">
+                        <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xl sm:text-3xl md:text-4xl select-none">
                           {m.gender === 'female' ? '👩' : '👨'}
                         </div>
                       )}
                     </div>
                   </div>
-                  <span className={`${nameTextSize} font-bold text-slate-200 truncate w-full text-center group-hover:text-emerald-400 transition-colors`} title={m.name}>
+                  <span className={`${nameTextSize} font-extrabold text-slate-100 truncate w-full text-center group-hover:text-emerald-400 transition-colors drop-shadow`} title={m.name}>
                     {m.name}
                   </span>
                 </div>
