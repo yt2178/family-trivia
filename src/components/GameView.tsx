@@ -292,12 +292,12 @@ export const GameView: React.FC = React.memo(() => {
         setHasTriggeredWinnerReveal(true);
       }
     } else {
-      if (hasTriggeredWinnerReveal) {
+      if (hasTriggeredWinnerReveal || winnerRevealTimer > 0) {
         setHasTriggeredWinnerReveal(false);
         setWinnerRevealTimer(0);
       }
     }
-  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, hasTriggeredWinnerReveal, gameState.winnerRevealed]);
+  }, [gameState.currentQuestionIndex, gameState.shuffledQuestionIds, hasTriggeredWinnerReveal, gameState.winnerRevealed, winnerRevealTimer]);
 
   // Suspense timer for winner reveal - Tick Down - robust interval implementation using useRef to prevent resetting when state changes
   useEffect(() => {
@@ -771,7 +771,10 @@ export const GameView: React.FC = React.memo(() => {
             const updated = {
               ...prev,
               currentQuestionIndex: prev.currentQuestionIndex - 1,
-              isRevealed: false
+              isRevealed: false,
+              winnerRevealed: false,
+              teaserRevealed: false,
+              galleryRevealed: false,
             };
             sync.sendMessage({ type: 'STATE_CHANGED', state: updated });
             return updated;

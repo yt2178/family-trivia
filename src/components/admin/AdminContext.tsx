@@ -808,6 +808,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ...gameState,
         currentQuestionIndex: prevIndex,
         isRevealed: false,
+        winnerRevealed: false,
+        teaserRevealed: false,
+        galleryRevealed: false,
       });
     }
   };
