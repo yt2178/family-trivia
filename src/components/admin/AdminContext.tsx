@@ -140,7 +140,6 @@ interface AdminContextType {
   nextQuestionTimer: number;
   setNextQuestionTimer: React.Dispatch<React.SetStateAction<number>>;
   showContestantOrderModal: boolean;
-  setShowContestantOrderModal: React.Dispatch<React.SetStateAction<boolean>>;
   
   // Wizard buffers
   wizardHostName: string;
@@ -176,7 +175,6 @@ interface AdminContextType {
   updateGameState: (newState: GameState) => void;
   updateSettings: (newSettings: GameSettings) => void;
   handleStartGame: () => void;
-  handleStartGameAfterContestantOrder: () => void;
   handleAdvanceStartStage: (nextStage: 'logo' | 'group_welcome' | 'contestants_welcome' | 'contestants_names' | 'ready' | 'contestants_photos' | 'starting' | 'in_game') => void;
   handleNextQuestion: () => void;
   handlePrevQuestion: () => void;
@@ -737,10 +735,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
-  const handleStartGameAfterContestantOrder = () => {
-    setShowContestantOrderModal(false);
-    handleAdvanceStartStage('logo');
-  };
 
   const handleAdvanceStartStage = (nextStage: 'logo' | 'group_welcome' | 'contestants_welcome' | 'contestants_names' | 'ready' | 'contestants_photos' | 'starting' | 'in_game') => {
     if (!settings.setupComplete) {
@@ -785,17 +779,14 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const total = (gameState.shuffledQuestionIds || []).length;
     if (gameState.currentQuestionIndex < total) {
       const nextIndex = gameState.currentQuestionIndex + 1;
-      const isNowGameOver = nextIndex >= total;
       updateGameState({
         ...gameState,
         currentQuestionIndex: nextIndex,
         isRevealed: false,
-        // If we are advancing BACK into game from a previous end state reset the end-game flags
-        ...(isNowGameOver ? {} : {
-          winnerRevealed: false,
-          teaserRevealed: false,
-          galleryRevealed: false,
-        }),
+        // Always reset end-game reveal flags so the full sequence replays if user returns to end
+        winnerRevealed: false,
+        teaserRevealed: false,
+        galleryRevealed: false,
       });
     }
   };
@@ -1287,7 +1278,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       nextQuestionTimer,
       setNextQuestionTimer,
       showContestantOrderModal,
-      setShowContestantOrderModal,
       
       wizardHostName,
       setWizardHostName,
@@ -1321,7 +1311,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updateGameState,
       updateSettings,
       handleStartGame,
-      handleStartGameAfterContestantOrder,
       handleAdvanceStartStage,
       handleNextQuestion,
       handlePrevQuestion,
