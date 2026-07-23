@@ -108,33 +108,33 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
         </div>
 
         {/* Contestants Standalone VIP Row (Directly below thanks sentence) */}
-        <div className="shrink-0 py-2 bg-slate-900/40 border border-amber-500/20 rounded-3xl p-3 md:p-4 max-w-6xl mx-auto w-full shadow-2xl backdrop-blur-sm">
-          <div className="text-xs md:text-sm font-black text-amber-400 uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
-            <span>👑 המתחרים שלנו 👑</span>
+        <div className="shrink-0 py-2.5 bg-slate-900/20 border border-slate-800/50 rounded-2xl p-2.5 md:p-3 max-w-4xl mx-auto w-full backdrop-blur-sm">
+          <div className="text-[10px] md:text-xs font-black text-amber-400/80 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
+            <span>👑 המתחרים 👑</span>
           </div>
-          <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-8 md:gap-14 max-w-5xl mx-auto px-2">
+          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-10 max-w-3xl mx-auto px-2">
             {contestantsList.map((c: Contestant, index: number) => {
               const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
               const score = gameState.scores[c.id] || 0;
               return (
-                <div key={c.id} className="flex flex-col items-center gap-2 group">
-                  <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 lg:w-48 lg:h-48">
-                    <div className={`absolute -inset-1.5 bg-gradient-to-tr ${colors.gradient} rounded-full blur-lg opacity-85 group-hover:opacity-100 transition-opacity animate-pulse`} />
-                    <div className="relative w-full h-full rounded-full border-4 border-slate-950 bg-slate-900 overflow-hidden flex items-center justify-center shadow-2xl">
+                <div key={c.id} className="flex flex-col items-center gap-1 group">
+                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28">
+                    <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-75 group-hover:opacity-100 transition-opacity animate-pulse`} />
+                    <div className="relative w-full h-full rounded-full border-2 border-slate-950 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
                       {c.image ? (
                         <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-4xl md:text-6xl font-black ${colors.text}`}>
+                        <div className={`w-full h-full bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center text-xl md:text-3xl font-black ${colors.text}`}>
                           🏆
                         </div>
                       )}
                     </div>
                   </div>
-                  <span className="text-base sm:text-xl md:text-2xl font-black text-amber-300 truncate max-w-[10rem] sm:max-w-[14rem] text-center drop-shadow-md" title={c.name}>
+                  <span className="text-xs sm:text-sm md:text-base font-black text-amber-300 truncate max-w-[8rem] sm:max-w-[10rem] text-center" title={c.name}>
                     {c.name}
                   </span>
-                  <span className="text-xs sm:text-base md:text-lg font-black text-slate-950 bg-gradient-to-r from-amber-300 to-yellow-400 px-4 py-1 rounded-full shadow-lg border border-amber-200">
-                    {score} נקודות
+                  <span className="text-[10px] sm:text-xs md:text-sm font-bold text-slate-100 bg-slate-950/80 px-2 py-0.5 rounded-full border border-slate-800/80 shadow-md">
+                    {score} נק'
                   </span>
                 </div>
               );
