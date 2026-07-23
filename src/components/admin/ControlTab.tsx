@@ -265,7 +265,15 @@ export const ControlTab: React.FC = () => {
                   הגענו לסוף כל השאלות. השליטו בחשיפת המנצחים וההפתעה במקרן:
                 </p>
 
-                {!gameState.teaserRevealed && !gameState.galleryRevealed ? (
+                {!gameState.winnerRevealed ? (
+                  <div className="py-6 flex flex-col items-center justify-center space-y-3 bg-slate-900/60 border border-slate-850 rounded-xl">
+                    <div className="inline-block w-6 h-6 border-3 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-amber-450 font-black text-sm animate-pulse">
+                      ⏳ מתבצעת ספירה לאחור דרמטית לחשיפת המנצח במקרן...
+                    </span>
+                    <span className="text-[10px] text-slate-500">השלט ייפתח להמשך אוטומטית עם סיום הספירה!</span>
+                  </div>
+                ) : !gameState.teaserRevealed && !gameState.galleryRevealed ? (
                   <button
                     onClick={() => {
                       updateGameState({ ...gameState, teaserRevealed: true });
