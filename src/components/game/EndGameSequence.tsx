@@ -64,35 +64,43 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
     let memberCols: number;
     let circleMaxW: string;
     let nameTextSize: string;
+    let contestantCircleW: string; // Dynamic contestant circle size proportional to family size!
 
     if (memberCount <= 6) {
       memberCols = Math.min(memberCount || 1, 3);
       circleMaxW = 'max-w-[10rem] md:max-w-[12rem]';
       nameTextSize = 'text-sm md:text-lg';
+      contestantCircleW = 'w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36';
     } else if (memberCount <= 12) {
       memberCols = 4;
       circleMaxW = 'max-w-[8.5rem] md:max-w-[10.5rem]';
       nameTextSize = 'text-xs md:text-base';
+      contestantCircleW = 'w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32';
     } else if (memberCount <= 20) {
       memberCols = 5;
       circleMaxW = 'max-w-[7rem] md:max-w-[8.5rem]';
       nameTextSize = 'text-xs md:text-sm';
+      contestantCircleW = 'w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-26 lg:h-26';
     } else if (memberCount <= 32) {
       memberCols = 7;
       circleMaxW = 'max-w-[5.8rem] md:max-w-[7rem]';
       nameTextSize = 'text-[0.75rem] md:text-xs';
+      contestantCircleW = 'w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-22 lg:h-22';
     } else if (memberCount <= 48) {
       memberCols = 9;
       circleMaxW = 'max-w-[4.8rem] md:max-w-[5.8rem]';
       nameTextSize = 'text-[0.7rem] md:text-[0.75rem]';
+      contestantCircleW = 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18';
     } else if (memberCount <= 70) {
       memberCols = 11;
       circleMaxW = 'max-w-[4rem] md:max-w-[4.8rem]';
       nameTextSize = 'text-[0.65rem] md:text-[0.7rem]';
+      contestantCircleW = 'w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16';
     } else {
       memberCols = 13;
       circleMaxW = 'max-w-[3.5rem] md:max-w-[4.2rem]';
       nameTextSize = 'text-[0.6rem] md:text-[0.65rem]';
+      contestantCircleW = 'w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14';
     }
 
     return (
@@ -108,17 +116,17 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
         </div>
 
         {/* Contestants Standalone VIP Row (Directly below thanks sentence) */}
-        <div className="shrink-0 py-2.5 bg-slate-900/20 border border-slate-800/50 rounded-2xl p-2.5 md:p-3 max-w-4xl mx-auto w-full backdrop-blur-sm">
-          <div className="text-[10px] md:text-xs font-black text-amber-400/80 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
+        <div className="shrink-0 py-2 bg-slate-900/20 border border-slate-800/50 rounded-2xl p-2 md:p-2.5 max-w-4xl mx-auto w-full backdrop-blur-sm my-1">
+          <div className="text-[10px] md:text-xs font-black text-amber-400/80 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-2">
             <span>👑 המתחרים 👑</span>
           </div>
-          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-10 max-w-3xl mx-auto px-2">
+          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-8 max-w-3xl mx-auto px-2">
             {contestantsList.map((c: Contestant, index: number) => {
               const colors = CONTESTANT_COLORS[index % CONTESTANT_COLORS.length] || CONTESTANT_COLORS[0];
               const score = gameState.scores[c.id] || 0;
               return (
                 <div key={c.id} className="flex flex-col items-center gap-1 group">
-                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28">
+                  <div className={`relative ${contestantCircleW}`}>
                     <div className={`absolute -inset-1 bg-gradient-to-tr ${colors.gradient} rounded-full blur opacity-75 group-hover:opacity-100 transition-opacity animate-pulse`} />
                     <div className="relative w-full h-full rounded-full border-2 border-slate-950 bg-slate-900 overflow-hidden flex items-center justify-center shadow-lg">
                       {c.image ? (
@@ -144,12 +152,12 @@ export const EndGameSequence: React.FC<EndGameSequenceProps> = ({
 
         {/* Bottom Section: Responsive Auto-scaling Family Members Grid */}
         {members.length > 0 && (
-          <div className="flex-grow flex flex-col justify-center min-h-0 py-2 overflow-hidden">
-            <div className="text-[11px] md:text-xs font-bold text-emerald-400/80 mb-2 uppercase tracking-wider">
+          <div className="flex-grow flex flex-col min-h-0 py-2 overflow-y-auto pr-1">
+            <div className="text-[11px] md:text-xs font-bold text-emerald-400/80 mb-2 uppercase tracking-wider shrink-0">
               בני המשפחה ששתפו את הציטוטים:
             </div>
             <div 
-              className="w-full max-w-7xl mx-auto px-2 overflow-hidden justify-center items-center"
+              className="w-full max-w-7xl mx-auto px-2 justify-center items-center pt-2 pb-3 overflow-visible"
               style={{
                 display: 'grid',
                 gridTemplateColumns: `repeat(${memberCols}, minmax(0, 1fr))`,
